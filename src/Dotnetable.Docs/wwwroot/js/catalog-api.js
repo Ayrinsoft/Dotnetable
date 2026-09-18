@@ -1878,8 +1878,14 @@ window.DOCS_API = {
               request: { body: "GET /api/Categories?lang=fa" },
               response: {
                 status: 200,
-                body: [{ slug: "news", title: "News" }],
+                body: [{ categoryID: 3, slug: "news", name: "News", summary: "Everything we publish about .NET.", sortOrder: 0, children: [] }],
               },
+              notes: [
+                {
+                  en: "`summary` is the category's plain-text introduction (null when the admin left it blank); the site renders it above that category's post list and uses it as the page description. A blank translated summary falls back to the default language. The categories embedded in a post payload do not carry it.",
+                  fa: "`summary` معرفی متنی دسته است (اگر ادمین خالی گذاشته باشد null است)؛ سایت آن را بالای لیست پست‌های همان دسته نشان می‌دهد و به‌عنوان توضیحات صفحه استفاده می‌کند. خلاصه ترجمه‌نشده به زبان پیش‌فرض برمی‌گردد. دسته‌هایی که داخل خروجی پست می‌آیند این فیلد را ندارند.",
+                },
+              ],
             },
           ],
         },

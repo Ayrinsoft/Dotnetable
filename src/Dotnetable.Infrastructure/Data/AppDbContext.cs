@@ -611,6 +611,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.Summary).HasMaxLength(2000);
 
             entity.HasOne(d => d.ParentCategory).WithMany(p => p.InverseParentCategory)
                 .HasForeignKey(d => d.ParentCategoryID)
@@ -636,6 +637,7 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.Property(e => e.Summary).HasMaxLength(2000);
 
             entity.HasOne(d => d.Category).WithMany(p => p.CategoryTranslations)
                 .HasForeignKey(d => d.CategoryID)

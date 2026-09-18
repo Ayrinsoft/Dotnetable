@@ -61,6 +61,12 @@ public class CachedCategoryService : ICategoryService
         await InvalidateAsync(ct);
     }
 
+    public async Task SaveTranslationsAsync(int categoryId, IReadOnlyDictionary<string, CategoryTranslationInput> byLanguage, CancellationToken ct = default)
+    {
+        await _inner.SaveTranslationsAsync(categoryId, byLanguage, ct);
+        await InvalidateAsync(ct);
+    }
+
     public Task<List<CategoryDto>> GetTreeAsync(int websiteId, int? postTypeId = null, string? languageCode = null, CancellationToken ct = default) =>
         _cache.GetOrCreateAsync(
             $"category:tree:{websiteId}:{postTypeId}:{languageCode}",

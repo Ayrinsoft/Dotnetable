@@ -4,6 +4,7 @@
     [LanguageCode]          CHAR (2)       NOT NULL,
     [Name]                  NVARCHAR (200) NOT NULL,
     [Slug]                  NVARCHAR (200) NOT NULL,
+    [Summary]               NVARCHAR (2000) NULL,
     CONSTRAINT [PK_CategoryTranslations] PRIMARY KEY CLUSTERED ([CategoryTranslationID] ASC),
     CONSTRAINT [FK_CategoryTranslations_Categories] FOREIGN KEY ([CategoryID]) REFERENCES [dbo].[Categories] ([CategoryID])
 );

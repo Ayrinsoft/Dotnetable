@@ -205,6 +205,16 @@ public class ApiClient
             return GetOrNullAsync<AuthorPageDto>(path, ct);
         });
 
+    /// <summary>A single active category by slug (base or translated), with its summary. Null when
+    /// unknown or the API is unreachable.</summary>
+    public Task<CategoryDto?> GetCategoryAsync(string slug, string? lang = null, CancellationToken ct = default) =>
+        CachedGetAsync($"category:{slug.ToLowerInvariant()}:{lang}", () =>
+        {
+            var path = $"api/categories/{Uri.EscapeDataString(slug)}";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+            return GetOrNullAsync<CategoryDto>(path, ct);
+        });
+
     /// <summary>Active category tree (optionally for a post type).</summary>
     public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync(int? postTypeId = null, string? lang = null, CancellationToken ct = default) =>
         await CachedGetAsync<IReadOnlyList<CategoryDto>>($"categories:{postTypeId}:{lang}", async () =>

@@ -6,6 +6,8 @@
     var title = Model.Heading ?? "Blog";
     ViewData["Title"] = title;
     Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    // The category's own summary doubles as the listing page's search-result description.
+    if (!string.IsNullOrWhiteSpace(Model.Summary)) ViewData["MetaDescription"] = Model.Summary;
     var blogAds = await Api.GetAdvertisementsAsync("Blog", Context.Request.Cookies["lang"]);
 }
 
@@ -13,6 +15,10 @@
 
 <section class="site-section">
     <div class="container">
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <div class="category-summary mb-4">@Model.Summary</div>
+        }
         @if (blogAds.Count > 0)
         {
             <div class="mb-4">

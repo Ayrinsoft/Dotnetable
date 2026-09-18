@@ -774,6 +774,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
 
@@ -813,6 +817,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
 
                     b.HasKey("CategoryTranslationID");
 

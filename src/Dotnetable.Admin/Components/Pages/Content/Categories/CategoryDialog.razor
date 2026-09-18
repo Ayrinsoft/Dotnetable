@@ -13,6 +13,11 @@
                 <MudItem xs="12" sm="5">
                     <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" />
                 </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Model.Summary" Label="@L["categories.summary", "Summary"]"
+                                  Variant="Variant.Outlined" Lines="3" AutoGrow="true" MaxLength="2000" Counter="2000"
+                                  HelperText="@L["categories.summary_hint", "Shown above the post list of this category on the website, and used as the page description for search engines. Leave blank to show nothing."]" />
+                </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudAutocomplete T="PostType" Value="@GetSelectedPostType()" ValueChanged="OnPostTypeChanged"
                                      SearchFunc="SearchPostTypes" ToStringFunc="@(t => t?.Name ?? string.Empty)"
@@ -75,6 +80,11 @@
                                         <MudTextField T="string" Value="@Slug(code)" ValueChanged="@(v => SetSlug(code, v))"
                                                       Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     </MudItem>
+                                    <MudItem xs="12">
+                                        <MudTextField T="string" Value="@Summary(code)" ValueChanged="@(v => SetSummary(code, v))"
+                                                      Label="@L["categories.summary", "Summary"]" Variant="Variant.Outlined"
+                                                      Lines="2" AutoGrow="true" MaxLength="2000" Margin="Margin.Dense" />
+                                    </MudItem>
                                 </MudGrid>
                             }
                         </MudExpansionPanel>
@@ -103,7 +113,7 @@
     private bool _saving;
     private string[]? _formErrors;
     private readonly List<int> _parentPath = new();
-    private readonly Dictionary<string, (string Name, string Slug)> _tr = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CategoryTranslationInput> _tr = new(StringComparer.OrdinalIgnoreCase);
 
     // Exclude self and descendants as parent candidates.
     private IEnumerable<Category> ParentCandidates
@@ -126,15 +136,20 @@
 
         if (!IsNew)
             foreach (var t in await CategoryService.GetTranslationsAsync(Model.CategoryID))
-                _tr[t.LanguageCode] = (t.Name, t.Slug);
+                _tr[t.LanguageCode] = new CategoryTranslationInput(t.Name, t.Slug, t.Summary);
 
         RebuildParentPath();
     }
 
-    private string Name(string code) => _tr.TryGetValue(code, out var v) ? v.Name : string.Empty;
-    private string Slug(string code) => _tr.TryGetValue(code, out var v) ? v.Slug : string.Empty;
-    private void SetName(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (v ?? string.Empty, c.Slug ?? string.Empty); }
-    private void SetSlug(string code, string v) { var c = _tr.GetValueOrDefault(code); _tr[code] = (c.Name ?? string.Empty, v ?? string.Empty); }
+    private CategoryTranslationInput Translation(string code) =>
+        _tr.TryGetValue(code, out var v) ? v : new CategoryTranslationInput(string.Empty, string.Empty, null);
+
+    private string Name(string code) => Translation(code).Name;
+    private string Slug(string code) => Translation(code).Slug;
+    private string Summary(string code) => Translation(code).Summary ?? string.Empty;
+    private void SetName(string code, string v) => _tr[code] = Translation(code) with { Name = v ?? string.Empty };
+    private void SetSlug(string code, string v) => _tr[code] = Translation(code) with { Slug = v ?? string.Empty };
+    private void SetSummary(string code, string v) => _tr[code] = Translation(code) with { Summary = v };
 
     private int ParentLevelCount
     {
@@ -266,7 +281,7 @@
                 Model = await CategoryService.CreateAsync(Model);
             else
                 await CategoryService.UpdateAsync(Model);
-            await CategoryService.SetTranslationsAsync(Model.CategoryID, _tr);
+            await CategoryService.SaveTranslationsAsync(Model.CategoryID, _tr);
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }

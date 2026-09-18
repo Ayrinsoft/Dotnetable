@@ -19,7 +19,11 @@ public interface ICategoryService
 
     // ── Translations ────────────────────────────────────────────────
     Task<List<CategoryTranslation>> GetTranslationsAsync(int categoryId, CancellationToken ct = default);
+    /// <summary>Saves name + slug per language; existing translated summaries are left as they are.</summary>
     Task SetTranslationsAsync(int categoryId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default);
+
+    /// <summary>Saves name, slug and summary per language (key = language code).</summary>
+    Task SaveTranslationsAsync(int categoryId, IReadOnlyDictionary<string, CategoryTranslationInput> byLanguage, CancellationToken ct = default);
 
     // ── Public read ─────────────────────────────────────────────────
 

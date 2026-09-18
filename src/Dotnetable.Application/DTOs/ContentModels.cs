@@ -65,6 +65,9 @@ public sealed class CategoryDto
     public int? PostTypeID { get; init; }
     public string Slug { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
+    /// <summary>Plain-text introduction for the category's listing page; null when none. Only filled by the
+    /// category endpoints, not on the categories embedded in post payloads.</summary>
+    public string? Summary { get; init; }
     public int SortOrder { get; init; }
     public IReadOnlyList<CategoryDto> Children { get; init; } = Array.Empty<CategoryDto>();
 }
@@ -93,3 +96,7 @@ public sealed class PostFilter
     public int? CategoryID { get; set; }
     public byte? Status { get; set; }
 }
+
+/// <summary>One language's texts of a category, for <c>ICategoryService.SaveTranslationsAsync</c>.
+/// A blank <see cref="Name"/> removes the translation.</summary>
+public sealed record CategoryTranslationInput(string Name, string Slug, string? Summary);
