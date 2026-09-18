@@ -78,7 +78,7 @@ public class CategoryService : ICategoryService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        NormalizeOptionalFks(category);
+        Normalize(category);
         var used = await GetUsedSlugsAsync(_context, category.WebsiteID, excludeCategoryId: 0, ct);
         category.Slug = SlugGenerator.MakeUnique(
             SlugGenerator.Normalize(string.IsNullOrWhiteSpace(category.Slug) ? category.Name : category.Slug, SlugMaxLength),
@@ -96,7 +96,7 @@ public class CategoryService : ICategoryService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        NormalizeOptionalFks(category);
+        Normalize(category);
         var used = await GetUsedSlugsAsync(_context, category.WebsiteID, category.CategoryID, ct);
         category.Slug = SlugGenerator.MakeUnique(
             SlugGenerator.Normalize(string.IsNullOrWhiteSpace(category.Slug) ? category.Name : category.Slug, SlugMaxLength),
@@ -129,11 +129,13 @@ public class CategoryService : ICategoryService
     }
 
     /// <summary>MudSelect / clearable binds sometimes emit 0 instead of null for optional int FKs;
-    /// 0 is not a real Category/PostType key and breaks SAME TABLE / PostTypes FKs.</summary>
-    private static void NormalizeOptionalFks(Category category)
+    /// 0 is not a real Category/PostType key and breaks SAME TABLE / PostTypes FKs. Blank summaries
+    /// are stored as null so the site can test one field instead of two.</summary>
+    private static void Normalize(Category category)
     {
         if (category.ParentCategoryID is 0) category.ParentCategoryID = null;
         if (category.PostTypeID is 0) category.PostTypeID = null;
+        category.Summary = Clean(category.Summary);
     }
 
 
@@ -148,7 +150,17 @@ public class CategoryService : ICategoryService
             .ToListAsync(ct);
     }
 
-    public async Task SetTranslationsAsync(int categoryId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default)
+    public Task SetTranslationsAsync(int categoryId, IReadOnlyDictionary<string, (string Name, string Slug)> byLanguage, CancellationToken ct = default) =>
+        SaveAsync(categoryId, byLanguage.ToDictionary(kv => kv.Key, kv => new CategoryTranslationInput(kv.Value.Name, kv.Value.Slug, null)),
+            writeSummary: false, ct);
+
+    public Task SaveTranslationsAsync(int categoryId, IReadOnlyDictionary<string, CategoryTranslationInput> byLanguage, CancellationToken ct = default) =>
+        SaveAsync(categoryId, byLanguage, writeSummary: true, ct);
+
+    /// <summary><paramref name="writeSummary"/> is false for the name/slug-only overload, so a caller that
+    /// knows nothing about summaries cannot wipe the ones already translated.</summary>
+    private async Task SaveAsync(int categoryId, IReadOnlyDictionary<string, CategoryTranslationInput> byLanguage,
+        bool writeSummary, CancellationToken ct)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -185,11 +197,13 @@ public class CategoryService : ICategoryService
                     LanguageCode = languageCode,
                     Name = value.Name.Trim(),
                     Slug = slug,
+                    Summary = Clean(value.Summary),
                 });
             else
             {
                 current.Name = value.Name.Trim();
                 current.Slug = slug;
+                if (writeSummary) current.Summary = Clean(value.Summary);
             }
         }
 
@@ -243,7 +257,7 @@ public class CategoryService : ICategoryService
 
     private static CategoryDto Project(Category c, IReadOnlyList<CategoryDto> children, string? languageCode)
     {
-        var (name, slug) = Localized(c, languageCode);
+        var (name, slug, summary) = Localized(c, languageCode);
         return new CategoryDto
         {
             CategoryID = c.CategoryID,
@@ -251,20 +265,25 @@ public class CategoryService : ICategoryService
             PostTypeID = c.PostTypeID,
             Name = name,
             Slug = slug,
+            Summary = summary,
             SortOrder = c.SortOrder,
             Children = children,
         };
     }
 
-    private static (string Name, string Slug) Localized(Category c, string? languageCode)
+    private static (string Name, string Slug, string? Summary) Localized(Category c, string? languageCode)
     {
         if (!string.IsNullOrWhiteSpace(languageCode))
         {
             var t = c.CategoryTranslations.FirstOrDefault(x =>
                 string.Equals(x.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase));
             if (t is not null && !string.IsNullOrWhiteSpace(t.Name))
-                return (t.Name, string.IsNullOrWhiteSpace(t.Slug) ? c.Slug : t.Slug);
+                return (t.Name,
+                    string.IsNullOrWhiteSpace(t.Slug) ? c.Slug : t.Slug,
+                    string.IsNullOrWhiteSpace(t.Summary) ? c.Summary : t.Summary);
         }
-        return (c.Name, c.Slug);
+        return (c.Name, c.Slug, c.Summary);
     }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

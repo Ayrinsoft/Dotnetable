@@ -466,3 +466,16 @@ a { text-decoration: none; }
     color: var(--site-dark);
     font-weight: 600;
 }
+
+
+/* ---------- Category summary above a post listing ---------- */
+.category-summary {
+    background: var(--site-light);
+    border: 1px solid var(--site-border);
+    border-radius: var(--site-radius);
+    padding: 1rem 1.25rem;
+    color: var(--site-muted);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    max-width: 60rem;
+}

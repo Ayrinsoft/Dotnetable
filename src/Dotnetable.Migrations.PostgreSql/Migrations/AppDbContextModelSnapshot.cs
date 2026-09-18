@@ -813,6 +813,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
 
@@ -854,6 +858,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.HasKey("CategoryTranslationID");
 

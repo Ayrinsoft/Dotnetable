@@ -5,6 +5,7 @@ CREATE TABLE [dbo].[Categories] (
     [ParentCategoryID] INT            NULL,
     [Name]             NVARCHAR (200) NOT NULL,
     [Slug]             NVARCHAR (200) NOT NULL,
+    [Summary]          NVARCHAR (2000) NULL,
     [SortOrder]        INT NOT NULL,
     [IsActive]         BIT NOT NULL,
     CONSTRAINT [PK_Categories] PRIMARY KEY CLUSTERED ([CategoryID] ASC),

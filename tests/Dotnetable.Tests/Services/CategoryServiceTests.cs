@@ -164,6 +164,65 @@ public class CategoryServiceTests : IDisposable
         tr.Should().ContainSingle(t => t.LanguageCode == "fa" && t.Slug == "other-fa-2");
     }
 
+    // ── Summary shown above the category's post listing ─────────────
+
+    [Fact]
+    public async Task Summary_Is_Trimmed_Blanked_To_Null_And_Returned_By_Slug()
+    {
+        var cat = await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "News", Slug = "news", IsActive = true,
+            Summary = "  Everything we publish about .NET.  ",
+        });
+
+        var dto = await _service.GetBySlugAsync(_website.WebsiteID, "news");
+        dto!.Summary.Should().Be("Everything we publish about .NET.");
+
+        cat.Summary = "   ";
+        await _service.UpdateAsync(cat);
+        (await _service.GetBySlugAsync(_website.WebsiteID, "news"))!.Summary.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Summary_Falls_Back_To_The_Default_Language_When_Not_Translated()
+    {
+        var cat = await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "News", Slug = "news", IsActive = true, Summary = "Base summary",
+        });
+        await _service.SaveTranslationsAsync(cat.CategoryID, new Dictionary<string, CategoryTranslationInput>
+        {
+            ["fa"] = new("اخبار", "akhbar", null),
+            ["de"] = new("Nachrichten", "nachrichten", "Deutsche Zusammenfassung"),
+        });
+
+        (await _service.GetBySlugAsync(_website.WebsiteID, "akhbar", "fa"))!.Summary.Should().Be("Base summary");
+        (await _service.GetBySlugAsync(_website.WebsiteID, "nachrichten", "de"))!.Summary.Should().Be("Deutsche Zusammenfassung");
+
+        var tree = await _service.GetTreeAsync(_website.WebsiteID, languageCode: "de");
+        tree.Should().ContainSingle().Which.Summary.Should().Be("Deutsche Zusammenfassung");
+    }
+
+    [Fact]
+    public async Task Name_Slug_Only_Save_Keeps_An_Existing_Translated_Summary()
+    {
+        var cat = await _service.CreateAsync(new Category
+        {
+            WebsiteID = _website.WebsiteID, Name = "News", Slug = "news", IsActive = true,
+        });
+        await _service.SaveTranslationsAsync(cat.CategoryID, new Dictionary<string, CategoryTranslationInput>
+        {
+            ["fa"] = new("اخبار", "akhbar", "خلاصه فارسی"),
+        });
+
+        await _service.SetTranslationsAsync(cat.CategoryID, new Dictionary<string, (string, string)>
+        {
+            ["fa"] = ("اخبار", "akhbar"),
+        });
+
+        (await _service.GetTranslationsAsync(cat.CategoryID)).Single().Summary.Should().Be("خلاصه فارسی");
+    }
+
     public void Dispose() => _context.Dispose();
 }
 

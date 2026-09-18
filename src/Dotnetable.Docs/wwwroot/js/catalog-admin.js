@@ -948,11 +948,23 @@ window.DOCS_ADMIN = {
               en: "Create categories before bulk-authoring posts; assign posts on the post editor.",
               fa: "قبل از تولید انبوه پست، دسته بسازید؛ در ادیتور پست انتساب دهید.",
             },
+            {
+              en: "**Summary** (up to 2000 characters, plain text) is shown above the post list of that category on the website — e.g. `/Blog/Category/news` — and is used as the page's description for search engines. Leave it blank and nothing is shown.",
+              fa: "**Summary** (حداکثر ۲۰۰۰ کاراکتر، متن ساده) بالای لیست پست‌های همان دسته در سایت نمایش داده می‌شود — مثلاً `/Blog/Category/news` — و به‌عنوان توضیحات صفحه برای موتورهای جستجو هم استفاده می‌شود. اگر خالی بماند چیزی نمایش داده نمی‌شود.",
+            },
+            {
+              en: "Multi-language sites: **Other languages** carries a name, slug and summary per language; a blank translated summary falls back to the default-language one.",
+              fa: "سایت‌های چندزبانه: بخش **Other languages** برای هر زبان نام، اسلاگ و خلاصه دارد؛ خلاصه ترجمه‌نشده به زبان پیش‌فرض برمی‌گردد.",
+            },
           ],
           tips: [
             {
               en: "Product categories live under Catalog → Categories (`/catalog/categories`).",
               fa: "دسته‌های محصول در Catalog → Categories (`/catalog/categories`) هستند.",
+            },
+            {
+              en: "Line breaks in the summary are kept when it is rendered; HTML is not — it is shown as plain text.",
+              fa: "خطوط جدید در خلاصه هنگام نمایش حفظ می‌شوند، اما HTML اجرا نمی‌شود و متن ساده نمایش داده می‌شود.",
             },
           ],
           related: ["posts", "content-tags", "catalog-categories"],

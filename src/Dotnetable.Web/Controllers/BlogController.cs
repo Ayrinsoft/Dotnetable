@@ -21,7 +21,8 @@ public class BlogController : Controller
         int PageSize,
         string? Category,
         string? Tag,
-        string? Heading)
+        string? Heading,
+        string? Summary = null)
     {
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     }
@@ -31,13 +32,15 @@ public class BlogController : Controller
         var lang = CurrentLang();
         var result = await _api.GetPostsAsync(category: category, tag: tag, page: page, pageSize: PageSize, lang: lang, ct: ct);
 
-        var heading = !string.IsNullOrWhiteSpace(category)
-            ? result.Items.SelectMany(p => p.Categories).FirstOrDefault(c => c.Slug == category)?.Name
-            : !string.IsNullOrWhiteSpace(tag)
+        // The category itself carries the heading and the summary shown above the list — reading them
+        // from the posts would leave an empty (or filtered-out) page with no heading at all.
+        var categoryDto = string.IsNullOrWhiteSpace(category) ? null : await _api.GetCategoryAsync(category, lang, ct);
+        var heading = categoryDto?.Name
+            ?? (!string.IsNullOrWhiteSpace(tag)
                 ? result.Items.SelectMany(p => p.Tags).FirstOrDefault(t => t.Slug == tag)?.Name
-                : null;
+                : null);
 
-        return View("Index", new BlogListView(result.Items, page, result.TotalCount, PageSize, category, tag, heading));
+        return View("Index", new BlogListView(result.Items, page, result.TotalCount, PageSize, category, tag, heading, categoryDto?.Summary));
     }
 
     public Task<IActionResult> Category(string slug, int page = 1, CancellationToken ct = default) =>
