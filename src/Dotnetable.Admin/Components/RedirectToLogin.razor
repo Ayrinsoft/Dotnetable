@@ -1,8 +1,33 @@
+@* Shown by AuthorizeRouteView/MainLayout when the current user may not see the page.
+
+   "Not authorized" covers two different situations and they must not be treated the same:
+   a signed-out visitor needs the login form, while a signed-in member who simply lacks the
+   permission needs /AccessDenied. Sending the second case to /Login produced an endless redirect
+   loop — /Login bounces an authenticated member back to "/" and the landing page bounced straight
+   back here — with a returnUrl that doubled in length every lap. Behind IIS that burst of requests
+   trips Dynamic IP Restriction, which answers with its own 403 page until the member clears their
+   cookies. *@
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        var returnUrl = Uri.EscapeDataString(Nav.Uri);
-        Nav.NavigateTo($"/Login?returnUrl={returnUrl}", forceLoad: true);
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/AccessDenied", forceLoad: true);
+            return;
+        }
+
+        // A relative path, and never a login/access-denied URL: returnUrl must not nest inside itself.
+        var path = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        var target = IsAuthPage(path) ? "/Login" : $"/Login?returnUrl={Uri.EscapeDataString(path)}";
+        Nav.NavigateTo(target, forceLoad: true);
     }
+
+    private static bool IsAuthPage(string path) =>
+        path.StartsWith("/Login", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/Logout", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/AccessDenied", StringComparison.OrdinalIgnoreCase);
 }
