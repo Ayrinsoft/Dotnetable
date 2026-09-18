@@ -936,11 +936,11 @@ public class OrderService : IOrderService
         }
 
         // ── WhatsApp ──────────────────────────────────────────────────
-        if (_whatsApp.IsConfigured && !string.IsNullOrWhiteSpace(phone))
+        if (!string.IsNullOrWhiteSpace(phone) && await _whatsApp.IsConfiguredAsync(order.WebsiteID, ct))
         {
             try
             {
-                await _whatsApp.SendAsync(country, phone!, plain, ct);
+                await _whatsApp.SendAsync(order.WebsiteID, country, phone!, plain, ct);
             }
             catch (Exception ex)
             {
