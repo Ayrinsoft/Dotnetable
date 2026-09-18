@@ -46,6 +46,14 @@ public class LoginModel : CaptchaPageModel
     [BindProperty]
     public string? TwoFactorCode { get; set; }
 
+    /// <summary>Where to land after a successful sign-in. Only ever followed when it is a local path.</summary>
+    [BindProperty(SupportsGet = true)]
+    public string? ReturnUrl { get; set; }
+
+    /// <summary>Set by /Logout: show the form even if a cookie somehow survived the sign-out.</summary>
+    [BindProperty(SupportsGet = true)]
+    public bool SignedOut { get; set; }
+
     public string? ErrorMessage { get; set; }
 
     /// <summary>True once the password was accepted and the page is asking for the authenticator code.</summary>
@@ -60,7 +68,15 @@ public class LoginModel : CaptchaPageModel
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
         if (User.Identity?.IsAuthenticated == true)
-            return Redirect("/");
+        {
+            // Arriving straight from /Logout while still authenticated means the sign-out did not
+            // take. Bouncing to the dashboard here is what used to trap a member in a redirect loop
+            // they could only escape by clearing cookies — so sign out again and show the form.
+            if (SignedOut)
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            else
+                return Redirect("/");
+        }
 
         // A stale half-finished sign-in must not survive a page reload.
         ClearPendingTwoFactor();
@@ -91,7 +107,7 @@ public class LoginModel : CaptchaPageModel
             case MemberSignInStatus.Success when result.Member is not null:
                 await _loginLog.RecordAsync(result.Member.Username, result.Member.WebsiteID, true, ip, ct);
                 await SignInAsync(result.Member);
-                return Redirect("/");
+                return RedirectAfterSignIn();
 
             case MemberSignInStatus.TwoFactorRequired when result.Member is not null:
                 // The password was right, so this counts as neither a success nor a failure yet; the
@@ -114,6 +130,10 @@ public class LoginModel : CaptchaPageModel
                 return Page();
         }
     }
+
+    /// <summary>Back to the page the member was refused, when it is a local path; the dashboard otherwise.</summary>
+    private IActionResult RedirectAfterSignIn() =>
+        !string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl) ? Redirect(ReturnUrl) : Redirect("/");
 
     /// <summary>Second step: the authenticator (or recovery) code for a member that passed the password step.</summary>
     public async Task<IActionResult> OnPostVerifyAsync(CancellationToken ct)
@@ -139,7 +159,7 @@ public class LoginModel : CaptchaPageModel
                 ClearPendingTwoFactor();
                 await _loginLog.RecordAsync(result.Member.Username, result.Member.WebsiteID, true, ip, ct);
                 await SignInAsync(result.Member);
-                return Redirect("/");
+                return RedirectAfterSignIn();
 
             case MemberSignInStatus.LockedOut:
                 ClearPendingTwoFactor();

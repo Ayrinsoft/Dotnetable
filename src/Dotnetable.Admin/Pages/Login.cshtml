@@ -16,6 +16,7 @@
 {
     @* Password already accepted; nothing is signed in until this code checks out. *@
     <form method="post" asp-page-handler="Verify">
+        <input type="hidden" asp-for="ReturnUrl" />
         <p class="auth-subtitle">
             Enter the 6-digit code from your authenticator app, or one of your recovery codes.
         </p>
@@ -40,6 +41,7 @@
 else
 {
     <form method="post">
+        <input type="hidden" asp-for="ReturnUrl" />
         <div class="field">
             <label asp-for="Input.Username">@Model.S.UsernameLabel</label>
             <input asp-for="Input.Username" type="text" autocomplete="username" autofocus />
