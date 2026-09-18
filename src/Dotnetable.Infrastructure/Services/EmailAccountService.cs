@@ -94,23 +94,40 @@ public class EmailAccountService : IEmailAccountService
 
     /// <summary>
     /// Resolves the best account for (websiteId, accountType): the website's own account of that type,
-    /// else its own default account, else the master website's account of that type, else the master
-    /// website's default account.
+    /// else its own default account, else any other account of its own, and only then the master
+    /// website's (<see cref="AppConstants.MasterWebsiteId"/>) account of that type, its default, or any
+    /// account it has.
+    ///
+    /// <para>A site that never set its own email up still sends — through website 1 — because the
+    /// alternative is notifications to the site owner silently going nowhere. SMS deliberately does
+    /// <em>not</em> work this way: a text message carries the sender's own gateway identity and must
+    /// stay on the site's own account (see <c>SmsSender.ResolveAsync</c>).</para>
+    ///
+    /// <para>Only accounts that can actually send are considered — an active row with no mail server
+    /// or no from-address would otherwise shadow a usable one and fail the send.</para>
     /// </summary>
     internal static async Task<EmailAccount?> ResolveAsync(
         AppDbContext context, int websiteId, EmailAccountType accountType, CancellationToken ct)
     {
         var type = (byte)accountType;
 
-        var candidates = await context.EmailAccounts
+        var rows = await context.EmailAccounts
             .Where(a => a.Active && (a.WebsiteID == websiteId || a.WebsiteID == AppConstants.MasterWebsiteId))
+            .OrderBy(a => a.EmailAccountID)
             .ToListAsync(ct);
+        var candidates = rows.Where(IsUsable).ToList();
 
-        return candidates.FirstOrDefault(a => a.WebsiteID == websiteId && a.AccountType == type)
-            ?? candidates.FirstOrDefault(a => a.WebsiteID == websiteId && a.IsDefault)
-            ?? candidates.FirstOrDefault(a => a.WebsiteID == AppConstants.MasterWebsiteId && a.AccountType == type)
-            ?? candidates.FirstOrDefault(a => a.WebsiteID == AppConstants.MasterWebsiteId && a.IsDefault);
+        return Pick(candidates, websiteId, type) ?? Pick(candidates, AppConstants.MasterWebsiteId, type);
     }
+
+    private static EmailAccount? Pick(List<EmailAccount> candidates, int websiteId, byte type) =>
+        candidates.FirstOrDefault(a => a.WebsiteID == websiteId && a.AccountType == type)
+        ?? candidates.FirstOrDefault(a => a.WebsiteID == websiteId && a.IsDefault)
+        ?? candidates.FirstOrDefault(a => a.WebsiteID == websiteId);
+
+    /// <summary>An account can send only with a mail server and a from-address.</summary>
+    private static bool IsUsable(EmailAccount a) =>
+        !string.IsNullOrWhiteSpace(a.MailServer) && !string.IsNullOrWhiteSpace(a.EmailAddress);
 
     private static EmailAccountInfo ToInfo(EmailAccount a) => new()
     {

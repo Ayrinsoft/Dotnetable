@@ -179,7 +179,7 @@ public class AdminNotificationService : IAdminNotificationService
                 }
             }
 
-            if (_whatsApp.IsConfigured
+            if (await _whatsApp.IsConfiguredAsync(websiteId, ct)
                 && !string.IsNullOrWhiteSpace(r.Cellphone)
                 && !string.IsNullOrWhiteSpace(r.CountryCode))
             {
@@ -188,7 +188,7 @@ public class AdminNotificationService : IAdminNotificationService
                     var wa = string.IsNullOrWhiteSpace(safeUrl)
                         ? $"{safeTitle}\n{safeMessage}"
                         : $"{safeTitle}\n{safeMessage}\n{safeUrl}";
-                    await _whatsApp.SendAsync(r.CountryCode, r.Cellphone, wa, ct);
+                    await _whatsApp.SendAsync(websiteId, r.CountryCode, r.Cellphone, wa, ct);
                 }
                 catch (Exception ex)
                 {
