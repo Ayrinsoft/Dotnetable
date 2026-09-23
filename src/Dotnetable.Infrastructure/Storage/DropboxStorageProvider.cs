@@ -34,7 +34,7 @@ public sealed class DropboxStorageProvider : IFileStorageProvider
                  .Replace("&dl=0", "");
 
     public async Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         var s = Parse(ctx);
         using var client = BuildClient(s);

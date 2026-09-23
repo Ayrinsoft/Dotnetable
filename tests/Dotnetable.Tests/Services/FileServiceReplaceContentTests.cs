@@ -17,15 +17,17 @@ namespace Dotnetable.Tests.Services;
 internal sealed class FakeStorageProvider : IFileStorageProvider
 {
     public readonly Dictionary<string, byte[]> Blobs = new();
+    public readonly Dictionary<string, string?> CacheControls = new();
 
     public StorageProviderType Provider => StorageProviderType.LocalHost;
 
     public Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         using var ms = new MemoryStream();
         data.CopyTo(ms);
         Blobs[storedName] = ms.ToArray();
+        CacheControls[storedName] = cacheControl;
 
         return Task.FromResult(new StorageUploadResult
         {

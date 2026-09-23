@@ -19,7 +19,7 @@ public sealed class CloudinaryStorageProvider : IFileStorageProvider
         new(new Account(s.CloudName, s.ApiKey, s.ApiSecret));
 
     public async Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         var s = Parse(ctx);
         var client = BuildClient(s);

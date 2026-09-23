@@ -26,7 +26,7 @@ public sealed class BunnyStorageProvider : IFileStorageProvider
         $"https://{StorageHost(s)}/{s.StorageZoneName.Trim('/')}/{storedName}";
 
     public async Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         var s = Parse(ctx);
         var client = _httpFactory.CreateClient();

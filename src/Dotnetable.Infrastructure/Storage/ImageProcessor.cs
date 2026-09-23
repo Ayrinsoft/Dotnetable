@@ -55,7 +55,8 @@ public static class ImageProcessor
         if (source.CanSeek) source.Position = 0;
         try
         {
-            using var decoded = SKBitmap.Decode(source);
+            // Upright pixels: the WebP re-encode drops EXIF, so the orientation must be applied here.
+            using var decoded = ImageDecoder.DecodeOriented(source);
             if (decoded is null) return Task.FromResult<MemoryStream?>(null);
 
             SKBitmap current = decoded;

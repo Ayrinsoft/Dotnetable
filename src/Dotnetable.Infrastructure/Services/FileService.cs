@@ -159,20 +159,39 @@ public class FileService : IFileService
             }
         }
 
+        // The key is a fresh GUID, so these bytes never change under this URL: cache it for good.
         uploadSource.Position = 0;
-        var uploaded = await provider.UploadAsync(ctx, uploadSource, storedName, mime, ct);
+        var uploaded = await provider.UploadAsync(ctx, uploadSource, storedName, mime, StorageCacheControl.Immutable, ct);
 
+        // Thumbnail state: settled (a timestamp) unless it still has work to do — thumbnails are off for
+        // this storage (the backfill picks it up if they are turned on) or making one failed (retried in
+        // the background). A thumbnail failure must never fail the upload itself.
         string? thumbStorage = null, thumbCdn = null;
-        if (setting.AutoGenerateThumbnails && category == FileCategory.Image)
+        DateTime? thumbCheckedAt = DateTime.UtcNow;
+        if (category == FileCategory.Image && ImageThumbnailer.Supports(storedName))
         {
-            uploadSource.Position = 0;
-            await using var thumb = await ImageThumbnailer.TryCreateAsync(uploadSource, ct);
-            if (thumb is not null)
+            if (!setting.AutoGenerateThumbnails)
             {
-                var thumbName = "t_" + Path.GetFileNameWithoutExtension(storedName) + ".webp";
-                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", ct);
-                thumbStorage = thumbResult.StoragePath;
-                thumbCdn = thumbResult.CdnUrl;
+                thumbCheckedAt = null;
+            }
+            else
+            {
+                try
+                {
+                    uploadSource.Position = 0;
+                    await using var thumb = await ImageThumbnailer.TryCreateAsync(uploadSource, ct);
+                    if (thumb is not null)
+                    {
+                        var thumbResult = await provider.UploadAsync(ctx, thumb, ImageThumbnailer.NameFor(storedName),
+                            "image/webp", StorageCacheControl.Immutable, ct);
+                        thumbStorage = thumbResult.StoragePath;
+                        thumbCdn = thumbResult.CdnUrl;
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    thumbCheckedAt = null;
+                }
             }
         }
 
@@ -199,6 +218,8 @@ public class FileService : IFileService
             FileFolderID = request.FolderID,
             ThumbnailStorage = thumbStorage,
             ThumbnailCDN = thumbCdn,
+            ThumbnailCheckedAt = thumbCheckedAt,
+            CacheControlSetAt = DateTime.UtcNow,
             IsDeleted = false,
             UploadDate = DateTime.UtcNow,
         };
@@ -253,11 +274,13 @@ public class FileService : IFileService
         var provider = _providers.Get((StorageProviderType)setting.StorageProvider);
 
         // Same key as before — this overwrites the existing object rather than creating a new one.
+        // Its bytes can change again, so it gets a short cache lifetime rather than the immutable one.
         buffer.Position = 0;
-        var uploaded = await provider.UploadAsync(ctx, buffer, record.StoredFileName, mime, ct);
+        var uploaded = await provider.UploadAsync(ctx, buffer, record.StoredFileName, mime, StorageCacheControl.Replaceable, ct);
 
         string? thumbStorage = null, thumbCdn = null;
-        if (setting.AutoGenerateThumbnails && category == FileCategory.Image)
+        DateTime? thumbCheckedAt = DateTime.UtcNow;
+        if (setting.AutoGenerateThumbnails && category == FileCategory.Image && ImageThumbnailer.Supports(record.StoredFileName))
         {
             buffer.Position = 0;
             await using var thumb = await ImageThumbnailer.TryCreateAsync(buffer, ct);
@@ -266,8 +289,8 @@ public class FileService : IFileService
                 // Reuse the existing thumbnail key when there is one, so it overwrites in place too.
                 var thumbName = !string.IsNullOrWhiteSpace(record.ThumbnailStorage)
                     ? Path.GetFileName(record.ThumbnailStorage)
-                    : "t_" + Path.GetFileNameWithoutExtension(record.StoredFileName) + ".webp";
-                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", ct);
+                    : ImageThumbnailer.NameFor(record.StoredFileName);
+                var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", StorageCacheControl.Replaceable, ct);
                 thumbStorage = thumbResult.StoragePath;
                 thumbCdn = thumbResult.CdnUrl;
             }
@@ -290,6 +313,11 @@ public class FileService : IFileService
         record.OriginalFileName = FileNameSanitizer.Normalize(originalFileName, 120);
         record.ThumbnailStorage = thumbStorage;
         record.ThumbnailCDN = thumbCdn;
+        // Thumbnails off for this storage: leave it pending so the backfill covers it if they are turned on.
+        record.ThumbnailCheckedAt = !setting.AutoGenerateThumbnails && category == FileCategory.Image
+            && ImageThumbnailer.Supports(record.StoredFileName) ? null : thumbCheckedAt;
+        // Keeps the backfill from stamping the immutable header onto a key that was just replaced.
+        record.CacheControlSetAt = DateTime.UtcNow;
         record.UploadDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(ct);

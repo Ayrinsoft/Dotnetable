@@ -19,7 +19,7 @@ public sealed class AzureBlobStorageProvider : IFileStorageProvider
         new(s.ConnectionString, s.ContainerName);
 
     public async Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         var s = Parse(ctx);
         var container = BuildContainer(s);
@@ -28,7 +28,7 @@ public sealed class AzureBlobStorageProvider : IFileStorageProvider
         var blob = container.GetBlobClient(storedName);
         await blob.UploadAsync(data, new BlobUploadOptions
         {
-            HttpHeaders = new BlobHttpHeaders { ContentType = mimeType },
+            HttpHeaders = new BlobHttpHeaders { ContentType = mimeType, CacheControl = cacheControl },
         }, ct);
 
         var baseUrl = s.PublicBaseUrl.TrimEnd('/');

@@ -1706,6 +1706,7 @@ window.DOCS_API = {
                   items: [
                     {
                       slug: "hello", title: "Hello", authorName: "Sara Ahmadi", likeCount: 31,
+                      featuredImageUrl: "https://cdn.example.com/3f2a…_thumb.webp", featuredImageFullUrl: "https://cdn.example.com/3f2a….webp",
                       author: { name: "Sara Ahmadi", slug: "sara-ahmadi", headline: "Senior .NET developer", bio: "I write about .NET.", photoUrl: "https://cdn.example.com/sara.jpg" },
                     },
                   ],
@@ -1716,6 +1717,10 @@ window.DOCS_API = {
                 {
                   en: "`author` is the **About the author** box: `bio` is null when the author has none or hid it from posts; `slug` is null when the author has no public page — only link to `/author/{slug}` when it is set. `author` is null for posts without an author.",
                   fa: "`author` همان کادر **درباره نویسنده** است: `bio` وقتی نویسنده بیو ندارد یا آن را برای پست‌ها مخفی کرده null است؛ `slug` وقتی نویسنده صفحه عمومی ندارد null است — فقط وقتی مقدار دارد به `/author/{slug}` لینک دهید. برای پست بدون نویسنده `author` برابر null است.",
+                },
+                {
+                  en: "`featuredImageUrl` is the small WebP thumbnail (longest edge 640px) when one exists — show it on the page. `featuredImageFullUrl` is the original; load it only when the visitor opens the image. Every uploaded image also has its thumbnail at `{name}_thumb.webp` next to the original, so a site can derive it for images embedded in `content`.",
+                  fa: "`featuredImageUrl` در صورت وجود، تصویر کوچک WebP (ضلع بلند ۶۴۰ پیکسل) است — همین را در صفحه نشان دهید. `featuredImageFullUrl` فایل اصلی است؛ فقط وقتی بازدیدکننده تصویر را باز می‌کند بارگذاری شود. هر تصویر آپلودشده، تصویر کوچکش را با نام `{name}_thumb.webp` کنار فایل اصلی دارد، پس سایت می‌تواند آن را برای تصاویر داخل `content` بسازد.",
                 },
               ],
             },
