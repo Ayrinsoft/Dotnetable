@@ -49,10 +49,12 @@ public static class SlideshowHtmlRenderer
             html.Append($"<div class=\"carousel-item{(i == 0 ? " active" : "")}\">");
 
             var alt = Encode(slide.AltText ?? slide.Title ?? string.Empty);
-            var loading = i == 0 ? "eager" : "lazy";
+            // data-src/data-srcset: media.js loads a slide only when it is shown (or about to slide in),
+            // so the rest of the album costs nothing until the visitor gets to it.
+            var img = $"<img src=\"{MediaHtml.Placeholder}\" data-src=\"{Encode(slide.ImageUrl)}\" class=\"d-block w-100 dn-lazy\" alt=\"{alt}\" />";
             var picture = string.IsNullOrEmpty(slide.MobileImageUrl)
-                ? $"<img src=\"{Encode(slide.ImageUrl)}\" class=\"d-block w-100\" alt=\"{alt}\" loading=\"{loading}\" />"
-                : $"<picture><source srcset=\"{Encode(slide.MobileImageUrl)}\" media=\"(max-width: 768px)\" /><img src=\"{Encode(slide.ImageUrl)}\" class=\"d-block w-100\" alt=\"{alt}\" loading=\"{loading}\" /></picture>";
+                ? img
+                : $"<picture><source data-srcset=\"{Encode(slide.MobileImageUrl)}\" media=\"(max-width: 768px)\" />{img}</picture>";
 
             if (!string.IsNullOrWhiteSpace(slide.LinkUrl))
             {

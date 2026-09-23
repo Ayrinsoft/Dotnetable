@@ -94,13 +94,27 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// Theme assets are linked with asp-append-version, so a URL carrying ?v= changes whenever the file
+// does and can be cached for a year; anything linked without it keeps a short, revalidating lifetime.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = ctx.Context.Request.Query.ContainsKey("v")
+            ? "public, max-age=31536000, immutable"
+            : "public, max-age=86400";
+    },
+});
 app.UseDotnetableRequestLogging();
 
 // The storefront renders admin-authored HTML, so framing and MIME sniffing are both worth denying.
 // No CSP header yet: themes are user-supplied and may carry their own inline scripts, so a policy
 // set here would silently break third-party themes — it belongs in a theme's own manifest.
 app.UseDotnetableSecurityHeaders();
+
+// Crawlers still get every page, but rendered without links to uploaded files (storage-CDN bandwidth).
+app.UseMiddleware<BotMediaFilterMiddleware>();
 
 app.UseRouting();
 app.UseRateLimiter();

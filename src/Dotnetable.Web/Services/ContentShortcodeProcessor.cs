@@ -41,6 +41,10 @@ public partial class ContentShortcodeProcessor
         // itself (which is not user input) is not re-parsed by the sanitizer.
         content = ContentSanitizer.Sanitize(content) ?? string.Empty;
 
+        // Uploaded media loads only when shown or clicked. Done before expansion: slideshow widgets
+        // already render their own lazy markup.
+        content = MediaHtml.PrepareForVisitors(content);
+
         content = await ExpandAdsAsync(content, ct);
 
         var matches = ShortcodePattern().Matches(content);

@@ -41,7 +41,7 @@
                         <article class="blog-card">
                             @if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
                             {
-                                <div class="thumb" style="background-image:url('@post.FeaturedImageUrl'); background-size:cover; background-position:center;"></div>
+                                <div class="thumb dn-lazy-bg" data-bg="@post.FeaturedImageUrl" style="background-size:cover; background-position:center;"></div>
                             }
                             else
                             {

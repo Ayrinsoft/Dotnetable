@@ -479,3 +479,51 @@ a { text-decoration: none; }
     overflow-wrap: anywhere;
     max-width: 60rem;
 }
+
+
+/* ---------- Uploaded media, loaded on demand (js/media.js) ---------- */
+img.dn-zoom { cursor: zoom-in; }
+
+.dn-video {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 0 0 1rem;
+    background: var(--site-darker);
+    border-radius: var(--site-radius);
+    overflow: hidden;
+    cursor: pointer;
+}
+.dn-video-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.dn-video-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: 2.5rem;
+    transition: background .15s ease;
+}
+.dn-video:hover .dn-video-play,
+.dn-video:focus-visible .dn-video-play { background: var(--site-primary); }
+
+.dn-doc-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-weight: 600;
+}
