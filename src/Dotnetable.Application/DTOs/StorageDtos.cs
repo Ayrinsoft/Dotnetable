@@ -17,6 +17,22 @@ public sealed class StorageSettingContext
     public bool AutoGenerateThumbnails { get; init; }
 }
 
+/// <summary>Cache-Control values written onto stored objects by backends that support per-object headers.</summary>
+public static class StorageCacheControl
+{
+    /// <summary>
+    /// Every upload gets a fresh GUID key, so its bytes never change under that URL — browsers and the
+    /// CDN may keep it for five years without revalidating.
+    /// </summary>
+    public const string Immutable = "public, max-age=157680000, immutable";
+
+    /// <summary>
+    /// "Replace file" rewrites an existing key in place, so those bytes can change again: a short,
+    /// revalidating lifetime instead of <see cref="Immutable"/>.
+    /// </summary>
+    public const string Replaceable = "public, max-age=3600";
+}
+
 /// <summary>Result of pushing a single object to a storage backend.</summary>
 public sealed class StorageUploadResult
 {

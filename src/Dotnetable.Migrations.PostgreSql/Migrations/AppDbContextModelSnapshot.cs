@@ -2289,6 +2289,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<byte>("CacheControlAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<DateTime?>("CacheControlSetAt")
+                        .HasColumnType("datetime");
+
                     b.Property<byte>("FileCategory")
                         .HasColumnType("smallint");
 
@@ -2329,9 +2337,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnicode(false)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<byte>("ThumbnailAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("ThumbnailCheckedAt")
+                        .HasColumnType("datetime");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)

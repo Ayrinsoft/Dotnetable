@@ -77,6 +77,8 @@ public static class ServiceCollectionExtensions
         // before payment, and without this nothing ever gives it back for orders that are abandoned.
         services.AddHostedService<OrderExpiryService>();
         services.AddHostedService<MaintenanceService>();
+        // Media backfill: thumbnails, immutable Cache-Control and bucket robots.txt for pre-existing files.
+        services.AddHostedService<FileMediaBackfillService>();
         services.AddHostedService<Marketplace.MarketplaceSyncService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();

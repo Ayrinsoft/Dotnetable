@@ -2292,6 +2292,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<byte>("CacheControlAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<DateTime?>("CacheControlSetAt")
+                        .HasColumnType("datetime");
+
                     b.Property<byte>("FileCategory")
                         .HasColumnType("tinyint");
 
@@ -2332,9 +2340,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(40)");
 
+                    b.Property<byte>("ThumbnailAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
                     b.Property<string>("ThumbnailCDN")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ThumbnailCheckedAt")
+                        .HasColumnType("datetime");
 
                     b.Property<string>("ThumbnailStorage")
                         .HasMaxLength(350)

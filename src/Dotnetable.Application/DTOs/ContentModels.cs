@@ -10,6 +10,8 @@ public class PostSummaryDto
     public string Title { get; init; } = string.Empty;
     public string? Excerpt { get; init; }
     public string? FeaturedImageUrl { get; init; }
+    /// <summary>The full-size original of <see cref="FeaturedImageUrl"/> (which is the thumbnail when one exists) — for a click-to-open lightbox.</summary>
+    public string? FeaturedImageFullUrl { get; init; }
     public string PostTypeSlug { get; init; } = string.Empty;
     public string? AuthorName { get; init; }
     /// <summary>Author box (name, headline, bio, photo, résumé-page slug); null when the post has no author.</summary>

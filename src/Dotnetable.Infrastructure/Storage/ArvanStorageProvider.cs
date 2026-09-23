@@ -9,7 +9,7 @@ using Dotnetable.Domain.Enums;
 namespace Dotnetable.Infrastructure.Storage;
 
 /// <summary>ArvanCloud object storage via the S3-compatible API (AWS SDK).</summary>
-public sealed class ArvanStorageProvider : IFileStorageProvider
+public sealed class ArvanStorageProvider : IFileStorageProvider, IStorageObjectMaintenance
 {
     public StorageProviderType Provider => StorageProviderType.Arvan;
 
@@ -27,21 +27,12 @@ public sealed class ArvanStorageProvider : IFileStorageProvider
     }
 
     public async Task<StorageUploadResult> UploadAsync(StorageSettingContext ctx, Stream data, string storedName,
-        string mimeType, CancellationToken ct = default)
+        string mimeType, string? cacheControl = null, CancellationToken ct = default)
     {
         var s = Parse(ctx);
         using var client = BuildClient(s);
 
-        await client.PutObjectAsync(new PutObjectRequest
-        {
-            BucketName = s.BucketName,
-            Key = storedName,
-            InputStream = data,
-            ContentType = mimeType,
-            CannedACL = S3CannedACL.PublicRead,
-            AutoCloseStream = false,
-            DisablePayloadSigning = true,
-        }, ct);
+        await S3ObjectOps.PutAsync(client, s.BucketName, data, storedName, mimeType, cacheControl, ct);
 
         var baseUrl = s.PublicBaseUrl.TrimEnd('/');
         return new StorageUploadResult
@@ -50,6 +41,21 @@ public sealed class ArvanStorageProvider : IFileStorageProvider
             CdnUrl = $"{baseUrl}/{storedName}",
             CdnFileCode = storedName,
         };
+    }
+
+    public async Task<bool> SetCacheControlAsync(StorageSettingContext ctx, string storedName, string cacheControl,
+        CancellationToken ct = default)
+    {
+        var s = Parse(ctx);
+        using var client = BuildClient(s);
+        return await S3ObjectOps.SetCacheControlAsync(client, s.BucketName, storedName, cacheControl, ct);
+    }
+
+    public async Task EnsureRobotsTxtAsync(StorageSettingContext ctx, CancellationToken ct = default)
+    {
+        var s = Parse(ctx);
+        using var client = BuildClient(s);
+        await S3ObjectOps.EnsureRobotsTxtAsync(client, s.BucketName, ct);
     }
 
     public async Task DeleteAsync(StorageSettingContext ctx, string storedName, CancellationToken ct = default)

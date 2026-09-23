@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Storage;
@@ -56,6 +57,10 @@ public sealed class FilesController : ControllerBase
         // trusted to describe the bytes. Serve the type implied by the stored extension instead —
         // the extension is the value the upload allow/deny list actually vetted.
         var mime = isThumbnail ? "image/webp" : MimeForExtension(Path.GetExtension(fileName));
+
+        // Same lifetime the object-storage backends write onto new objects: the key is a GUID, so its
+        // bytes do not change. (After "replace file", purge the URL on the CDN in front of the API.)
+        Response.Headers.CacheControl = StorageCacheControl.Immutable;
 
         // Anything that is not an image or a video is sent as a download rather than rendered
         // inline, so a document that a browser would otherwise interpret cannot execute on this

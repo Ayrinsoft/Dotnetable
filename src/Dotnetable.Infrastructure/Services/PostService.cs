@@ -370,7 +370,7 @@ public class PostService : IPostService
         return new PostSummaryDto
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
-            FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
+            FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
         };
@@ -384,7 +384,7 @@ public class PostService : IPostService
         return new PostDetailDto
         {
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
-            FeaturedImageUrl = FeaturedUrl(p), PostTypeSlug = p.PostType?.Slug ?? string.Empty,
+            FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content,

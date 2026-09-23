@@ -37,6 +37,18 @@ public partial class FileRecord
 
     public string? ThumbnailCDN { get; set; }
 
+    /// <summary>When the thumbnail pass last settled this file (made one, or decided none applies). Null = still pending.</summary>
+    public DateTime? ThumbnailCheckedAt { get; set; }
+
+    /// <summary>Thumbnail passes started for this file; the backfill stops retrying at its cap.</summary>
+    public byte ThumbnailAttempts { get; set; }
+
+    /// <summary>When the long-lived Cache-Control header was confirmed on the stored object(s). Null = still pending.</summary>
+    public DateTime? CacheControlSetAt { get; set; }
+
+    /// <summary>Cache-header passes started for this file; the backfill stops retrying at its cap.</summary>
+    public byte CacheControlAttempts { get; set; }
+
     public byte FileCategory { get; set; }
 
     public string? CDNFileCode { get; set; }

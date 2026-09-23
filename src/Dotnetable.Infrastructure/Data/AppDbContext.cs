@@ -1615,6 +1615,10 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.ThumbnailCDN).HasMaxLength(450);
             entity.Property(e => e.ThumbnailStorage).HasMaxLength(350);
+            entity.Property(e => e.ThumbnailCheckedAt).HasColumnType("datetime");
+            entity.Property(e => e.ThumbnailAttempts).HasDefaultValue((byte)0);
+            entity.Property(e => e.CacheControlSetAt).HasColumnType("datetime");
+            entity.Property(e => e.CacheControlAttempts).HasDefaultValue((byte)0);
             entity.Property(e => e.Title).HasMaxLength(50);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
