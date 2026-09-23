@@ -45,7 +45,10 @@
 
                 @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
                 {
-                    <img src="@Model.FeaturedImageUrl" alt="@Model.Title" class="img-fluid rounded-4 mb-4" />
+                    @* The thumbnail is what the page shows; the original is fetched only when the visitor opens it. *@
+                    var featuredFull = Model.FeaturedImageFullUrl != Model.FeaturedImageUrl ? Model.FeaturedImageFullUrl : null;
+                    <img src="@MediaHtml.Placeholder" data-src="@Model.FeaturedImageUrl" data-full="@featuredFull" alt="@Model.Title"
+                         class="img-fluid rounded-4 mb-4 dn-lazy @(featuredFull is null ? null : "dn-zoom")" />
                 }
                 else
                 {

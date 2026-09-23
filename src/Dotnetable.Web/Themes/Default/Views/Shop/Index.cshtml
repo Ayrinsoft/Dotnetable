@@ -76,7 +76,7 @@
                                     <a asp-controller="Shop" asp-action="Product" asp-route-slug="@p.Slug">
                                         @if (!string.IsNullOrEmpty(p.FeaturedImageUrl))
                                         {
-                                            <img src="@p.FeaturedImageUrl" class="card-img-top" alt="@p.Title" style="height:220px;object-fit:cover" />
+                                            <img src="@MediaHtml.Placeholder" data-src="@p.FeaturedImageUrl" class="card-img-top dn-lazy" alt="@p.Title" style="height:220px;object-fit:cover" />
                                         }
                                         else
                                         {
