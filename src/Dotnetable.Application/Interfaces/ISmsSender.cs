@@ -68,6 +68,9 @@ public interface ISmsSettingService
 
     Task<SmsSettingInfo?> GetByIdAsync(int id, CancellationToken ct = default);
 
+    /// <summary>The editable payload including the settings JSON (credentials).</summary>
+    Task<SmsSettingInput?> GetInputAsync(int id, CancellationToken ct = default);
+
     Task<int> CreateAsync(SmsSettingInput input, CancellationToken ct = default);
 
     Task UpdateAsync(int id, SmsSettingInput input, CancellationToken ct = default);

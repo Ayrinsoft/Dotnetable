@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Messaging;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -155,6 +156,10 @@ public class AdminNotificationService : IAdminNotificationService
         var emailOk = await _email.IsConfiguredAsync(websiteId, ct);
         foreach (var r in recipients)
         {
+            using var logScope = MessageLogScope.Begin(MessageLogSources.Notification,
+                recipientType: MessageRecipientType.Member, recipientId: r.MemberID,
+                recipientName: string.IsNullOrWhiteSpace(r.Givenname) ? r.Email : r.Givenname);
+
             if (emailOk && !string.IsNullOrWhiteSpace(r.Email))
             {
                 try

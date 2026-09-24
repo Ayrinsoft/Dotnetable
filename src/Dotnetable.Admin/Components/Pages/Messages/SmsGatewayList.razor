@@ -1,0 +1,13 @@
+@page "/messages/sms-gateways"
+@attribute [Authorize(Policy = RoleKeys.MessagesGateways)]
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["sms_gateways", "SMS Gateways"] />
+
+<GatewayManager Channel="MessageChannel.Sms"
+                Title="@L["sms_gateways", "SMS Gateways"]"
+                Subtitle="@L["sms_gateways.subtitle", "Providers this website sends SMS through — one-time codes, order notices and messages you send by hand. The active gateway with the lowest sort order sends."]" />
+
+@code {
+    protected override Task OnInitializedAsync() => L.EnsureLoadedAsync();
+}

@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Messaging;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -889,6 +890,9 @@ public class OrderService : IOrderService
             : (!string.IsNullOrWhiteSpace(order.ShippingMethod.Title)
                 ? order.ShippingMethod.Title
                 : (order.ShippingMethod.CarrierName ?? "—"));
+
+        using var logScope = MessageLogScope.Begin(MessageLogSources.Order,
+            recipientType: MessageRecipientType.Client, recipientId: client.WebsiteClientID, recipientName: customerName);
 
         // ── Email (Sales account / OrderShipped template) ─────────────
         if (!string.IsNullOrWhiteSpace(client.Email) && await _email.IsConfiguredAsync(order.WebsiteID, ct))

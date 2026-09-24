@@ -1,0 +1,290 @@
+@inject ISmsSettingService SmsSettings
+@inject ISmsProviderRegistry SmsProviders
+@inject IWhatsAppSettingService WhatsAppSettings
+@inject IWhatsAppProviderRegistry WhatsAppProviders
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+@* Body of the SMS gateways and WhatsApp gateways pages: both are provider registrations per website
+   with the same columns, so one component serves both and only the services differ. *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@Title</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@Subtitle</MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
+            @L["gateway.new", "New gateway"]
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@if (!_loading && !_rows.Any(r => r.IsActive && r.IsConfigured))
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+        @if (IsSms)
+        {
+            @L["sms_gateways.none_hint", "This website has no working SMS gateway, so it sends no SMS at all — mobile sign-up and mobile password reset are refused. SMS never borrows another website's gateway."]
+        }
+        else if (_websiteId == AppConstants.MasterWebsiteId)
+        {
+            @L["whatsapp_gateways.none_hint_master", "No working WhatsApp gateway yet. Websites without their own gateway send through this one, so nothing can be sent over WhatsApp until one is added here."]
+        }
+        else
+        {
+            @L["whatsapp_gateways.none_hint", "This website has no working WhatsApp gateway of its own — messages go out through the master website's gateway, if it has one."]
+        }
+    </MudAlert>
+}
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+        <thead>
+            <tr>
+                <th style="width:140px"></th>
+                <th>@L["title", "Title"]</th>
+                <th>@L["gateway.provider", "Provider"]</th>
+                <th>@L["gateway.sender_number", "Default sender number"]</th>
+                <th>@L["sort_order", "Sort order"]</th>
+                <th>@L["status", "Status"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_rows.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:32px;">
+                        <MudText Color="Color.Secondary">@L["gateway.empty", "No gateways registered for this website."]</MudText>
+                    </td>
+                </tr>
+            }
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td>
+                        <MudStack Row="true" Spacing="0">
+                            <MudTooltip Text="@L["edit", "Edit"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                               OnClick="@(() => EditAsync(r))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@L["gateway.send_test", "Send test"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Small" Color="Color.Secondary"
+                                               Disabled="@(_testing == r.Id)" OnClick="@(() => TestAsync(r))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@L["delete", "Delete"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => DeleteAsync(r))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </td>
+                    <td>@r.Title</td>
+                    <td>@r.ProviderDisplayName</td>
+                    <td dir="ltr">@r.SenderNumber</td>
+                    <td>@r.SortOrder</td>
+                    <td>
+                        @if (!r.IsConfigured)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Warning">
+                                @L["gateway.incomplete", "Missing credentials"]
+                            </MudChip>
+                        }
+                        else if (r.IsActive)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["active", "Active"]</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small">@L["inactive", "Inactive"]</MudChip>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code {
+    /// <summary><see cref="MessageChannel.Sms"/> or <see cref="MessageChannel.WhatsApp"/>.</summary>
+    [Parameter, EditorRequired] public MessageChannel Channel { get; set; }
+
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Subtitle { get; set; } = "";
+
+    private sealed record Row(int Id, string Title, string ProviderDisplayName, string? SenderNumber, int SortOrder,
+        bool IsActive, bool IsConfigured);
+
+    private bool IsSms => Channel == MessageChannel.Sms;
+
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private int? _testing;
+    private List<Row> _rows = new();
+    private List<Website> _websites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _rows = IsSms
+            ? (await SmsSettings.GetForWebsiteAsync(_websiteId))
+                .Select(s => new Row(s.WebsiteSmsSettingID, s.Title, s.ProviderDisplayName, s.SenderNumber, s.SortOrder, s.IsActive, s.IsConfigured))
+                .ToList()
+            : (await WhatsAppSettings.GetForWebsiteAsync(_websiteId))
+                .Select(s => new Row(s.WebsiteWhatsAppSettingID, s.Title, s.ProviderDisplayName, s.SenderNumber, s.SortOrder, s.IsActive, s.IsConfigured))
+                .ToList();
+        _loading = false;
+    }
+
+    private IReadOnlyList<(string Key, string DisplayName)> ProviderList() => IsSms
+        ? SmsProviders.All.OrderByDescending(p => p.IsIranian).ThenBy(p => p.Key == "GenericHttp").Select(p => (p.Key, p.DisplayName)).ToList()
+        : WhatsAppProviders.All.Select(p => (p.Key, p.DisplayName)).ToList();
+
+    private Task AddAsync() => OpenDialogAsync(new GatewayEditModel
+    {
+        WebsiteID = _websiteId,
+        IsActive = true,
+        SortOrder = _rows.Count == 0 ? 0 : _rows.Max(r => r.SortOrder) + 1,
+    });
+
+    private async Task EditAsync(Row row)
+    {
+        GatewayEditModel? model;
+        if (IsSms)
+        {
+            var input = await SmsSettings.GetInputAsync(row.Id);
+            model = input is null ? null : new GatewayEditModel
+            {
+                Id = row.Id, WebsiteID = input.WebsiteID, Provider = input.Provider, Title = input.Title,
+                SettingsJSON = input.SettingsJSON, SenderNumber = input.SenderNumber, IsActive = input.IsActive, SortOrder = input.SortOrder,
+            };
+        }
+        else
+        {
+            var input = await WhatsAppSettings.GetInputAsync(row.Id);
+            model = input is null ? null : new GatewayEditModel
+            {
+                Id = row.Id, WebsiteID = input.WebsiteID, Provider = input.Provider, Title = input.Title,
+                SettingsJSON = input.SettingsJSON, SenderNumber = input.SenderNumber, IsActive = input.IsActive, SortOrder = input.SortOrder,
+            };
+        }
+
+        if (model is null) { await LoadAsync(); return; }
+        await OpenDialogAsync(model);
+    }
+
+    private async Task OpenDialogAsync(GatewayEditModel model)
+    {
+        var parameters = new DialogParameters<GatewayDialog>
+        {
+            { x => x.Model, model },
+            { x => x.Providers, ProviderList() },
+            { x => x.Fields, IsSms ? GatewayFieldCatalog.Sms : GatewayFieldCatalog.WhatsApp },
+            { x => x.OnSave, SaveAsync },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<GatewayDialog>(
+            model.Id == 0 ? L["gateway.new", "New gateway"] : L["gateway.edit", "Edit gateway"], parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add(L["gateway.saved", "Gateway saved."], Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private async Task SaveAsync(GatewayEditModel m)
+    {
+        if (IsSms)
+        {
+            var input = new SmsSettingInput
+            {
+                WebsiteID = m.WebsiteID, Provider = m.Provider, Title = m.Title.Trim(), SettingsJSON = m.SettingsJSON,
+                SenderNumber = m.SenderNumber, IsActive = m.IsActive, SortOrder = m.SortOrder,
+            };
+            if (m.Id == 0) await SmsSettings.CreateAsync(input);
+            else await SmsSettings.UpdateAsync(m.Id, input);
+        }
+        else
+        {
+            var input = new WhatsAppSettingInput
+            {
+                WebsiteID = m.WebsiteID, Provider = m.Provider, Title = m.Title.Trim(), SettingsJSON = m.SettingsJSON,
+                SenderNumber = m.SenderNumber, IsActive = m.IsActive, SortOrder = m.SortOrder,
+            };
+            if (m.Id == 0) await WhatsAppSettings.CreateAsync(input);
+            else await WhatsAppSettings.UpdateAsync(m.Id, input);
+        }
+    }
+
+    private async Task TestAsync(Row row)
+    {
+        var dialog = await DialogService.ShowAsync<GatewayTestDialog>(L["gateway.send_test", "Send test"],
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: ValueTuple<string, string> target }) return;
+
+        _testing = row.Id;
+        StateHasChanged();
+        try
+        {
+            var outcome = IsSms
+                ? await SmsSettings.TestAsync(row.Id, target.Item1, target.Item2)
+                : await WhatsAppSettings.TestAsync(row.Id, target.Item1, target.Item2);
+
+            if (outcome.Success)
+                Snackbar.Add(L["gateway.test_ok", "Test message accepted by the gateway."], Severity.Success);
+            else
+                Snackbar.Add($"{L["gateway.test_failed", "Test failed"]}: {outcome.Error}", Severity.Error,
+                    o => o.VisibleStateDuration = 15000);
+        }
+        finally
+        {
+            _testing = null;
+        }
+    }
+
+    private async Task DeleteAsync(Row row)
+    {
+        var ok = await DialogService.ShowMessageBoxAsync(
+            L["delete", "Delete"],
+            L["gateway.delete_confirm", "Delete this gateway? Messages will switch to the next active gateway, if any."],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (ok != true) return;
+
+        if (IsSms) await SmsSettings.DeleteAsync(row.Id);
+        else await WhatsAppSettings.DeleteAsync(row.Id);
+
+        Snackbar.Add(L["gateway.deleted", "Gateway deleted."], Severity.Success);
+        await LoadAsync();
+    }
+}

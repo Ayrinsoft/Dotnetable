@@ -1,0 +1,512 @@
+@page "/messages/send"
+@attribute [Authorize(Policy = RoleKeys.MessagesSend)]
+@implements IDisposable
+@inject IMessageComposerService Composer
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["messages.send", "Send Message"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["messages.send", "Send Message"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["messages.send.subtitle", "Send an email, SMS, WhatsApp or in-app message to staff, customers or any address. Every message is recorded in the send log."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" Disabled="_sending" />
+        }
+        <AuthorizeView Policy="@RoleKeys.MessagesLog" Context="lg">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.History"
+                       Href="/messages/log">
+                @L["messages.log", "Send Log"]
+            </MudButton>
+        </AuthorizeView>
+    </MudStack>
+</MudStack>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="7">
+        @* ── Channel ── *@
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["messages.channel", "Channel"]</MudText>
+            <MudChipSet T="MessageChannel" SelectedValue="_channel" SelectedValueChanged="OnChannelChanged"
+                        SelectionMode="SelectionMode.SingleSelection" CheckMark="true" Disabled="_sending">
+                @foreach (var c in Channels)
+                {
+                    <MudChip T="MessageChannel" Value="c" Icon="@ChannelIcon(c)" Variant="Variant.Outlined"
+                             Color="@(IsAvailable(c) ? Color.Primary : Color.Warning)">
+                        @ChannelLabel(c)
+                    </MudChip>
+                }
+            </MudChipSet>
+
+            @if (!IsAvailable(_channel))
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                    @switch (_channel)
+                    {
+                        case MessageChannel.Email:
+                            @L["messages.email_unavailable", "No email account is set up, so emails will fail."]
+                            <MudLink Href="/messages/email-accounts" Class="ms-1">@L["email_accounts", "Email Accounts"]</MudLink>
+                            break;
+                        case MessageChannel.Sms:
+                            @L["messages.sms_unavailable", "This website has no working SMS gateway, so SMS will fail."]
+                            <MudLink Href="/messages/sms-gateways" Class="ms-1">@L["sms_gateways", "SMS Gateways"]</MudLink>
+                            break;
+                        case MessageChannel.WhatsApp:
+                            @L["messages.whatsapp_unavailable", "No WhatsApp gateway is set up (for this website or the master website), so WhatsApp messages will fail."]
+                            <MudLink Href="/messages/whatsapp-gateways" Class="ms-1">@L["whatsapp_gateways", "WhatsApp Gateways"]</MudLink>
+                            break;
+                    }
+                </MudAlert>
+            }
+            @if (_channel == MessageChannel.InApp)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                    @L["messages.inapp_hint", "In-app messages appear in the recipient's admin-panel inbox, so they can only go to staff members — customers and typed-in addresses are skipped."]
+                </MudText>
+            }
+        </MudPaper>
+
+        @* ── Content ── *@
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["messages.content", "Message"]</MudText>
+            <MudGrid Spacing="2">
+                @if (_channel == MessageChannel.Email)
+                {
+                    <MudItem xs="12" sm="7">
+                        <MudTextField @bind-Value="_subject" Label="@L["subject", "Subject"]" Variant="Variant.Outlined"
+                                      MaxLength="300" Disabled="_sending" />
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudSelect T="EmailAccountType" @bind-Value="_accountType" Label="@L["messages.from_account", "Send from"]"
+                                   Variant="Variant.Outlined" Disabled="_sending">
+                            @foreach (var t in Enum.GetValues<EmailAccountType>())
+                            {
+                                <MudSelectItem T="EmailAccountType" Value="t">@AccountTypeLabel(t)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                else if (_channel == MessageChannel.InApp)
+                {
+                    <MudItem xs="12" sm="7">
+                        <MudTextField @bind-Value="_subject" Label="@L["title", "Title"]" Variant="Variant.Outlined"
+                                      MaxLength="200" Disabled="_sending" />
+                    </MudItem>
+                    <MudItem xs="12" sm="5">
+                        <MudTextField @bind-Value="_actionUrl" Label="@L["messages.action_url", "Link (optional)"]" Variant="Variant.Outlined"
+                                      Placeholder="/orders" MaxLength="256" Disabled="_sending" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_body" Label="@L["messages.body", "Text"]" Variant="Variant.Outlined"
+                                  Lines="8" Immediate="true" Disabled="_sending"
+                                  MaxLength="@(_channel == MessageChannel.InApp ? 1000 : 20000)"
+                                  HelperText="@L["messages.name_placeholder_hint", "Use {name} to insert each recipient's name."]" />
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-1">
+                        @if (_channel == MessageChannel.Email)
+                        {
+                            <MudCheckBox T="bool" @bind-Value="_bodyIsHtml" Label="@L["messages.body_is_html", "Text is HTML"]"
+                                         Dense="true" Disabled="_sending" />
+                        }
+                        else
+                        {
+                            <span></span>
+                        }
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@LengthInfo</MudText>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        @* ── Recipients ── *@
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+            <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["messages.recipients", "Recipients"]</MudText>
+
+            <MudAutocomplete T="MessageRecipient" @ref="_picker" Value="_pick" ValueChanged="AddPicked"
+                             SearchFunc="SearchAsync" ToStringFunc="@(r => r?.DisplayName ?? "")"
+                             Label="@L["messages.search_people", "Search staff or customers (name, email, mobile)"]"
+                             Variant="Variant.Outlined" Dense="true" DebounceInterval="300" MinCharacters="0"
+                             CoerceText="false" ResetValueOnEmptyText="true" Disabled="_sending"
+                             AdornmentIcon="@Icons.Material.Filled.PersonSearch">
+                <ItemTemplate Context="r">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@RecipientIcon(r.Type)" Size="Size.Small" Color="Color.Secondary" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">@r.DisplayName <MudText Inline="true" Typo="Typo.caption" Color="Color.Secondary">· @RecipientTypeLabel(r.Type)</MudText></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" dir="ltr">@AddressLine(r)</MudText>
+                        </MudStack>
+                    </MudStack>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            @if (_picked.Count > 0)
+            {
+                <div class="mt-2" style="max-height:220px; overflow:auto;">
+                    @foreach (var r in _picked)
+                    {
+                        <MudChip T="string" Icon="@RecipientIcon(r.Type)" Size="Size.Small" Disabled="_sending"
+                                 Color="@(HasAddress(r) ? Color.Default : Color.Warning)"
+                                 OnClose="@(() => _picked.Remove(r))">
+                            @r.DisplayName
+                        </MudChip>
+                    }
+                </div>
+                @if (_picked.Any(r => !HasAddress(r)))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Warning" Class="d-block">
+                        @L["messages.no_address_hint", "Highlighted recipients have no address for this channel and will be skipped."]
+                    </MudText>
+                }
+            }
+
+            <MudDivider Class="my-3" />
+
+            @if (_channel != MessageChannel.InApp)
+            {
+                <MudTextField @bind-Value="_manual" Label="@L["messages.manual", "Other addresses"]" Variant="Variant.Outlined"
+                              Lines="3" Disabled="_sending"
+                              HelperText="@(_channel == MessageChannel.Email
+                                  ? L["messages.manual_email_hint", "One email address per line."]
+                                  : L["messages.manual_phone_hint", "One mobile number per line. Start with + for a different country code."])" />
+                @if (_channel != MessageChannel.Email)
+                {
+                    <MudTextField @bind-Value="_defaultCountryCode" Label="@L["messages.default_country_code", "Country code for numbers without +"]"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" Style="max-width:260px"
+                                  Adornment="Adornment.Start" AdornmentText="+" Disabled="_sending" />
+                }
+                <MudDivider Class="my-3" />
+            }
+
+            <MudText Typo="Typo.body2" Class="mb-1">@L["messages.audience", "Also send to"]</MudText>
+            <MudRadioGroup T="MessageAudience" Value="_audience" ValueChanged="OnAudienceChanged" Disabled="_sending">
+                <MudRadio T="MessageAudience" Value="MessageAudience.None" Dense="true">@L["messages.audience_none", "Only the recipients above"]</MudRadio>
+                <MudRadio T="MessageAudience" Value="MessageAudience.AllMembers" Dense="true">
+                    @L["messages.audience_members", "All active staff members"]
+                    @if (_audience == MessageAudience.AllMembers && _audienceCount is int m) { <span class="ms-1">(@m)</span> }
+                </MudRadio>
+                @if (_channel != MessageChannel.InApp)
+                {
+                    <MudRadio T="MessageAudience" Value="MessageAudience.AllClients" Dense="true">
+                        @L["messages.audience_clients", "All active customers"]
+                        @if (_audience == MessageAudience.AllClients && _audienceCount is int c) { <span class="ms-1">(@c)</span> }
+                    </MudRadio>
+                }
+            </MudRadioGroup>
+
+            <MudDivider Class="my-3" />
+
+            @if (_sending)
+            {
+                <MudProgressLinear Color="Color.Primary" Value="@ProgressPercent" Class="mb-2" Rounded="true" Size="Size.Medium" />
+                <MudText Typo="Typo.caption">@L["messages.sending", "Sending…"] @_progress.Done / @_progress.Total</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="Cancel" Class="mt-1">
+                    @L["cancel", "Cancel"]
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Send" OnClick="SendAsync" Disabled="@(!CanSend)">
+                    @L["messages.send_now", "Send"]
+                </MudButton>
+            }
+
+            @if (_result is not null)
+            {
+                <MudAlert Severity="@(_result.Failed > 0 ? Severity.Warning : Severity.Success)" Class="mt-3" Dense="true">
+                    <div>
+                        @L["messages.result_sent", "Sent"]: <b>@_result.Sent</b>
+                        · @L["messages.result_failed", "Failed"]: <b>@_result.Failed</b>
+                        · @L["messages.result_skipped", "Skipped (no address)"]: <b>@_result.Skipped</b>
+                    </div>
+                    @foreach (var e in _result.Errors)
+                    {
+                        <div class="mud-typography-caption">• @e</div>
+                    }
+                </MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private static readonly MessageChannel[] Channels =
+        [MessageChannel.Email, MessageChannel.Sms, MessageChannel.WhatsApp, MessageChannel.InApp];
+
+    private bool _isMaster;
+    private int _websiteId;
+    private int _memberId;
+    private string? _memberName;
+    private List<Website> _websites = new();
+    private IReadOnlyDictionary<MessageChannel, bool> _availability = new Dictionary<MessageChannel, bool>();
+
+    private MessageChannel _channel = MessageChannel.Email;
+    private string? _subject;
+    private string _body = "";
+    private bool _bodyIsHtml;
+    private EmailAccountType _accountType = EmailAccountType.Info;
+    private string? _actionUrl;
+
+    private MudAutocomplete<MessageRecipient> _picker = null!;
+    private MessageRecipient? _pick;
+    private readonly List<MessageRecipient> _picked = new();
+    private string _manual = "";
+    private string _defaultCountryCode = "";
+    private MessageAudience _audience;
+    private int? _audienceCount;
+
+    private bool _sending;
+    private ComposeProgress _progress;
+    private ComposeMessageResult? _result;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _memberName = user.Identity?.Name;
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        await LoadWebsiteAsync();
+    }
+
+    private async Task LoadWebsiteAsync()
+    {
+        _availability = await Composer.GetChannelAvailabilityAsync(_websiteId);
+        // Numbers typed without a + take the most common code among the website's own people.
+        var sample = await Composer.SearchRecipientsAsync(_websiteId, null, 50);
+        _defaultCountryCode = sample.Select(r => r.CountryCode).Where(c => !string.IsNullOrWhiteSpace(c))
+            .GroupBy(c => c!.Trim().TrimStart('+')).OrderByDescending(g => g.Count()).Select(g => g.Key).FirstOrDefault() ?? "";
+        if (_audience != MessageAudience.None)
+            _audienceCount = await Composer.CountAudienceAsync(_websiteId, _audience);
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        _picked.Clear();
+        _result = null;
+        await LoadWebsiteAsync();
+    }
+
+    private async Task OnChannelChanged(MessageChannel c)
+    {
+        _channel = c;
+        if (c == MessageChannel.InApp && _audience == MessageAudience.AllClients)
+            await OnAudienceChanged(MessageAudience.None);
+    }
+
+    private async Task OnAudienceChanged(MessageAudience a)
+    {
+        _audience = a;
+        _audienceCount = a == MessageAudience.None ? null : await Composer.CountAudienceAsync(_websiteId, a);
+    }
+
+    private async Task<IEnumerable<MessageRecipient>> SearchAsync(string value, CancellationToken ct)
+    {
+        var rows = await Composer.SearchRecipientsAsync(_websiteId, value, 20, ct);
+        var taken = _picked.Select(p => p.Key).ToHashSet();
+        return rows.Where(r => !taken.Contains(r.Key)
+                               && (_channel != MessageChannel.InApp || r.Type == MessageRecipientType.Member));
+    }
+
+    private async Task AddPicked(MessageRecipient? r)
+    {
+        if (r is not null && _picked.All(p => p.Key != r.Key))
+            _picked.Add(r);
+        _pick = null;
+        await _picker.ClearAsync();
+    }
+
+    private List<MessageRecipient> ParseManual()
+    {
+        var list = new List<MessageRecipient>();
+        if (_channel == MessageChannel.InApp) return list;
+
+        var cc = new string(_defaultCountryCode.Where(char.IsDigit).ToArray());
+        foreach (var raw in _manual.Split(['\n', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (_channel == MessageChannel.Email)
+            {
+                if (raw.Contains('@')) list.Add(new MessageRecipient { DisplayName = raw, Email = raw });
+                continue;
+            }
+
+            var digits = new string(raw.Where(char.IsDigit).ToArray());
+            if (digits.Length < 5) continue;
+            var international = raw.StartsWith('+') || raw.StartsWith("00", StringComparison.Ordinal);
+            if (raw.StartsWith("00", StringComparison.Ordinal)) digits = digits[2..];
+
+            list.Add(new MessageRecipient
+            {
+                DisplayName = raw,
+                // "+…" already carries its country code; providers accept an empty code with a full number.
+                CountryCode = international ? "" : cc,
+                Cellphone = digits,
+            });
+        }
+        return list;
+    }
+
+    private bool CanSend =>
+        !string.IsNullOrWhiteSpace(_body)
+        && (_picked.Count > 0 || _audience != MessageAudience.None || !string.IsNullOrWhiteSpace(_manual));
+
+    private async Task SendAsync()
+    {
+        var manual = ParseManual();
+        var estimate = _picked.Count + manual.Count + (_audienceCount ?? 0);
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            L["messages.confirm_title", "Send message?"],
+            string.Format(L["messages.confirm_body", "Send this {0} message to up to {1} recipient(s)? This cannot be undone."],
+                ChannelLabel(_channel), estimate),
+            yesText: L["messages.send_now", "Send"], cancelText: L["cancel", "Cancel"]);
+        if (confirm != true) return;
+
+        _sending = true;
+        _result = null;
+        _progress = new ComposeProgress(0, estimate);
+        _cts = new CancellationTokenSource();
+
+        var request = new ComposeMessageRequest
+        {
+            WebsiteID = _websiteId,
+            Channel = _channel,
+            Subject = _channel is MessageChannel.Email or MessageChannel.InApp ? _subject : null,
+            Body = _body,
+            BodyIsHtml = _channel == MessageChannel.Email && _bodyIsHtml,
+            EmailAccountType = _accountType,
+            ActionUrl = _channel == MessageChannel.InApp ? _actionUrl : null,
+            Recipients = _picked.Concat(manual).ToList(),
+            Audience = _audience,
+            SentByMemberID = _memberId,
+            SentByName = _memberName,
+        };
+
+        var progress = new Progress<ComposeProgress>(p =>
+        {
+            _progress = p;
+            _ = InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            _result = await Composer.SendAsync(request, progress, _cts.Token);
+            Snackbar.Add(L["messages.done", "Done — see the result below."],
+                _result.Failed > 0 ? Severity.Warning : Severity.Success);
+        }
+        catch (OperationCanceledException)
+        {
+            Snackbar.Add(L["messages.cancelled", "Sending was cancelled. Messages already sent are in the send log."], Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _sending = false;
+            _cts?.Dispose();
+            _cts = null;
+        }
+    }
+
+    private void Cancel() => _cts?.Cancel();
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+
+    private double ProgressPercent => _progress.Total == 0 ? 0 : 100.0 * _progress.Done / _progress.Total;
+
+    private bool IsAvailable(MessageChannel c) => !_availability.TryGetValue(c, out var ok) || ok;
+
+    private bool HasAddress(MessageRecipient r) => _channel switch
+    {
+        MessageChannel.Email => !string.IsNullOrWhiteSpace(r.Email),
+        MessageChannel.Sms or MessageChannel.WhatsApp => !string.IsNullOrWhiteSpace(r.Cellphone),
+        _ => r.Type == MessageRecipientType.Member,
+    };
+
+    /// <summary>SMS parts: 70 chars per part for Unicode (Persian), 160 for GSM text; longer messages split at 67/153.</summary>
+    private string LengthInfo
+    {
+        get
+        {
+            var len = _body?.Length ?? 0;
+            if (_channel != MessageChannel.Sms) return $"{len}";
+            var unicode = (_body ?? "").Any(ch => ch > 127);
+            var single = unicode ? 70 : 160;
+            var multi = unicode ? 67 : 153;
+            var parts = len == 0 ? 0 : len <= single ? 1 : (int)Math.Ceiling(len / (double)multi);
+            return $"{len} · {parts} {L["messages.sms_parts", "SMS part(s)"]}";
+        }
+    }
+
+    private static string AddressLine(MessageRecipient r) =>
+        string.Join("  ·  ", new[] { r.Email, string.IsNullOrWhiteSpace(r.Cellphone) ? null : $"+{r.CountryCode} {r.Cellphone}" }
+            .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    private string ChannelLabel(MessageChannel c) => c switch
+    {
+        MessageChannel.Email => L["channel.email", "Email"],
+        MessageChannel.Sms => L["channel.sms", "SMS"],
+        MessageChannel.WhatsApp => L["channel.whatsapp", "WhatsApp"],
+        _ => L["channel.inapp", "In-app"],
+    };
+
+    private static string ChannelIcon(MessageChannel c) => c switch
+    {
+        MessageChannel.Email => Icons.Material.Filled.Email,
+        MessageChannel.Sms => Icons.Material.Filled.Sms,
+        MessageChannel.WhatsApp => Icons.Custom.Brands.WhatsApp,
+        _ => Icons.Material.Filled.NotificationsActive,
+    };
+
+    private static string RecipientIcon(MessageRecipientType t) => t switch
+    {
+        MessageRecipientType.Member => Icons.Material.Filled.Badge,
+        MessageRecipientType.Client => Icons.Material.Filled.Person,
+        _ => Icons.Material.Filled.AlternateEmail,
+    };
+
+    private string RecipientTypeLabel(MessageRecipientType t) => t switch
+    {
+        MessageRecipientType.Member => L["messages.recipient_member", "Staff"],
+        MessageRecipientType.Client => L["messages.recipient_client", "Customer"],
+        _ => L["messages.recipient_other", "Address"],
+    };
+
+    private string AccountTypeLabel(EmailAccountType t) => t switch
+    {
+        EmailAccountType.NoReply => L["email.type_noreply_short", "No-Reply"],
+        EmailAccountType.Support => L["email.type_support_short", "Support"],
+        EmailAccountType.Sales => L["email.type_sales_short", "Sales"],
+        EmailAccountType.Marketing => L["email.type_marketing_short", "Marketing"],
+        EmailAccountType.Info => L["email.type_info_short", "Info"],
+        _ => L["email.type_custom", "Custom"],
+    };
+}

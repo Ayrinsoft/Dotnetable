@@ -1,0 +1,310 @@
+@page "/messages/log"
+@attribute [Authorize(Policy = RoleKeys.MessagesLog)]
+@using Dotnetable.Application.Messaging
+@inject IMessageLogService LogService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["messages.log", "Send Log"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4" Wrap="Wrap.Wrap">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["messages.log", "Send Log"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["messages.log.subtitle", "Every email, SMS, WhatsApp and in-app message: what was sent, to whom, when, how, and whether it arrived at the gateway."]
+        </MudText>
+    </MudStack>
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <AuthorizeView Policy="@RoleKeys.MessagesSend" Context="sn">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" Href="/messages/send">
+                @L["messages.send", "Send Message"]
+            </MudButton>
+        </AuthorizeView>
+        <AuthorizeView Policy="@RoleKeys.MessagesDelete" Context="dl">
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem Icon="@Icons.Material.Filled.DeleteSweep" OnClick="PurgeAsync">
+                    @L["messages.log.purge", "Delete entries older than…"]
+                </MudMenuItem>
+            </MudMenu>
+        </AuthorizeView>
+    </MudStack>
+</MudStack>
+
+@* ── Filters ── *@
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+    <MudGrid Spacing="2">
+        @if (_isMaster)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="int?" Value="_filter.WebsiteID" ValueChanged="@(v => SetAndReload(() => _filter.WebsiteID = v))"
+                           Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                    <MudSelectItem T="int?" Value="@((int?)null)">@L["all", "All"]</MudSelectItem>
+                    @foreach (var w in _websites)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)w.WebsiteID)">@(w.BrandName ?? w.TradeName ?? $"#{w.WebsiteID}")</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="6" sm="3" md="2">
+            <MudSelect T="MessageChannel?" Value="_filter.Channel" ValueChanged="@(v => SetAndReload(() => _filter.Channel = v))"
+                       Label="@L["messages.channel", "Channel"]" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                <MudSelectItem T="MessageChannel?" Value="@((MessageChannel?)null)">@L["all", "All"]</MudSelectItem>
+                @foreach (var c in Enum.GetValues<MessageChannel>())
+                {
+                    <MudSelectItem T="MessageChannel?" Value="@((MessageChannel?)c)">@ChannelLabel(c)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudSelect T="MessageLogStatus?" Value="_filter.Status" ValueChanged="@(v => SetAndReload(() => _filter.Status = v))"
+                       Label="@L["status", "Status"]" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                <MudSelectItem T="MessageLogStatus?" Value="@((MessageLogStatus?)null)">@L["all", "All"]</MudSelectItem>
+                <MudSelectItem T="MessageLogStatus?" Value="@((MessageLogStatus?)MessageLogStatus.Sent)">@L["messages.status_sent", "Sent"]</MudSelectItem>
+                <MudSelectItem T="MessageLogStatus?" Value="@((MessageLogStatus?)MessageLogStatus.Failed)">@L["messages.status_failed", "Failed"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="2">
+            <MudSelect T="string" Value="_filter.Source" ValueChanged="@(v => SetAndReload(() => _filter.Source = v))"
+                       Label="@L["messages.source", "Source"]" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense">
+                <MudSelectItem T="string" Value="@((string?)null)">@L["all", "All"]</MudSelectItem>
+                @foreach (var s in MessageLogSources.All)
+                {
+                    <MudSelectItem T="string" Value="s">@SourceLabel(s)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="3" md="@(_isMaster ? 3 : 2)">
+            <MudDateRangePicker DateRange="_range" DateRangeChanged="OnRangeChanged" Label="@L["messages.date_range", "Date range"]"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="@(_isMaster ? 4 : 4)">
+            <MudTextField T="string" Value="_filter.Recipient" ValueChanged="@(v => SetAndReload(() => _filter.Recipient = v))"
+                          Label="@L["messages.recipient", "Recipient"]" Placeholder="@L["messages.recipient_ph", "Name, email or number"]"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" DebounceInterval="400" Clearable="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField T="string" Value="_filter.Text" ValueChanged="@(v => SetAndReload(() => _filter.Text = v))"
+                          Label="@L["messages.text_search", "Subject or text contains"]"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" DebounceInterval="400" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField T="string" Value="_filter.SentBy" ValueChanged="@(v => SetAndReload(() => _filter.SentBy = v))"
+                          Label="@L["messages.sent_by", "Sent by"]"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" DebounceInterval="400" Clearable="true" />
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" Class="mt-3" Wrap="Wrap.Wrap">
+        <MudChip T="string" Variant="Variant.Text" Icon="@Icons.Material.Filled.Summarize">@L["total", "Total"]: @_summary.Total</MudChip>
+        <MudChip T="string" Variant="Variant.Text" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">@L["messages.status_sent", "Sent"]: @_summary.Sent</MudChip>
+        <MudChip T="string" Variant="Variant.Text" Color="Color.Error" Icon="@Icons.Material.Filled.Error">@L["messages.status_failed", "Failed"]: @_summary.Failed</MudChip>
+        @foreach (var (c, n) in _summary.ByChannel.OrderBy(k => k.Key))
+        {
+            <MudChip T="string" Variant="Variant.Outlined" Size="Size.Small" Icon="@ChannelIcon(c)">@ChannelLabel(c): @n</MudChip>
+        }
+    </MudStack>
+</MudPaper>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="@_colCount" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["messages.log.empty", "No messages match these filters."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var m in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => OpenAsync(m))">
+                    <td style="white-space:nowrap">@m.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@ChannelIcon(m.Channel)" Size="Size.Small" />
+                            <span>@ChannelLabel(m.Channel)</span>
+                        </MudStack>
+                    </td>
+                    <td>
+                        <div>@(m.RecipientName ?? m.Recipient)</div>
+                        @if (m.RecipientName is not null)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" dir="ltr">@m.Recipient</MudText>
+                        }
+                    </td>
+                    <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                        @(m.Subject ?? (m.IsBodyRedacted ? L["messages.redacted", "(hidden — contains a code)"] : "—"))
+                    </td>
+                    <td>@SourceLabel(m.Source)</td>
+                    <td>@(m.SentByName ?? L["messages.system", "System"])</td>
+                    @if (_isMaster)
+                    {
+                        <td>@(m.WebsiteName ?? $"#{m.WebsiteID}")</td>
+                    }
+                    <td>
+                        @if (m.Status == MessageLogStatus.Sent)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["messages.status_sent", "Sent"]</MudChip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="@(m.Error ?? "")">
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error">@L["messages.status_failed", "Failed"]</MudChip>
+                            </MudTooltip>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<MessageLogListItem> _items = new();
+    private MessageLogSummary _summary = new();
+    private readonly MessageLogFilter _filter = new();
+    private DateRange? _range;
+    private GridViewHeaderParameters _grid = new();
+
+    private int _colCount => 7 + (_isMaster ? 1 : 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+        else
+            _filter.WebsiteID = _websiteId;
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = new()
+            {
+                new() { ColumnTitle = L["date", "Date"], ColumnName = nameof(MessageLog.CreatedAt), HasSort = true },
+                new() { ColumnTitle = L["messages.channel", "Channel"], ColumnName = nameof(MessageLog.Channel), HasSort = true },
+                new() { ColumnTitle = L["messages.recipient", "Recipient"], ColumnName = nameof(MessageLog.Recipient), HasSort = true },
+                new() { ColumnTitle = L["subject", "Subject"], ColumnName = "" },
+                new() { ColumnTitle = L["messages.source", "Source"], ColumnName = nameof(MessageLog.Source), HasSort = true },
+                new() { ColumnTitle = L["messages.sent_by", "Sent by"], ColumnName = nameof(MessageLog.SentByName), HasSort = true },
+            }
+        };
+        if (_isMaster)
+            _grid.HeaderItems.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = nameof(MessageLog.WebsiteID), HasSort = true });
+        _grid.HeaderItems.Add(new() { ColumnTitle = L["status", "Status"], ColumnName = nameof(MessageLog.Status), HasSort = true });
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task SetAndReload(Action set)
+    {
+        set();
+        _grid.Pagination.PageIndex = 1;
+        await LoadAsync();
+    }
+
+    private Task OnRangeChanged(DateRange? range)
+    {
+        _range = range;
+        return SetAndReload(() =>
+        {
+            // The picker yields local calendar days; the log stores UTC.
+            _filter.FromUtc = range?.Start?.Date.ToUniversalTime();
+            _filter.ToUtc = range?.End?.Date.AddDays(1).ToUniversalTime();
+        });
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        if (!_isMaster) _filter.WebsiteID = _websiteId;
+
+        var page = LogService.GetPagedAsync(_filter, _grid.ToQuery());
+        var summary = LogService.GetSummaryAsync(_filter);
+        var result = await page;
+        _summary = await summary;
+
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private async Task OpenAsync(MessageLogListItem item)
+    {
+        var row = await LogService.GetByIdAsync(item.MessageLogID, _isMaster ? null : _websiteId);
+        if (row is null) return;
+
+        var parameters = new DialogParameters<MessageLogDialog>
+        {
+            { x => x.Entry, row },
+            { x => x.WebsiteName, item.WebsiteName },
+        };
+        await DialogService.ShowAsync<MessageLogDialog>(L["messages.log.detail", "Message details"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true });
+    }
+
+    private async Task PurgeAsync()
+    {
+        // The menu is hidden without the key; re-check here so a stale circuit cannot purge.
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        if (!AdminPolicies.Allows(user, RoleKeys.MessagesDelete)) return;
+
+        var parameters = new DialogParameters<MessageLogPurgeDialog>();
+        var dialog = await DialogService.ShowAsync<MessageLogPurgeDialog>(L["messages.log.purge", "Delete entries older than…"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: int days }) return;
+
+        var removed = await LogService.PurgeAsync(_isMaster ? _filter.WebsiteID : _websiteId, DateTime.UtcNow.AddDays(-days));
+        Snackbar.Add(string.Format(L["messages.log.purged", "{0} entries deleted."], removed), Severity.Success);
+        await LoadAsync();
+    }
+
+    private string ChannelLabel(MessageChannel c) => c switch
+    {
+        MessageChannel.Email => L["channel.email", "Email"],
+        MessageChannel.Sms => L["channel.sms", "SMS"],
+        MessageChannel.WhatsApp => L["channel.whatsapp", "WhatsApp"],
+        _ => L["channel.inapp", "In-app"],
+    };
+
+    private static string ChannelIcon(MessageChannel c) => c switch
+    {
+        MessageChannel.Email => Icons.Material.Filled.Email,
+        MessageChannel.Sms => Icons.Material.Filled.Sms,
+        MessageChannel.WhatsApp => Icons.Custom.Brands.WhatsApp,
+        _ => Icons.Material.Filled.NotificationsActive,
+    };
+
+    private string SourceLabel(string s) => s switch
+    {
+        MessageLogSources.Manual => L["messages.source_manual", "Sent by hand"],
+        MessageLogSources.Otp => L["messages.source_otp", "Verification code"],
+        MessageLogSources.Order => L["messages.source_order", "Order"],
+        MessageLogSources.Notification => L["messages.source_notification", "Admin notification"],
+        MessageLogSources.Test => L["messages.source_test", "Gateway test"],
+        _ => L["messages.source_system", "System"],
+    };
+}

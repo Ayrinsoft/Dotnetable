@@ -1,0 +1,36 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["gateway.test_hint", "A short test message is sent through this gateway, even when it is inactive. The result is recorded in the message log."]
+        </MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="4">
+                <MudTextField @bind-Value="_countryCode" Label="@L["country_code", "Country code"]" Variant="Variant.Outlined"
+                              Adornment="Adornment.Start" AdornmentText="+" />
+            </MudItem>
+            <MudItem xs="8">
+                <MudTextField @bind-Value="_phone" Label="@L["mobile", "Mobile"]" Variant="Variant.Outlined"
+                              InputType="InputType.Telephone" Required="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@string.IsNullOrWhiteSpace(_phone)"
+                   StartIcon="@Icons.Material.Filled.Send"
+                   OnClick="@(() => MudDialog.Close(DialogResult.Ok((_countryCode.Trim().TrimStart('+'), _phone.Trim()))))">
+            @L["gateway.send_test", "Send test"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _countryCode = "";
+    private string _phone = "";
+
+    protected override Task OnInitializedAsync() => L.EnsureLoadedAsync();
+}

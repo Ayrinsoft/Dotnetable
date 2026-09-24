@@ -43,6 +43,11 @@ public static class RoleKeys
     public const string MessagesView = "messages.view";
     public const string MessagesDelete = "messages.delete";
 
+    // ── Messaging: send to anyone, delivery log, SMS/WhatsApp gateways (admin) ─
+    public const string MessagesSend = "messages.send";
+    public const string MessagesLog = "messages.log";
+    public const string MessagesGateways = "messages.gateways";
+
     // ── Localization / translations (admin) ─────────────────────────
     public const string LocalizationView = "localization.view";
     public const string LocalizationEdit = "localization.edit";

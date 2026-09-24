@@ -136,6 +136,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MarketplaceSyncLog> MarketplaceSyncLogs { get; set; }
 
+    public virtual DbSet<MessageLog> MessageLogs { get; set; }
+
     public virtual DbSet<MediaSet> MediaSets { get; set; }
 
     public virtual DbSet<MediaSetItem> MediaSetItems { get; set; }
@@ -318,6 +320,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteSeoSetting> WebsiteSeoSettings { get; set; }
 
     public virtual DbSet<WebsiteSmsSetting> WebsiteSmsSettings { get; set; }
+
+    public virtual DbSet<WebsiteWhatsAppSetting> WebsiteWhatsAppSettings { get; set; }
 
     public virtual DbSet<WebsiteSocialLink> WebsiteSocialLinks { get; set; }
 
@@ -4239,6 +4243,52 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteSmsSettings_Websites");
+        });
+
+        modelBuilder.Entity<WebsiteWhatsAppSetting>(entity =>
+        {
+            entity.HasKey(e => e.WebsiteWhatsAppSettingID);
+
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteWhatsAppSettings_WebsiteID");
+
+            entity.Property(e => e.Provider)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.Title).HasMaxLength(150);
+            entity.Property(e => e.SettingsJSON).HasMaxLength(4000);
+            entity.Property(e => e.SenderNumber)
+                .HasMaxLength(32)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteWhatsAppSettings)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteWhatsAppSettings_Websites");
+        });
+
+        modelBuilder.Entity<MessageLog>(entity =>
+        {
+            entity.HasKey(e => e.MessageLogID);
+
+            entity.HasIndex(e => new { e.WebsiteID, e.CreatedAt }, "IX_MessageLogs_WebsiteID_CreatedAt").IsDescending(false, true);
+            entity.HasIndex(e => e.CreatedAt, "IX_MessageLogs_CreatedAt").IsDescending();
+
+            entity.Property(e => e.Recipient).HasMaxLength(256);
+            entity.Property(e => e.RecipientName).HasMaxLength(200);
+            entity.Property(e => e.Subject).HasMaxLength(300);
+            entity.Property(e => e.Provider).HasMaxLength(150);
+            entity.Property(e => e.Source)
+                .HasMaxLength(32)
+                .IsUnicode(false);
+            entity.Property(e => e.Error).HasMaxLength(1000);
+            entity.Property(e => e.SentByName).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MessageLogs_Websites");
         });
 
         modelBuilder.Entity<WebsiteFeature>(entity =>

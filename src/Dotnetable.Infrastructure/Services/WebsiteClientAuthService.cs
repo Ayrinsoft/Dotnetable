@@ -3,6 +3,7 @@ using System.Text;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Messaging;
 using Dotnetable.Application.Security;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
@@ -404,6 +405,10 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
     private async Task SendCodeAsync(
         int websiteId, OtpChannel channel, string target, string? countryCode, string code, bool isActivation, CancellationToken ct)
     {
+        // The code must never land in the message log admins can read.
+        using var logScope = MessageLogScope.Begin(MessageLogSources.Otp, redactBody: true,
+            recipientType: MessageRecipientType.Client);
+
         if (channel == OtpChannel.Email)
         {
             var key = isActivation ? EmailTemplateKeys.ClientOtpActivation : EmailTemplateKeys.ClientOtpPasswordReset;

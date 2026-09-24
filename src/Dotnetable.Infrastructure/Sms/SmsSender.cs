@@ -1,6 +1,8 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Messaging;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -29,21 +31,26 @@ public sealed class SmsProviderRegistry : ISmsProviderRegistry
 /// <para>The previous implementation was a no-op that logged the message and returned — which meant
 /// an OTP was written to the application log in plaintext and the customer was told a code had been
 /// sent that never existed. Nothing is logged here beyond the destination and the outcome; message
-/// bodies carry one-time codes and must not reach the log.</para>
+/// bodies carry one-time codes and must not reach the log. Every attempt is also recorded in the
+/// message log; callers sending a code open a redacting <see cref="MessageLogScope"/> so the body is
+/// withheld there too.</para>
 /// </summary>
 public sealed class SmsSender : ISmsSender
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ISmsProviderRegistry _registry;
+    private readonly IMessageLogService _log;
     private readonly ILogger<SmsSender> _logger;
 
     public SmsSender(
         IDbContextFactory<AppDbContext> contextFactory,
         ISmsProviderRegistry registry,
+        IMessageLogService log,
         ILogger<SmsSender> logger)
     {
         _contextFactory = contextFactory;
         _registry = registry;
+        _log = log;
         _logger = logger;
     }
 
@@ -56,15 +63,28 @@ public sealed class SmsSender : ISmsSender
         if (string.IsNullOrWhiteSpace(cellphone))
             return false;
 
+        var recipient = FormatNumber(countryCode, cellphone);
         var resolved = await ResolveAsync(websiteId, ct);
         if (resolved is null)
         {
             _logger.LogWarning("No SMS gateway is configured for website {WebsiteId}; message not sent.", websiteId);
+            await _log.WriteAsync(new MessageLogEntry
+            {
+                WebsiteID = websiteId, Channel = MessageChannel.Sms, Success = false,
+                Recipient = recipient, Body = message, Error = "No SMS gateway is configured.",
+            }, ct);
             return false;
         }
 
         var (provider, ctx) = resolved.Value;
         var result = await provider.SendAsync(ctx, countryCode, cellphone, message, ct);
+
+        await _log.WriteAsync(new MessageLogEntry
+        {
+            WebsiteID = websiteId, Channel = MessageChannel.Sms, Success = result.Success,
+            Recipient = recipient, Body = message, Provider = provider.DisplayName, Error = result.Error,
+        }, ct);
+
         if (!result.Success)
         {
             _logger.LogError("SMS via {Provider} for website {WebsiteId} failed: {Error}",
@@ -98,6 +118,12 @@ public sealed class SmsSender : ISmsSender
         return null;
     }
 
+    internal static string FormatNumber(string? countryCode, string cellphone)
+    {
+        var cc = new string((countryCode ?? "").Where(char.IsDigit).ToArray());
+        return cc.Length == 0 ? cellphone.Trim() : $"+{cc} {cellphone.Trim()}";
+    }
+
     internal static SmsSettingContext ToContext(WebsiteSmsSetting row) => new()
     {
         WebsiteSmsSettingID = row.WebsiteSmsSettingID,
@@ -113,11 +139,31 @@ public sealed class SmsSettingService : ISmsSettingService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly ISmsProviderRegistry _registry;
+    private readonly IMessageLogService _log;
 
-    public SmsSettingService(IDbContextFactory<AppDbContext> contextFactory, ISmsProviderRegistry registry)
+    public SmsSettingService(IDbContextFactory<AppDbContext> contextFactory, ISmsProviderRegistry registry,
+        IMessageLogService log)
     {
         _contextFactory = contextFactory;
         _registry = registry;
+        _log = log;
+    }
+
+    public async Task<SmsSettingInput?> GetInputAsync(int id, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var row = await context.WebsiteSmsSettings.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.WebsiteSmsSettingID == id, ct);
+        return row is null ? null : new SmsSettingInput
+        {
+            WebsiteID = row.WebsiteID,
+            Provider = row.Provider,
+            Title = row.Title,
+            SettingsJSON = row.SettingsJSON,
+            SenderNumber = row.SenderNumber,
+            IsActive = row.IsActive,
+            SortOrder = row.SortOrder,
+        };
     }
 
     public async Task<IReadOnlyList<SmsSettingInfo>> GetForWebsiteAsync(int websiteId, CancellationToken ct = default)
@@ -197,8 +243,16 @@ public sealed class SmsSettingService : ISmsSettingService
         var provider = _registry.Find(row.Provider);
         if (provider is null) return SmsSendResult.Fail($"Unknown SMS provider '{row.Provider}'.");
 
-        return await provider.SendAsync(SmsSender.ToContext(row), countryCode, cellphone,
-            "Dotnetable test message.", ct);
+        const string text = "Dotnetable test message.";
+        using var scope = MessageLogScope.Begin(MessageLogSources.Test);
+        var result = await provider.SendAsync(SmsSender.ToContext(row), countryCode, cellphone, text, ct);
+        await _log.WriteAsync(new MessageLogEntry
+        {
+            WebsiteID = row.WebsiteID, Channel = MessageChannel.Sms, Success = result.Success,
+            Recipient = SmsSender.FormatNumber(countryCode, cellphone), Body = text,
+            Provider = provider.DisplayName, Error = result.Error,
+        }, ct);
+        return result;
     }
 
     private SmsSettingInfo ToInfo(WebsiteSmsSetting row)

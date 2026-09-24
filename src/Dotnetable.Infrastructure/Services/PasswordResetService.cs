@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Messaging;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
@@ -54,6 +55,10 @@ public class PasswordResetService : IPasswordResetService
         await _context.SaveChangesAsync(ct);
 
         var resetUrl = resetUrlBuilder(key);
+        // The reset link is a credential: keep it out of the message log.
+        using var logScope = MessageLogScope.Begin(MessageLogSources.Otp, redactBody: true,
+            recipientType: Domain.Enums.MessageRecipientType.Member, recipientId: member.MemberID,
+            recipientName: $"{member.Givenname} {member.Surname}".Trim());
         await _email.SendTemplateAsync(member.WebsiteID, EmailTemplateKeys.AdminForgotPassword, member.Email,
             new Dictionary<string, string> { ["Name"] = member.Givenname, ["ResetUrl"] = resetUrl },
             languageCode: null, ct);

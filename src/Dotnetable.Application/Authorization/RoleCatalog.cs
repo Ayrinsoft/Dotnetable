@@ -52,7 +52,10 @@ public static class RoleCatalog
 
         // Messages
         new(RoleKeys.MessagesView, "View contact messages", RoleCategory.Admin),
-        new(RoleKeys.MessagesDelete, "Delete contact messages", RoleCategory.Admin),
+        new(RoleKeys.MessagesDelete, "Delete contact messages and clear old send-log entries", RoleCategory.Admin),
+        new(RoleKeys.MessagesSend, "Send email, SMS, WhatsApp or in-app messages to staff and customers", RoleCategory.Admin),
+        new(RoleKeys.MessagesLog, "View the message delivery log (what was sent, to whom, when and how)", RoleCategory.Admin),
+        new(RoleKeys.MessagesGateways, "Manage SMS and WhatsApp gateways (provider credentials)", RoleCategory.Admin),
 
         // Localization
         new(RoleKeys.LocalizationView, "View translations", RoleCategory.Admin),

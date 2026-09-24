@@ -2736,10 +2736,90 @@ window.DOCS_ADMIN = {
       id: "messages",
       title: { en: "Messages", fa: "پیام‌ها" },
       summary: {
-        en: "Contact inbox, SMTP accounts, email templates.",
-        fa: "صندوق تماس، حساب SMTP، قالب ایمیل.",
+        en: "Send messages on any channel, the send log, contact inbox, SMTP accounts, email templates, SMS and WhatsApp gateways.",
+        fa: "ارسال پیام در هر کانال، گزارش ارسال، صندوق تماس، حساب SMTP، قالب ایمیل، درگاه‌های پیامک و واتس‌اپ.",
       },
       pages: [
+        {
+          id: "send-message",
+          title: { en: "Send message", fa: "ارسال پیام" },
+          adminPath: "/messages/send",
+          summary: {
+            en: "Send one email, SMS, WhatsApp or in-app message to staff, customers or any address.",
+            fa: "ارسال یک ایمیل، پیامک، واتس‌اپ یا پیام درون‌سیستمی به کارکنان، مشتریان یا هر نشانی دلخواه.",
+          },
+          purpose: {
+            en: "Reach anyone from the panel without leaving it: a notice to all customers, a reminder to one staff member, or a text to a number that is not in the system. Requires the **messages.send** permission.",
+            fa: "رساندن پیام به هر کسی بدون خروج از پنل: اطلاعیه به همه مشتریان، یادآوری به یک کارمند، یا پیامک به شماره‌ای که در سیستم نیست. نیازمند دسترسی **messages.send**.",
+          },
+          howTo: [
+            {
+              en: "Pick the channel. A channel with no working account/gateway is highlighted and links to the page that sets it up.",
+              fa: "کانال را انتخاب کنید. کانالی که حساب/درگاه فعال ندارد مشخص می‌شود و به صفحه تنظیم آن لینک می‌دهد.",
+            },
+            {
+              en: "Add recipients: search staff and customers by name, email or mobile; type other addresses one per line (numbers starting with + keep their own country code); or tick **All active staff members** / **All active customers**.",
+              fa: "گیرندگان را اضافه کنید: کارکنان و مشتریان را با نام، ایمیل یا موبایل جستجو کنید؛ نشانی‌های دیگر را هر کدام در یک خط بنویسید (شماره‌هایی که با + شروع می‌شوند کد کشور خودشان را نگه می‌دارند)؛ یا **همه کارکنان فعال** / **همه مشتریان فعال** را انتخاب کنید.",
+            },
+            {
+              en: "Write the text. `{name}` is replaced with each recipient's name. For SMS the counter shows how many parts the message will cost.",
+              fa: "متن را بنویسید. `{name}` با نام هر گیرنده جایگزین می‌شود. برای پیامک، شمارنده تعداد بخش‌های پیامک را نشان می‌دهد.",
+            },
+            {
+              en: "Press **Send** and confirm. The result shows how many were sent, failed, or skipped because the person has no address for that channel.",
+              fa: "**ارسال** را بزنید و تأیید کنید. نتیجه تعداد ارسال‌شده، ناموفق، و ردشده (به‌دلیل نداشتن نشانی برای آن کانال) را نشان می‌دهد.",
+            },
+          ],
+          tips: [
+            {
+              en: "**In-app** messages land in the recipient's admin-panel Inbox, so they only reach staff members — customers and typed-in addresses are skipped.",
+              fa: "پیام **درون‌سیستمی** به صندوق پیام پنل مدیریت گیرنده می‌رسد، پس فقط به کارکنان ارسال می‌شود — مشتریان و نشانی‌های تایپ‌شده رد می‌شوند.",
+            },
+            {
+              en: "Each person gets one message even if picked twice or also included in \"All customers\".",
+              fa: "هر نفر فقط یک پیام دریافت می‌کند، حتی اگر دو بار انتخاب شده یا در «همه مشتریان» هم باشد.",
+            },
+          ],
+          related: ["message-log", "email-accounts", "sms-gateways", "whatsapp-gateways"],
+        },
+        {
+          id: "message-log",
+          title: { en: "Send log", fa: "گزارش ارسال پیام" },
+          adminPath: "/messages/log",
+          summary: {
+            en: "Every outgoing email, SMS, WhatsApp and in-app message: what, to whom, when, how, and the outcome.",
+            fa: "همه ایمیل‌ها، پیامک‌ها، پیام‌های واتس‌اپ و درون‌سیستمی ارسالی: چه چیزی، برای چه کسی، چه زمانی، از چه راهی و با چه نتیجه‌ای.",
+          },
+          purpose: {
+            en: "Answer \"did the customer get it?\" — the log records messages sent by hand **and** automatic ones (order shipped, admin notifications, verification codes, gateway tests). Requires **messages.log**.",
+            fa: "پاسخ به «آیا به مشتری رسید؟» — گزارش هم پیام‌های دستی **و** هم خودکار (ارسال سفارش، اعلان‌های مدیریت، کدهای تأیید، تست درگاه) را ثبت می‌کند. نیازمند **messages.log**.",
+          },
+          howTo: [
+            {
+              en: "Filter by channel, status, source, date range, recipient, text or sender. The chips above the grid total the current filter.",
+              fa: "بر اساس کانال، وضعیت، منبع، بازه تاریخ، گیرنده، متن یا فرستنده فیلتر کنید. برچسب‌های بالای جدول جمع فیلتر فعلی را نشان می‌دهند.",
+            },
+            {
+              en: "Click a row for the full text, the gateway/account used and — for a failure — the gateway's error.",
+              fa: "روی هر ردیف کلیک کنید تا متن کامل، درگاه/حساب استفاده‌شده و — در صورت خطا — پیام خطای درگاه را ببینید.",
+            },
+          ],
+          tips: [
+            {
+              en: "**Sent** means the gateway or mail server accepted the message; it is not a delivery receipt from the handset or mailbox.",
+              fa: "**ارسال‌شده** یعنی درگاه یا سرور ایمیل پیام را پذیرفته است؛ رسید تحویل از گوشی یا صندوق ایمیل نیست.",
+            },
+            {
+              en: "Verification codes and password-reset links are recorded **without their text**, so nobody with log access can use them.",
+              fa: "کدهای تأیید و لینک‌های بازیابی رمز **بدون متن** ثبت می‌شوند تا کسی که به گزارش دسترسی دارد نتواند از آن‌ها استفاده کند.",
+            },
+            {
+              en: "Holders of **messages.delete** can clear entries older than 30 days – 1 year from the ⋮ menu.",
+              fa: "دارندگان **messages.delete** می‌توانند از منوی ⋮ ردیف‌های قدیمی‌تر از ۳۰ روز تا ۱ سال را پاک کنند.",
+            },
+          ],
+          related: ["send-message", "sms-gateways", "whatsapp-gateways", "email-accounts"],
+        },
         {
           id: "contact-messages",
           title: { en: "Contact messages", fa: "پیام‌های تماس" },
@@ -2788,8 +2868,8 @@ window.DOCS_ADMIN = {
               fa: "**سایتی که حساب ایمیل خودش را ندارد، از طریق حساب سایت ۱ ارسال می‌کند.** ترتیب انتخاب: حساب هم‌نوعِ خود سایت ← حساب پیش‌فرض سایت ← هر حساب فعال سایت ← و بعد همین سه مورد روی سایت ۱. پس نوتیفیکیشن صاحب سایتی که ایمیل تنظیم نکرده هم می‌رسد. حساب فعالی که سرور یا آدرس فرستنده ندارد نادیده گرفته می‌شود تا ارسال خراب نشود.",
             },
             {
-              en: "SMS does **not** work this way: a site without its own gateway sends no SMS at all (see SMS gateways). WhatsApp is meant to follow the email rule once a gateway ships.",
-              fa: "پیامک این‌طور نیست: سایتی که درگاه خودش را ندارد اصلاً پیامک نمی‌فرستد (به «درگاه‌های پیامک» ببینید). واتس‌اپ قرار است پس از افزوده‌شدن درگاه، از قانون ایمیل پیروی کند.",
+              en: "SMS does **not** work this way: a site without its own gateway sends no SMS at all (see SMS gateways). WhatsApp follows the email rule and falls back to website 1's gateway.",
+              fa: "پیامک این‌طور نیست: سایتی که درگاه خودش را ندارد اصلاً پیامک نمی‌فرستد (به «درگاه‌های پیامک» ببینید). واتس‌اپ از قانون ایمیل پیروی می‌کند و به درگاه سایت ۱ برمی‌گردد.",
             },
           ],
           related: ["email-templates", "sms-gateways", "settings"],
@@ -2842,8 +2922,8 @@ window.DOCS_ADMIN = {
               fa: "می‌توان چند درگاه ثبت کرد؛ فعالِ با کمترین ترتیب می‌فرستد. درگاهی که اعتبارنامه لازم را ندارد رد می‌شود، پس یک ردیف ناقص نمی‌تواند بی‌صدا ارسال را در دست بگیرد.",
             },
             {
-              en: "**Every website needs its own gateway — there is no fallback to website 1.** A text goes out under the sender line and billing account of whoever owns the gateway, so one site never borrows another's. Email (and WhatsApp, once it ships) deliberately do fall back to website 1.",
-              fa: "**هر سایت باید درگاه خودش را داشته باشد — هیچ fallback به سایت ۱ وجود ندارد.** پیامک با خط فرستنده و حساب مالی صاحب همان درگاه ارسال می‌شود، پس هیچ سایتی از درگاه سایت دیگر استفاده نمی‌کند. ایمیل (و واتس‌اپ پس از افزوده‌شدن) عمداً به سایت ۱ برمی‌گردند.",
+              en: "**Every website needs its own gateway — there is no fallback to website 1.** A text goes out under the sender line and billing account of whoever owns the gateway, so one site never borrows another's. Email and WhatsApp deliberately do fall back to website 1.",
+              fa: "**هر سایت باید درگاه خودش را داشته باشد — هیچ fallback به سایت ۱ وجود ندارد.** پیامک با خط فرستنده و حساب مالی صاحب همان درگاه ارسال می‌شود، پس هیچ سایتی از درگاه سایت دیگر استفاده نمی‌کند. ایمیل و واتس‌اپ عمداً به سایت ۱ برمی‌گردند.",
             },
           ],
           sections: [
@@ -2867,12 +2947,59 @@ window.DOCS_ADMIN = {
           ],
           tips: [
             {
-              en: "Message bodies are never written to the log — they carry one-time codes. If a send fails, the log records the provider and the gateway's error, not the text.",
-              fa: "متن پیام هرگز در لاگ نوشته نمی‌شود چون حاوی کد یک‌بارمصرف است. اگر ارسال شکست بخورد، لاگ نام provider و خطای درگاه را ثبت می‌کند، نه متن را.",
+              en: "Message bodies are never written to the application log. Every send (and every **Test**) appears in the **Send log**; one-time codes are recorded there without their text.",
+              fa: "متن پیام هرگز در لاگ برنامه نوشته نمی‌شود. هر ارسال (و هر **آزمایش**) در **گزارش ارسال پیام** ثبت می‌شود؛ کدهای یک‌بارمصرف بدون متن ثبت می‌شوند.",
+            },
+            {
+              en: "Managing gateways needs the **messages.gateways** permission (it also covers WhatsApp gateways).",
+              fa: "مدیریت درگاه‌ها به دسترسی **messages.gateways** نیاز دارد (درگاه‌های واتس‌اپ را هم شامل می‌شود).",
             },
           ],
-          related: ["email-accounts", "clients", "settings"],
+          related: ["email-accounts", "whatsapp-gateways", "message-log", "clients", "settings"],
           relatedApi: ["auth"],
+        },
+        {
+          id: "whatsapp-gateways",
+          title: { en: "WhatsApp gateways", fa: "درگاه‌های واتس‌اپ" },
+          adminPath: "/messages/whatsapp-gateways",
+          summary: {
+            en: "Per-website WhatsApp providers used for order notices, admin alerts and messages sent by hand.",
+            fa: "درگاه‌های واتس‌اپ هر وب‌سایت برای اطلاع سفارش، هشدارهای مدیریت و پیام‌های دستی.",
+          },
+          purpose: {
+            en: "Register the WhatsApp provider a website sends through. **A website without a working gateway of its own sends through website 1's**, like email — so configuring one on website 1 covers every site.",
+            fa: "ثبت درگاهی که وب‌سایت با آن پیام واتس‌اپ می‌فرستد. **سایتی که درگاه فعال خودش را ندارد از درگاه سایت ۱ استفاده می‌کند**، مثل ایمیل — پس یک درگاه روی سایت ۱ همه سایت‌ها را پوشش می‌دهد.",
+          },
+          howTo: [
+            {
+              en: "Add a gateway, choose the provider, fill in its credentials, then use **Send test** to message your own number.",
+              fa: "یک درگاه اضافه کنید، provider را انتخاب و اعتبارنامه را وارد کنید، سپس با **ارسال آزمایشی** به شماره خودتان پیام بدهید.",
+            },
+            {
+              en: "As with SMS, the active gateway with the lowest sort order sends, and a gateway missing a required credential is skipped.",
+              fa: "مثل پیامک، درگاه فعال با کمترین ترتیب ارسال می‌کند و درگاهی که اعتبارنامه لازم را ندارد نادیده گرفته می‌شود.",
+            },
+          ],
+          sections: [
+            {
+              title: { en: "Built-in providers", fa: "providerهای آماده" },
+              items: [
+                {
+                  en: "**WhatsApp Cloud API (Meta)** — the official API. Needs a permanent access token and the Phone Number ID. Meta only delivers free text within 24 hours of the customer's last message; set an approved **template name** (one `{{1}}` body variable) to reach anyone at any time.",
+                  fa: "**WhatsApp Cloud API (متا)** — API رسمی. به توکن دسترسی دائمی و Phone Number ID نیاز دارد. متا متن آزاد را فقط تا ۲۴ ساعت پس از آخرین پیام مشتری تحویل می‌دهد؛ برای ارسال در هر زمان یک **نام قالب** تأییدشده (با یک متغیر `{{1}}`) تنظیم کنید.",
+                },
+                {
+                  en: "**Twilio WhatsApp**, **UltraMsg**, **Green API**.",
+                  fa: "**Twilio WhatsApp**، **UltraMsg**، **Green API**.",
+                },
+                {
+                  en: "**Custom HTTP gateway** — same as for SMS; `{to}` is the international number without +.",
+                  fa: "**درگاه HTTP سفارشی** — مانند پیامک؛ `{to}` شماره بین‌المللی بدون + است.",
+                },
+              ],
+            },
+          ],
+          related: ["sms-gateways", "send-message", "message-log"],
         },
       ],
     },

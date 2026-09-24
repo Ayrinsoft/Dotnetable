@@ -142,6 +142,8 @@
     <Build Include="Brands.sql" />
     <Build Include="WebsiteStorageSettings.sql" />
     <Build Include="WebsiteSmsSettings.sql" />
+    <Build Include="WebsiteWhatsAppSettings.sql" />
+    <Build Include="MessageLogs.sql" />
     <Build Include="WebsiteClientRefreshTokens.sql" />
     <Build Include="WebsiteSocialLinks.sql" />
     <Build Include="WebsiteContactInfos.sql" />

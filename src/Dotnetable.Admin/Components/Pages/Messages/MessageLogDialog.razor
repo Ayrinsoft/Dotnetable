@@ -1,0 +1,89 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudSimpleTable Dense="true" Elevation="0" Class="mb-3">
+            <tbody>
+                <tr><th style="width:170px">@L["date", "Date"]</th><td>@Entry.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
+                <tr><th>@L["messages.channel", "Channel"]</th><td>@((MessageChannel)Entry.Channel)</td></tr>
+                <tr>
+                    <th>@L["status", "Status"]</th>
+                    <td>
+                        @if (Entry.Status == (byte)MessageLogStatus.Sent)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["messages.status_sent", "Sent"]</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">@L["messages.status_failed", "Failed"]</MudChip>
+                        }
+                    </td>
+                </tr>
+                @if (!string.IsNullOrWhiteSpace(Entry.Error))
+                {
+                    <tr><th>@L["error", "Error"]</th><td><MudText Color="Color.Error" Typo="Typo.body2" Style="word-break:break-word">@Entry.Error</MudText></td></tr>
+                }
+                <tr>
+                    <th>@L["messages.recipient", "Recipient"]</th>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(Entry.RecipientName))
+                        {
+                            <span>@Entry.RecipientName — </span>
+                        }
+                        <span dir="ltr">@Entry.Recipient</span>
+                        @if (RecipientLink is string href)
+                        {
+                            <MudLink Href="@href" Class="ms-2" Typo="Typo.caption">@L["open", "Open"]</MudLink>
+                        }
+                    </td>
+                </tr>
+                <tr><th>@L["messages.provider", "Via"]</th><td>@(Entry.Provider ?? "—")</td></tr>
+                <tr><th>@L["messages.source", "Source"]</th><td>@Entry.Source</td></tr>
+                <tr><th>@L["messages.sent_by", "Sent by"]</th><td>@(Entry.SentByName ?? L["messages.system", "System"])</td></tr>
+                @if (!string.IsNullOrWhiteSpace(WebsiteName))
+                {
+                    <tr><th>@L["website", "Website"]</th><td>@WebsiteName</td></tr>
+                }
+                @if (!string.IsNullOrWhiteSpace(Entry.Subject))
+                {
+                    <tr><th>@L["subject", "Subject"]</th><td>@Entry.Subject</td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        @if (Entry.IsBodyRedacted)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @L["messages.redacted_hint", "The text is not stored because it contained a one-time code or password-reset link."]
+            </MudAlert>
+        }
+        else if (!string.IsNullOrEmpty(Entry.Body))
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["messages.body", "Text"]</MudText>
+            @if (Entry.Channel == (byte)MessageChannel.Email)
+            {
+                @* Rendered in a sandboxed frame: the stored HTML never runs script or touches the admin page. *@
+                <iframe sandbox="" srcdoc="@Entry.Body" title="email"
+                        style="width:100%; min-height:360px; border:1px solid var(--mud-palette-lines-default); border-radius:8px; background:#fff;"></iframe>
+            }
+            else
+            {
+                <MudPaper Outlined="true" Class="pa-3" Style="white-space:pre-wrap; word-break:break-word" dir="auto">@Entry.Body</MudPaper>
+            }
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Parameter] public MessageLog Entry { get; set; } = null!;
+    [Parameter] public string? WebsiteName { get; set; }
+
+    private string? RecipientLink => (MessageRecipientType)Entry.RecipientType switch
+    {
+        MessageRecipientType.Client when Entry.RecipientID is int id => $"/clients/{id}",
+        MessageRecipientType.Member when Entry.RecipientID is int id => $"/members/{id}",
+        _ => null,
+    };
+
+    protected override Task OnInitializedAsync() => L.EnsureLoadedAsync();
+}

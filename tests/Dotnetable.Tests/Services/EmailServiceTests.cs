@@ -28,7 +28,8 @@ public class EmailServiceTests : IDisposable
         // the fixture keeps its own _context for seeding and asserting.
         var factory = new TestDbContextFactory(opts);
         _accounts = new EmailAccountService(factory);
-        _service = new EmailService(factory, new EmailTemplateService(factory));
+        _service = new EmailService(factory, new EmailTemplateService(factory),
+            new MessageLogService(factory, Microsoft.Extensions.Logging.Abstractions.NullLogger<MessageLogService>.Instance));
     }
 
     private static EmailAccount FullRow(int websiteId, EmailAccountType type = EmailAccountType.NoReply, bool isDefault = true) => new()

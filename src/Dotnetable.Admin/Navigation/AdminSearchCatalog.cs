@@ -127,9 +127,13 @@ public static class AdminSearchCatalog
         new AdminSearchPage("accounting.pnl", "Profit & loss", "/finance/reports/pnl", Icons.Material.Filled.ShowChart, "nav.finance", "Finance", RoleKeys.AccountingReport, NavArea: AdminNavArea.Finance, VendorMemberAllowed: false),
         new AdminSearchPage("ledger.my_earnings", "My settlements", "/finance/my-earnings", Icons.Material.Filled.Payments, "nav.finance", "Finance", RoleKeys.OrdersView, NavArea: AdminNavArea.Orders, VendorMemberAllowed: true),
 
+        new AdminSearchPage("messages.send", "Send Message", "/messages/send", Icons.Material.Filled.Send, "messages", "Messages", RoleKeys.MessagesSend, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
+        new AdminSearchPage("messages.log", "Send Log", "/messages/log", Icons.Material.Filled.History, "messages", "Messages", RoleKeys.MessagesLog, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),
         new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
+        new AdminSearchPage("sms_gateways", "SMS Gateways", "/messages/sms-gateways", Icons.Material.Filled.Sms, "messages", "Messages", RoleKeys.MessagesGateways, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
+        new AdminSearchPage("whatsapp_gateways", "WhatsApp Gateways", "/messages/whatsapp-gateways", Icons.Custom.Brands.WhatsApp, "messages", "Messages", RoleKeys.MessagesGateways, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
 
         new AdminSearchPage("media_library", "Media Library", "/media", Icons.Material.Filled.PhotoLibrary, "media", "Media", RoleKeys.MediaView, NavArea: AdminNavArea.Media),
         new AdminSearchPage("media_folders", "Media Folders", "/media/folders", Icons.Material.Filled.Folder, "media", "Media", RoleKeys.MediaView, NavArea: AdminNavArea.Media, VendorMemberAllowed: false),

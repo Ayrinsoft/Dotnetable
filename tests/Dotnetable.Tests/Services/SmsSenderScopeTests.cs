@@ -4,6 +4,7 @@ using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Sms;
+using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,6 +34,7 @@ public class SmsSenderScopeTests : IDisposable
         _sender = new SmsSender(
             new TestDbContextFactory(opts),
             new SmsProviderRegistry([new AlwaysReadyProvider()]),
+            new MessageLogService(new TestDbContextFactory(opts), NullLogger<MessageLogService>.Instance),
             NullLogger<SmsSender>.Instance);
     }
 
