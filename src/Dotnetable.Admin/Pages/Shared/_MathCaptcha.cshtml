@@ -2,7 +2,9 @@
 <label>Solve the captcha</label>
 <div class="captcha-row">
     <span class="captcha-img">@Html.Raw(Model.CaptchaSvg)</span>
-    <input type="text" name="MathAnswer" inputmode="numeric" autocomplete="off" placeholder="?" aria-label="Captcha answer" />
-    <button type="button" class="captcha-refresh" title="New captcha" onclick="location.reload()">&#x21bb;</button>
+    <div class="captcha-answer">
+        <input type="text" name="MathAnswer" inputmode="numeric" autocomplete="off" placeholder="?" aria-label="Captcha answer" />
+        <button type="button" class="captcha-refresh" title="New captcha" onclick="location.reload()">&#x21bb;</button>
+    </div>
 </div>
 <input type="hidden" name="MathToken" value="@Model.MathToken" />

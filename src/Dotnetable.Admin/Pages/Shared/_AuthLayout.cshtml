@@ -186,14 +186,38 @@
         .alert-success { background: rgba(10, 207, 151, .12); color: var(--success); }
         .alert-info { background: rgba(52, 143, 226, .12); color: var(--accent-dark); }
 
-        .captcha-row { display: flex; align-items: center; gap: 10px; }
-        .captcha-row .captcha-img { flex: 0 0 auto; line-height: 0; border-radius: .4rem; overflow: hidden; border: 1px solid var(--border); }
-        .captcha-row input { flex: 1 1 auto; }
+        /* The captcha SVG is 200px wide. On a phone that fixed image, the
+           refresh button and the gaps used up the row, and the answer box
+           shrank until the typed digits were clipped. Stack the image above
+           an answer row that keeps the remaining width. */
+        .captcha-row { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+        .captcha-row .captcha-img {
+            align-self: flex-start;
+            max-width: 100%;
+            line-height: 0;
+            border-radius: .4rem;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .captcha-row .captcha-img svg { display: block; max-width: 100%; height: auto; }
+        .captcha-answer { display: flex; align-items: center; gap: 10px; }
+        .field .captcha-answer input {
+            flex: 1 1 auto;
+            width: auto;
+            min-width: 0;
+            min-height: 44px;
+            font-size: 16px;
+        }
         .captcha-refresh {
             flex: 0 0 auto; border: 1px solid var(--border); background: var(--input-bg);
-            border-radius: .4rem; width: 40px; height: 44px; cursor: pointer; font-size: 18px; color: var(--muted);
+            border-radius: .4rem; width: 44px; height: 44px; cursor: pointer; font-size: 18px; color: var(--muted);
         }
         .captcha-refresh:hover { color: var(--accent); border-color: var(--accent); }
+
+        @@media (max-width: 480px) {
+            body { padding: 16px; }
+            .auth-card { padding: 24px 18px 22px; }
+        }
 
         .field-error { color: var(--error); font-size: 12.5px; margin-top: 5px; }
     </style>
