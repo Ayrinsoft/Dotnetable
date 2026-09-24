@@ -154,10 +154,20 @@
             </MudNavGroup>
         }
 
-        @if (NavSurface.Shows(AdminNavArea.Messages) && (_canMessages || _canWebsite || _isMaster))
+        @if (NavSurface.Shows(AdminNavArea.Messages) && (_canMessages || _canMessagesSend || _canMessagesLog || _canMessagesGateways || _canWebsite || _isMaster))
         {
             <MudNavGroup Title="@L["messages", "Messages"]" Icon="@Icons.Material.Filled.Message"
                          Expanded="@IsGroupActive("/messages/")">
+                <AuthorizeView Policy="@RoleKeys.MessagesSend" Context="ms">
+                    <MudNavLink Href="/messages/send" Icon="@Icons.Material.Filled.Send">
+                        @L["messages.send", "Send Message"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.MessagesLog" Context="ml">
+                    <MudNavLink Href="/messages/log" Icon="@Icons.Material.Filled.History">
+                        @L["messages.log", "Send Log"]
+                    </MudNavLink>
+                </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
                     <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
                         @L["contact_messages", "Contact Messages"]
@@ -169,6 +179,14 @@
                     </MudNavLink>
                     <MudNavLink Href="/messages/email-templates" Icon="@Icons.Material.Filled.Description">
                         @L["email_templates", "Email Templates"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@RoleKeys.MessagesGateways" Context="gw">
+                    <MudNavLink Href="/messages/sms-gateways" Icon="@Icons.Material.Filled.Sms">
+                        @L["sms_gateways", "SMS Gateways"]
+                    </MudNavLink>
+                    <MudNavLink Href="/messages/whatsapp-gateways" Icon="@Icons.Custom.Brands.WhatsApp">
+                        @L["whatsapp_gateways", "WhatsApp Gateways"]
                     </MudNavLink>
                 </AuthorizeView>
             </MudNavGroup>
@@ -491,6 +509,9 @@
     private bool _canPolicies;
     private bool _canLoginLogs;
     private bool _canMessages;
+    private bool _canMessagesSend;
+    private bool _canMessagesLog;
+    private bool _canMessagesGateways;
     private bool _canWebsite;
     private bool _canWebsiteSocial;
     private bool _canWebsiteContact;
@@ -530,6 +551,9 @@
             _canPolicies = AdminPolicies.Allows(user, RoleKeys.PoliciesView);
             _canLoginLogs = AdminPolicies.Allows(user, RoleKeys.LoginLogsView);
             _canMessages = AdminPolicies.Allows(user, RoleKeys.MessagesView);
+            _canMessagesSend = AdminPolicies.Allows(user, RoleKeys.MessagesSend);
+            _canMessagesLog = AdminPolicies.Allows(user, RoleKeys.MessagesLog);
+            _canMessagesGateways = AdminPolicies.Allows(user, RoleKeys.MessagesGateways);
             _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
             _canWebsiteSocial = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteSocialEdit);
             _canWebsiteContact = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteContactEdit);

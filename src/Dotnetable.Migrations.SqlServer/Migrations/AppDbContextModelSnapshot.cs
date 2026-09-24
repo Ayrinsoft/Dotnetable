@@ -3742,6 +3742,84 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("MenuItemTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MessageLog", b =>
+                {
+                    b.Property<long>("MessageLogID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("MessageLogID"));
+
+                    b.Property<string>("Body")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Channel")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsBodyRedacted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int?>("RecipientID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte>("RecipientType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("SentByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SentByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("MessageLogID");
+
+                    b.HasIndex(new[] { "CreatedAt" }, "IX_MessageLogs_CreatedAt")
+                        .IsDescending();
+
+                    b.HasIndex(new[] { "WebsiteID", "CreatedAt" }, "IX_MessageLogs_WebsiteID_CreatedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("MessageLogs");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Order", b =>
                 {
                     b.Property<int>("OrderID")
@@ -8531,6 +8609,55 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("WebsiteWatermarkSettings");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWhatsAppSetting", b =>
+                {
+                    b.Property<int>("WebsiteWhatsAppSettingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WebsiteWhatsAppSettingID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("SenderNumber")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("SettingsJSON")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteWhatsAppSettingID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWhatsAppSettings_WebsiteID");
+
+                    b.ToTable("WebsiteWhatsAppSettings");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.Property<int>("WishlistID")
@@ -10095,6 +10222,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasConstraintName("FK_MenuItemTranslations_MenuItems");
 
                     b.Navigation("MenuItem");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.MessageLog", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_MessageLogs_Websites");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Order", b =>
@@ -12077,6 +12215,17 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWhatsAppSetting", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteWhatsAppSettings")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteWhatsAppSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
@@ -12964,6 +13113,8 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("WebsiteWalletCurrencies");
 
                     b.Navigation("WebsiteWatermarkSettings");
+
+                    b.Navigation("WebsiteWhatsAppSettings");
 
                     b.Navigation("Wishlists");
                 });

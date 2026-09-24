@@ -1,0 +1,29 @@
+@inject IPageLocalizer L
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            @L["messages.log.purge_hint", "Permanently deletes send-log entries older than the chosen age for the website(s) currently shown. Messages themselves are not affected."]
+        </MudText>
+        <MudSelect T="int" @bind-Value="_days" Label="@L["messages.log.older_than", "Older than"]" Variant="Variant.Outlined">
+            <MudSelectItem T="int" Value="30">@L["messages.log.days_30", "30 days"]</MudSelectItem>
+            <MudSelectItem T="int" Value="90">@L["messages.log.days_90", "3 months"]</MudSelectItem>
+            <MudSelectItem T="int" Value="180">@L["messages.log.days_180", "6 months"]</MudSelectItem>
+            <MudSelectItem T="int" Value="365">@L["messages.log.days_365", "1 year"]</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="@(() => MudDialog.Close(DialogResult.Ok(_days)))">
+            @L["delete", "Delete"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private int _days = 90;
+
+    protected override Task OnInitializedAsync() => L.EnsureLoadedAsync();
+}

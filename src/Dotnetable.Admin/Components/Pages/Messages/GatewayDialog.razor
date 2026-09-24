@@ -1,0 +1,277 @@
+@using global::System.Text.Json
+@using global::System.Text.Json.Nodes
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+@* Shared create/edit dialog for SMS and WhatsApp gateways. The caller supplies the provider list,
+   the per-provider field catalog and the save callback, so both pages reuse one form. *@
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Value="_model.Provider" ValueChanged="OnProviderChanged"
+                               Label="@L["gateway.provider", "Provider"]" Variant="Variant.Outlined"
+                               Required="true" RequiredError="@L["required", "This field is required."]">
+                        @foreach (var p in Providers)
+                        {
+                            <MudSelectItem T="string" Value="p.Key">@p.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="@L["required", "This field is required."]" MaxLength="150" />
+                </MudItem>
+
+                @if (!string.IsNullOrEmpty(_model.Provider))
+                {
+                    <MudItem xs="12">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.subtitle2">@L["gateway.credentials", "Credentials & options"]</MudText>
+                            <MudSwitch T="bool" Value="_rawMode" ValueChanged="ToggleRaw" Color="Color.Secondary" Size="Size.Small"
+                                       Label="@L["gateway.raw_json", "Edit as JSON"]" />
+                        </MudStack>
+                    </MudItem>
+
+                    @if (_rawMode || _fields is null)
+                    {
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_rawJson" Label="@L["gateway.settings_json", "Settings JSON"]"
+                                          Variant="Variant.Outlined" Lines="8" Class="font-monospace" />
+                        </MudItem>
+                    }
+                    else
+                    {
+                        @foreach (var f in _fields)
+                        {
+                            <MudItem xs="12" sm="@(f.Kind is GatewayFieldKind.Multiline or GatewayFieldKind.Headers ? 12 : 6)">
+                                @switch (f.Kind)
+                                {
+                                    case GatewayFieldKind.Method:
+                                        <MudSelect T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
+                                                   Label="@L[f.LabelKey, f.LabelDefault]" Variant="Variant.Outlined">
+                                            <MudSelectItem T="string" Value="@("GET")">GET</MudSelectItem>
+                                            <MudSelectItem T="string" Value="@("POST")">POST</MudSelectItem>
+                                        </MudSelect>
+                                        break;
+                                    case GatewayFieldKind.Multiline:
+                                    case GatewayFieldKind.Headers:
+                                        <MudTextField T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
+                                                      Label="@L[f.LabelKey, f.LabelDefault]" Variant="Variant.Outlined" Lines="3"
+                                                      HelperText="@Hint(f)" Class="font-monospace" />
+                                        break;
+                                    case GatewayFieldKind.Secret:
+                                        <MudTextField T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
+                                                      Label="@L[f.LabelKey, f.LabelDefault]" Variant="Variant.Outlined"
+                                                      InputType="@(_reveal.Contains(f.Name) ? InputType.Text : InputType.Password)"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@(_reveal.Contains(f.Name) ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                                      OnAdornmentClick="@(() => ToggleReveal(f.Name))"
+                                                      Required="f.Required" RequiredError="@L["required", "This field is required."]"
+                                                      HelperText="@Hint(f)" />
+                                        break;
+                                    default:
+                                        <MudTextField T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
+                                                      Label="@L[f.LabelKey, f.LabelDefault]" Variant="Variant.Outlined"
+                                                      Required="f.Required" RequiredError="@L["required", "This field is required."]"
+                                                      HelperText="@Hint(f)" />
+                                        break;
+                                }
+                            </MudItem>
+                        }
+                    }
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.SenderNumber" Label="@L["gateway.sender_number", "Default sender number"]"
+                                  Variant="Variant.Outlined" MaxLength="32"
+                                  HelperText="@L["gateway.sender_number_hint", "Used when the provider settings carry no sender of their own."]" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudNumericField @bind-Value="_model.SortOrder" Label="@L["sort_order", "Sort order"]" Variant="Variant.Outlined"
+                                     HelperText="@L["gateway.sort_hint", "Lowest active sends"]" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_model.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+            }
+            @L["save", "Save"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Provider key + display name, in picker order.</summary>
+    [Parameter] public IReadOnlyList<(string Key, string DisplayName)> Providers { get; set; } = [];
+
+    [Parameter] public IReadOnlyDictionary<string, GatewayField[]> Fields { get; set; } = new Dictionary<string, GatewayField[]>();
+
+    [Parameter] public GatewayEditModel Model { get; set; } = new();
+
+    /// <summary>Persists the model; throw to keep the dialog open with the error shown.</summary>
+    [Parameter] public Func<GatewayEditModel, Task> OnSave { get; set; } = _ => Task.CompletedTask;
+
+    private MudForm _form = null!;
+    private GatewayEditModel _model = new();
+    private GatewayField[]? _fields;
+    private readonly Dictionary<string, string?> _values = new();
+    private readonly HashSet<string> _reveal = new();
+    private JsonObject _extra = new();
+    private bool _rawMode;
+    private string _rawJson = "{}";
+    private bool _saving;
+
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = global::System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _model = Model.Clone();
+        if (string.IsNullOrEmpty(_model.Provider) && Providers.Count > 0)
+            _model.Provider = Providers[0].Key;
+        LoadFields(_model.SettingsJSON);
+    }
+
+    private void OnProviderChanged(string key)
+    {
+        var json = BuildJson();
+        _model.Provider = key;
+        LoadFields(json);
+    }
+
+    private void LoadFields(string? json)
+    {
+        _fields = Fields.TryGetValue(_model.Provider ?? "", out var f) ? f : null;
+        _values.Clear();
+
+        JsonObject obj;
+        try { obj = JsonNode.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json) as JsonObject ?? new JsonObject(); }
+        catch (JsonException) { obj = new JsonObject(); }
+
+        _rawJson = obj.ToJsonString(Indented);
+        _extra = obj;
+        if (_fields is null) { _rawMode = true; return; }
+
+        foreach (var field in _fields)
+        {
+            var node = obj.FirstOrDefault(p => string.Equals(p.Key, field.Name, StringComparison.OrdinalIgnoreCase)).Value;
+            _values[field.Name] = field.Kind == GatewayFieldKind.Headers
+                ? HeadersToLines(node as JsonObject)
+                : node?.GetValueKind() == JsonValueKind.String ? node.GetValue<string>() : node?.ToJsonString() ?? field.DefaultValue;
+        }
+    }
+
+    private string GetValue(GatewayField f) => _values.TryGetValue(f.Name, out var v) ? v ?? "" : f.DefaultValue ?? "";
+
+    private string? Hint(GatewayField f) => f.HintKey is null ? null : L[f.HintKey, f.HintDefault ?? ""];
+
+    private void ToggleReveal(string name)
+    {
+        if (!_reveal.Remove(name)) _reveal.Add(name);
+    }
+
+    private void ToggleRaw(bool raw)
+    {
+        if (raw)
+        {
+            _rawJson = BuildJson();
+            _rawMode = true;
+        }
+        else if (_fields is not null)
+        {
+            if (!TryParseRaw(out _)) { Snackbar.Add(L["gateway.invalid_json", "The settings are not valid JSON."], Severity.Error); return; }
+            _rawMode = false;
+            LoadFields(_rawJson);
+        }
+    }
+
+    private bool TryParseRaw(out JsonObject obj)
+    {
+        try
+        {
+            obj = JsonNode.Parse(string.IsNullOrWhiteSpace(_rawJson) ? "{}" : _rawJson) as JsonObject ?? throw new JsonException();
+            return true;
+        }
+        catch (JsonException)
+        {
+            obj = new JsonObject();
+            return false;
+        }
+    }
+
+    /// <summary>Form values on top of whatever else the stored JSON carried, so unknown keys survive an edit.</summary>
+    private string BuildJson()
+    {
+        if (_rawMode || _fields is null)
+            return TryParseRaw(out var raw) ? raw.ToJsonString() : _rawJson;
+
+        var obj = JsonNode.Parse(_extra.ToJsonString())!.AsObject();
+        foreach (var field in _fields)
+        {
+            var existing = obj.FirstOrDefault(p => string.Equals(p.Key, field.Name, StringComparison.OrdinalIgnoreCase)).Key;
+            if (existing is not null) obj.Remove(existing);
+
+            var value = GetValue(field);
+            obj[field.Name] = field.Kind == GatewayFieldKind.Headers ? LinesToHeaders(value) : JsonValue.Create(value.Trim());
+        }
+        return obj.ToJsonString();
+    }
+
+    private static string HeadersToLines(JsonObject? obj) =>
+        obj is null ? "" : string.Join('\n', obj.Select(p => $"{p.Key}: {p.Value?.ToString()}"));
+
+    private static JsonObject LinesToHeaders(string lines)
+    {
+        var obj = new JsonObject();
+        foreach (var line in lines.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var i = line.IndexOf(':');
+            if (i <= 0) continue;
+            obj[line[..i].Trim()] = line[(i + 1)..].Trim();
+        }
+        return obj;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        if (_rawMode && !TryParseRaw(out _))
+        {
+            Snackbar.Add(L["gateway.invalid_json", "The settings are not valid JSON."], Severity.Error);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.SettingsJSON = BuildJson();
+            _model.SenderNumber = string.IsNullOrWhiteSpace(_model.SenderNumber) ? null : _model.SenderNumber.Trim();
+            await OnSave(_model);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

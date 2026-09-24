@@ -1,18 +1,15 @@
 namespace Dotnetable.Application.Interfaces;
 
 /// <summary>
-/// Transactional WhatsApp messages (shipment tracking, admin alerts when used, etc.).
-/// No gateway is shipped yet — runtime uses a no-op that only logs.
+/// Transactional WhatsApp messages (shipment tracking, admin alerts, messages sent by hand, etc.),
+/// delivered through the gateways registered in <c>WebsiteWhatsAppSettings</c> (see
+/// <see cref="IWhatsAppProvider"/>).
 ///
 /// <para>Scoped to a website like <see cref="IEmailService"/>, and it follows the same fallback rule:
 /// a website without its own WhatsApp gateway sends through the master website's
 /// (<c>AppConstants.MasterWebsiteId</c>) — otherwise a site that never configured one would silently
 /// drop every message to its owner. <see cref="ISmsSender"/> is deliberately the opposite: SMS stays
 /// on the site's own gateway and never borrows another site's.</para>
-///
-/// <para>A site-scoped provider factory (same idea as storage backends and SMS gateways) will select
-/// the active gateway from website settings when real providers are added; whatever lands must
-/// implement the fallback above.</para>
 /// </summary>
 public interface IWhatsAppSender
 {

@@ -287,6 +287,9 @@ else if (_policy is not null)
     {
         if (roleKey == RoleKeys.AuthorsProfile) return L["roles.action.authors_profile", "Own bio & résumé"];
         if (roleKey == RoleKeys.AuthorsManage) return L["roles.action.authors_manage", "Manage all authors"];
+        if (roleKey == RoleKeys.MessagesSend) return L["roles.action.messages_send", "Send messages (email / SMS / WhatsApp / in-app)"];
+        if (roleKey == RoleKeys.MessagesLog) return L["roles.action.messages_log", "View send log"];
+        if (roleKey == RoleKeys.MessagesGateways) return L["roles.action.messages_gateways", "SMS & WhatsApp gateways"];
         var parts = roleKey.Split('.', 2);
         var action = parts.Length > 1 ? parts[1] : roleKey;
         return L[$"roles.action.{action}", Capitalize(action)];

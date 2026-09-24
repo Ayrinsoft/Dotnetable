@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
@@ -17,11 +18,14 @@ public partial class EmailService : IEmailService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IEmailTemplateService _templates;
+    private readonly IMessageLogService _log;
 
-    public EmailService(IDbContextFactory<AppDbContext> contextFactory, IEmailTemplateService templates)
+    public EmailService(IDbContextFactory<AppDbContext> contextFactory, IEmailTemplateService templates,
+        IMessageLogService log)
     {
         _contextFactory = contextFactory;
         _templates = templates;
+        _log = log;
     }
 
     public async Task<bool> IsConfiguredAsync(int websiteId, CancellationToken ct = default)
@@ -36,15 +40,43 @@ public partial class EmailService : IEmailService
         int websiteId, EmailAccountType accountType, string toAddress, string subject, string htmlBody,
         CancellationToken ct = default)
     {
-        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        EmailAccount? row;
+        await using (var _context = await _contextFactory.CreateDbContextAsync(ct))
+            row = await EmailAccountService.ResolveAsync(_context, websiteId, accountType, ct);
 
-        var row = await EmailAccountService.ResolveAsync(_context, websiteId, accountType, ct)
-            ?? throw new InvalidOperationException("Email has not been configured.");
-        if (string.IsNullOrWhiteSpace(row.MailServer) || string.IsNullOrWhiteSpace(row.EmailAddress))
-            throw new InvalidOperationException("Email has not been configured.");
+        if (row is null || string.IsNullOrWhiteSpace(row.MailServer) || string.IsNullOrWhiteSpace(row.EmailAddress))
+        {
+            const string notConfigured = "Email has not been configured.";
+            await LogAsync(websiteId, toAddress, subject, htmlBody, null, notConfigured, ct);
+            throw new InvalidOperationException(notConfigured);
+        }
 
-        await SendViaAsync(row, toAddress, subject, htmlBody, ct);
+        try
+        {
+            await SendViaAsync(row, toAddress, subject, htmlBody, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await LogAsync(websiteId, toAddress, subject, htmlBody, row.EmailAddress, ex.Message, ct);
+            throw;
+        }
+
+        await LogAsync(websiteId, toAddress, subject, htmlBody, row.EmailAddress, null, ct);
     }
+
+    private Task LogAsync(int websiteId, string toAddress, string subject, string htmlBody, string? account,
+        string? error, CancellationToken ct) =>
+        _log.WriteAsync(new MessageLogEntry
+        {
+            WebsiteID = websiteId,
+            Channel = MessageChannel.Email,
+            Success = error is null,
+            Recipient = toAddress,
+            Subject = subject,
+            Body = htmlBody,
+            Provider = account,
+            Error = error,
+        }, ct);
 
     public async Task SendTemplateAsync(
         int websiteId, string templateKey, string toAddress, IDictionary<string, string>? tokens = null,

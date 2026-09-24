@@ -306,7 +306,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPaymentGatewayProvider, Payments.GenericRedirectGatewayProvider>();
         services.AddScoped<IPaymentGatewayProviderRegistry, Payments.PaymentGatewayProviderRegistry>();
         services.AddScoped<IOnlinePaymentService, Payments.OnlinePaymentService>();
-        services.AddSingleton<IWhatsAppSender, NoOpWhatsAppSender>();
+        // WhatsApp gateways, same shape as SMS (WebsiteWhatsAppSettings), but a site without its own
+        // gateway sends through the master website's — see IWhatsAppSender.
+        services.AddScoped<IWhatsAppProvider, WhatsApp.MetaCloudWhatsAppProvider>();
+        services.AddScoped<IWhatsAppProvider, WhatsApp.TwilioWhatsAppProvider>();
+        services.AddScoped<IWhatsAppProvider, WhatsApp.UltraMsgWhatsAppProvider>();
+        services.AddScoped<IWhatsAppProvider, WhatsApp.GreenApiWhatsAppProvider>();
+        services.AddScoped<IWhatsAppProvider, WhatsApp.GenericHttpWhatsAppProvider>();
+        services.AddScoped<IWhatsAppProviderRegistry, WhatsApp.WhatsAppProviderRegistry>();
+        services.AddScoped<IWhatsAppSender, WhatsApp.WhatsAppSender>();
+        services.AddScoped<IWhatsAppSettingService, WhatsApp.WhatsAppSettingService>();
+
+        // Outgoing message log (written by the senders) and the admin "send a message" composer.
+        services.AddScoped<IMessageLogService, MessageLogService>();
+        services.AddScoped<IMessageComposerService, MessageComposerService>();
 
         // Provider-specific connection test / database creation used by the Setup page.
         services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();

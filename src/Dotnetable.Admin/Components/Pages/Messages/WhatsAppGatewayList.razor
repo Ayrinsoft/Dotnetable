@@ -1,0 +1,13 @@
+@page "/messages/whatsapp-gateways"
+@attribute [Authorize(Policy = RoleKeys.MessagesGateways)]
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["whatsapp_gateways", "WhatsApp Gateways"] />
+
+<GatewayManager Channel="MessageChannel.WhatsApp"
+                Title="@L["whatsapp_gateways", "WhatsApp Gateways"]"
+                Subtitle="@L["whatsapp_gateways.subtitle", "Providers this website sends WhatsApp messages through. A website without its own gateway uses the master website's."]" />
+
+@code {
+    protected override Task OnInitializedAsync() => L.EnsureLoadedAsync();
+}

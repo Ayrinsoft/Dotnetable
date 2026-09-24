@@ -18,4 +18,6 @@ public enum AdminNotificationType : byte
     TaxPeriod = 11,
     /// <summary>A staff task was assigned to this member.</summary>
     StaffTask = 12,
+    /// <summary>A message an admin sent by hand from Messages → Send message.</summary>
+    DirectMessage = 13,
 }

@@ -286,6 +286,8 @@ public partial class Website
 
     public virtual ICollection<WebsiteSmsSetting> WebsiteSmsSettings { get; set; } = new List<WebsiteSmsSetting>();
 
+    public virtual ICollection<WebsiteWhatsAppSetting> WebsiteWhatsAppSettings { get; set; } = new List<WebsiteWhatsAppSetting>();
+
     public virtual ICollection<WebsiteClientRefreshToken> WebsiteClientRefreshTokens { get; set; } = new List<WebsiteClientRefreshToken>();
 
     public virtual ICollection<WebsiteStorageSetting> WebsiteStorageSettings { get; set; } = new List<WebsiteStorageSetting>();
