@@ -11,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject ILanguageService LanguageService
+@inject IJSRuntime JS
 
 <DNPageTitle Title=@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"]) />
 
@@ -33,6 +34,37 @@ else if (_model is not null)
     <MudForm @ref="_form">
         <MudGrid Spacing="4">
             <MudItem xs="12" md="8">
+                @if (_isNew)
+                {
+                    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.import_json", "Import from JSON"]</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            @L["posts.import_json_hint", "Reads the file in the browser and fills the form. Nothing is stored. Then set categories and the featured image, and publish."]
+                        </MudText>
+                        <MudFileUpload T="IBrowserFile" FilesChanged="ImportJsonAsync" Accept=".json,application/json" Disabled="@_importing">
+                            <CustomContent Context="upload">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.UploadFile"
+                                           Disabled="@_importing"
+                                           OnClick="@(() => upload.OpenFilePickerAsync())">
+                                    @(_importing ? L["posts.importing", "Reading…"] : L["posts.import_json_button", "Choose JSON file"])
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+                        <MudExpansionPanels Elevation="0" Class="mt-3">
+                            <MudExpansionPanel Text="@L["posts.import_sample", "JSON sample for agents"]">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+                                    @L["posts.import_sample_hint", "language is the main block. summary fills the excerpt, keywords fill meta keywords, content_html fills the body. translations is keyed by language code. Do not include the image or categories."]
+                                </MudText>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyImportSampleAsync" Class="mb-2">
+                                    @L["posts.import_copy_sample", "Copy sample"]
+                                </MudButton>
+                                <pre style="white-space:pre-wrap; max-height:280px; overflow:auto; margin:0; font-size:12px;">@PostImportSample.Json</pre>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    </MudPaper>
+                }
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                     <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
@@ -209,6 +241,7 @@ else if (_model is not null)
     private bool _isMaster;
     private bool _canEdit;
     private bool _saving;
+    private bool _importing;
     private int _websiteId;
     private int _memberId;
     private string _defaultLanguageCode = "en";
@@ -438,6 +471,112 @@ else if (_model is not null)
 
     private int TranslationEditorVersion(string code) =>
         _translationEditorVersions.TryGetValue(code, out var v) ? v : 0;
+
+    private async Task ImportJsonAsync(IBrowserFile? file)
+    {
+        if (file is null || _model is null || !_isNew) return;
+
+        _importing = true;
+        try
+        {
+            string json;
+            await using (var stream = file.OpenReadStream(PostImportParser.MaxBytes))
+            using (var reader = new StreamReader(stream))
+                json = await reader.ReadToEndAsync();
+
+            var doc = PostImportParser.Parse(json);
+            ApplyImport(doc);
+            Snackbar.Add(L["posts.import_done", "Fields filled from the file. Set categories and the featured image, then save."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["posts.import_failed", "Could not read the JSON file"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+
+    private void ApplyImport(PostImportDocument doc)
+    {
+        if (_model is null) return;
+
+        var byLang = new Dictionary<string, PostImportLocale>(StringComparer.OrdinalIgnoreCase);
+        var rootLang = string.IsNullOrWhiteSpace(doc.Language) ? _defaultLanguageCode : doc.Language.Trim();
+        byLang[rootLang] = doc.AsLocale();
+        if (doc.Translations is not null)
+        {
+            foreach (var (code, locale) in doc.Translations)
+            {
+                if (string.IsNullOrWhiteSpace(code) || locale is null) continue;
+                byLang[code.Trim()] = locale;
+            }
+        }
+
+        var mainCode = byLang.ContainsKey(_defaultLanguageCode) ? _defaultLanguageCode : rootLang;
+        if (!byLang.TryGetValue(mainCode, out var main)) return;
+        FillMain(main);
+        _mainEditorVersion++;
+
+        var skipped = new List<string>();
+        foreach (var (code, locale) in byLang)
+        {
+            if (code.Equals(mainCode, StringComparison.OrdinalIgnoreCase)) continue;
+            if (_languages.All(l => !l.Code.Equals(code, StringComparison.OrdinalIgnoreCase)))
+            {
+                skipped.Add(code);
+                continue;
+            }
+            FillTranslation(Translation(code), locale);
+            _translationEditorVersions[code] = TranslationEditorVersion(code) + 1;
+        }
+
+        if (skipped.Count > 0)
+            Snackbar.Add(string.Format(L["posts.import_lang_skipped", "No active language for: {0}. Those blocks were not placed."], string.Join(", ", skipped)), Severity.Warning);
+    }
+
+    private void FillMain(PostImportLocale locale)
+    {
+        if (_model is null) return;
+        if (!string.IsNullOrWhiteSpace(locale.Title)) _model.Title = locale.Title.Trim();
+        if (!string.IsNullOrWhiteSpace(locale.Slug)) _model.Slug = locale.Slug.Trim();
+        var excerpt = locale.ExcerptText;
+        if (excerpt.Length > 0) _model.Excerpt = excerpt;
+        if (!string.IsNullOrWhiteSpace(locale.MetaTitle)) _model.MetaTitle = locale.MetaTitle.Trim();
+        if (!string.IsNullOrWhiteSpace(locale.MetaDescription)) _model.MetaDescription = locale.MetaDescription.Trim();
+        var keywords = locale.KeywordsText;
+        if (keywords.Length > 0) _model.MetaKeywords = keywords;
+        var body = locale.BodyHtml;
+        if (body.Length > 0) _model.Content = body;
+    }
+
+    private static void FillTranslation(TranslationModel target, PostImportLocale locale)
+    {
+        if (!string.IsNullOrWhiteSpace(locale.Title)) target.Title = locale.Title.Trim();
+        if (!string.IsNullOrWhiteSpace(locale.Slug)) target.Slug = locale.Slug.Trim();
+        var excerpt = locale.ExcerptText;
+        if (excerpt.Length > 0) target.Excerpt = excerpt;
+        if (!string.IsNullOrWhiteSpace(locale.MetaTitle)) target.MetaTitle = locale.MetaTitle.Trim();
+        if (!string.IsNullOrWhiteSpace(locale.MetaDescription)) target.MetaDescription = locale.MetaDescription.Trim();
+        var keywords = locale.KeywordsText;
+        if (keywords.Length > 0) target.MetaKeywords = keywords;
+        var body = locale.BodyHtml;
+        if (body.Length > 0) target.Content = body;
+    }
+
+    private async Task CopyImportSampleAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", PostImportSample.Json);
+            Snackbar.Add(L["posts.import_sample_copied", "Sample copied."], Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add(L["posts.import_sample_copy_failed", "Could not copy. Select the sample text instead."], Severity.Warning);
+        }
+    }
 
     private void OnMainContentMediaInserted(string html)
     {
