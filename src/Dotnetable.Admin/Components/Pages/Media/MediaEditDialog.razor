@@ -1,4 +1,5 @@
 @using Microsoft.AspNetCore.Components.Forms
+@implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject IPageLocalizer L
 
@@ -79,13 +80,20 @@
     private const int MaxUploadBytes = 200 * 1024 * 1024;
 
     private readonly string _canvasId = "crop_" + Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<MediaEditDialog>? _self;
     private int? _resizeWidth;
     private int? _resizeHeight;
+    private int _naturalWidth;
+    private int _naturalHeight;
+    private int? _autoWidth;
+    private int? _autoHeight;
+    private bool _cropActive;
     private bool _grayscale;
     private bool? _applyWatermark;
     private string? _previewDataUrl;
     private bool _previewUnavailable;
     private bool _initialized;
+    private bool _disposed;
     private string _aspectKey = "free";
     private bool _editorReady;
     private bool _linked = true;
@@ -114,18 +122,62 @@
         await using var stream = File.OpenReadStream(MaxUploadBytes);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
+        if (_disposed) return;
+
         _previewDataUrl = $"data:{File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
         StateHasChanged();
         await Task.Yield();
+        if (_disposed) return;
+
+        _self = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("mediaEditor.init", _canvasId, _previewDataUrl, 480, 360);
+        if (_disposed) return;
+
         _editorReady = true;
-        await ApplyAspectToJsAsync(createIfEmpty: false);
+        await JS.InvokeVoidAsync("mediaEditor.setChangeHandler", _canvasId, _self);
 
         var natural = await JS.InvokeAsync<NaturalSizeResult?>("mediaEditor.naturalSize", _canvasId);
         if (natural is { Width: > 0, Height: > 0 })
         {
+            _naturalWidth = natural.Width;
+            _naturalHeight = natural.Height;
             _resizeWidth ??= natural.Width;
             _resizeHeight ??= natural.Height;
+        }
+
+        _autoWidth = _resizeWidth;
+        _autoHeight = _resizeHeight;
+
+        if (_resizeWidth is > 0 && _resizeHeight is > 0)
+            _aspectRatio = (double)_resizeWidth.Value / _resizeHeight.Value;
+
+        await ApplyAspectToJsAsync(createIfEmpty: false);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Crop output must use the cropped pixel size. Leaving width/height at the original
+    /// image stretches a non-matching crop (a landscape selection forced back to 1:1).
+    /// </summary>
+    [JSInvokable]
+    public void OnCropChanged(CropJsResult? crop)
+    {
+        if (_disposed || _naturalWidth <= 0 || _naturalHeight <= 0) return;
+
+        if (crop is { Active: true, Width: > 0, Height: > 0 })
+        {
+            var (width, height) = CropPixelSize(crop, _naturalWidth, _naturalHeight);
+            SetAutoSize(width, height);
+            _cropActive = true;
+        }
+        else if (_cropActive)
+        {
+            SetAutoSize(_naturalWidth, _naturalHeight);
+            _cropActive = false;
+        }
+        else
+        {
+            return;
         }
 
         if (_resizeWidth is > 0 && _resizeHeight is > 0)
@@ -188,7 +240,10 @@
         {
             var js = await JS.InvokeAsync<CropJsResult?>("mediaEditor.getCrop", _canvasId);
             if (js is not null)
+            {
                 crop = new ImageCropRect { X = js.X, Y = js.Y, Width = js.Width, Height = js.Height };
+                ApplyCropSizeOnSave(js);
+            }
         }
 
         MudDialog.Close(DialogResult.Ok(new FileEditSpec
@@ -205,8 +260,73 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private sealed class CropJsResult
+    public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        try
+        {
+            await JS.InvokeVoidAsync("mediaEditor.setChangeHandler", _canvasId, null);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        _self?.Dispose();
+        _self = null;
+    }
+
+    /// <summary>
+    /// Output pixels follow the crop. A size the user typed is kept on the width and the height
+    /// is adjusted to the crop ratio, so a landscape crop is not stretched back to the original frame.
+    /// </summary>
+    private void ApplyCropSizeOnSave(CropJsResult crop)
+    {
+        if (_naturalWidth <= 0 || _naturalHeight <= 0) return;
+
+        var (width, height) = CropPixelSize(crop, _naturalWidth, _naturalHeight);
+        var untouched = (_resizeWidth == _autoWidth && _resizeHeight == _autoHeight)
+            || (_resizeWidth == _naturalWidth && _resizeHeight == _naturalHeight);
+        if (untouched)
+        {
+            SetAutoSize(width, height);
+            return;
+        }
+
+        if (_linked && _resizeWidth is > 0 && height > 0)
+        {
+            var cropAspect = (double)width / height;
+            var currentAspect = (double)_resizeWidth.Value / Math.Max(1, _resizeHeight ?? 1);
+            if (Math.Abs(currentAspect - cropAspect) > 0.015)
+                _resizeHeight = Math.Max(1, (int)Math.Round(_resizeWidth.Value / cropAspect));
+        }
+    }
+
+    private void SetAutoSize(int width, int height)
+    {
+        _resizeWidth = width;
+        _resizeHeight = height;
+        _autoWidth = width;
+        _autoHeight = height;
+    }
+
+    /// <summary>Same rounding as <c>ImageProcessor.ApplyCrop</c> so the resize target matches the cropped bitmap.</summary>
+    private static (int Width, int Height) CropPixelSize(CropJsResult crop, int sourceWidth, int sourceHeight)
+    {
+        var x = (int)Math.Round(Math.Clamp(crop.X, 0, 1) * sourceWidth);
+        var y = (int)Math.Round(Math.Clamp(crop.Y, 0, 1) * sourceHeight);
+        var w = (int)Math.Round(Math.Clamp(crop.Width, 0, 1) * sourceWidth);
+        var h = (int)Math.Round(Math.Clamp(crop.Height, 0, 1) * sourceHeight);
+        w = Math.Clamp(w, 1, Math.Max(1, sourceWidth - x));
+        h = Math.Clamp(h, 1, Math.Max(1, sourceHeight - y));
+        return (w, h);
+    }
+
+    public sealed class CropJsResult
+    {
+        public bool Active { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
