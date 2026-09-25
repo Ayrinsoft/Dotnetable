@@ -31,9 +31,10 @@ else
                     </MudText>
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_model.DisplayName" Label="@L["authors.display_name", "Display name"]"
+                            <MudTextField @bind-Value="_model.DisplayName"
+                                          Label="@string.Format(L["authors.display_name_lang", "Display name ({0})"], _defaultLanguageName)"
                                           Variant="Variant.Outlined" MaxLength="150"
-                                          HelperText="@string.Format(L["authors.display_name_hint", "Leave blank to use \"{0}\"."], MemberFullName)" />
+                                          HelperText="@string.Format(L["authors.display_name_hint", "Default language. Leave blank to use \"{0}\"."], MemberFullName)" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_model.Headline" Label="@L["authors.headline", "Headline / job title"]"
@@ -48,6 +49,23 @@ else
                             <MudSwitch T="bool" @bind-Value="_model.ShowBioOnPosts" Color="Color.Primary"
                                        Label="@L["authors.show_bio_on_posts", "Show my bio under my posts"]" />
                         </MudItem>
+                        @if (_languages.Length > 0)
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                                    @L["authors.other_names_hint", "The site shows the default-language name until you fill the name for each other language."]
+                                </MudText>
+                            </MudItem>
+                            @foreach (var (code, label) in _languages)
+                            {
+                                var name = ProfileTranslation(code);
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField T="string" Value="@name.DisplayName" ValueChanged="@(v => name.DisplayName = v)"
+                                                  Label="@string.Format(L["authors.display_name_lang", "Display name ({0})"], label)"
+                                                  Variant="Variant.Outlined" MaxLength="150" />
+                                </MudItem>
+                            }
+                        }
                     </MudGrid>
                 </MudPaper>
 
@@ -132,7 +150,6 @@ else
                                 <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
                                     <MudText Typo="Typo.subtitle2" Class="mb-2">@label</MudText>
                                     <MudGrid Spacing="2">
-                                        <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.DisplayName" ValueChanged="@(v => t.DisplayName = v)" Label="@L["authors.display_name", "Display name"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                         <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.Headline" ValueChanged="@(v => t.Headline = v)" Label="@L["authors.headline", "Headline / job title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
                                         <MudItem xs="12"><MudTextField T="string" Value="@t.Bio" ValueChanged="@(v => t.Bio = v)" Label="@L["authors.bio", "Short bio"]" Variant="Variant.Outlined" Lines="3" AutoGrow="true" Margin="Margin.Dense" /></MudItem>
                                         <MudItem xs="12">
@@ -356,6 +373,7 @@ else
     private List<AuthorSocialLink> _links = new();
     private MudForm _form = null!;
     private string _defaultLanguageCode = "en";
+    private string _defaultLanguageName = "default";
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private readonly Dictionary<string, AuthorProfileTranslation> _translations = new(StringComparer.OrdinalIgnoreCase);
 
@@ -398,7 +416,9 @@ else
             _website = await WebsiteService.GetByIdAsync(_member.WebsiteID);
             _avatarUrl = await MemberService.GetAvatarUrlAsync(MemberId);
             var langs = await LanguageService.GetActiveForWebsiteAsync(_member.WebsiteID);
-            _defaultLanguageCode = langs.FirstOrDefault(l => l.IsDefault)?.LanguageCode ?? langs.FirstOrDefault()?.LanguageCode ?? "en";
+            var defaultLang = langs.FirstOrDefault(l => l.IsDefault) ?? langs.FirstOrDefault();
+            _defaultLanguageCode = defaultLang?.LanguageCode ?? "en";
+            _defaultLanguageName = defaultLang?.Name ?? _defaultLanguageCode;
             _languages = langs.Where(l => !l.IsDefault).Select(l => (l.LanguageCode, l.Name)).ToArray();
             await ReloadAsync();
         }

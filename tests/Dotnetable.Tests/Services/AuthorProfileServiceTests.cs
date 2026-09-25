@@ -309,10 +309,31 @@ public class AuthorProfileServiceTests : IDisposable
         post.Author.Bio.Should().BeNull("the author chose not to show the bio under posts");
         post.Author.Slug.Should().Be("sara-a");
 
+        var localized = await _posts.GetBySlugAsync(SiteId, "p10", "en");
+        localized!.AuthorName.Should().Be("Sara A.");
+
         var noProfile = await _posts.GetBySlugAsync(SiteId, "p13");
         noProfile!.Author!.Name.Should().Be("Ali Ahmadi");
         noProfile.Author.Slug.Should().BeNull();
         noProfile.Author.Bio.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Post_Uses_The_Author_Name_Of_The_Requested_Language()
+    {
+        await SaveProfileAsync(WriterId, p => p.DisplayName = "سارا احمدی",
+            translations:
+            [
+                new AuthorProfileTranslation { LanguageCode = "en", DisplayName = "Sara Ahmadi", Headline = "Writer" },
+            ]);
+
+        var english = await _posts.GetBySlugAsync(SiteId, "p10", "en");
+        english!.AuthorName.Should().Be("Sara Ahmadi");
+        english.Author!.Name.Should().Be("Sara Ahmadi");
+        english.Author.Headline.Should().Be("Writer");
+
+        var fallback = await _posts.GetBySlugAsync(SiteId, "p10", "fa");
+        fallback!.AuthorName.Should().Be("سارا احمدی");
     }
 
     [Fact]
