@@ -31,8 +31,8 @@ public class LogoutModel : PageModel
         Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         Response.Headers.Pragma = "no-cache";
 
-        // signedOut=1 tells the login page to show the form instead of bouncing to the dashboard,
-        // in case a stale cookie somehow survived.
+        // signedOut=1 is consumed once: Login signs out a leftover cookie, then redirects to a
+        // clean /Login so the flag cannot be posted back or used as returnUrl.
         return Redirect("/Login?signedOut=1");
     }
 }

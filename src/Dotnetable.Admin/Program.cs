@@ -61,6 +61,17 @@ builder.Services
         // MemberClaims.CurrentClaimsVersion) would otherwise sit forever with stale/incompatible
         // claims, surfacing as authorization failures only a manual cookie-clear fixed.
         options.Events.OnValidatePrincipal = StaleCookieValidator.ValidateAsync;
+        // The default ReturnUrl is the page that was refused, including /Login?signedOut=1.
+        // Sending a successful sign-in there signs the member straight back out.
+        options.Events.OnRedirectToLogin = context =>
+        {
+            var requested = context.Request.Path + context.Request.QueryString;
+            var target = $"{context.Request.PathBase}{options.LoginPath}";
+            if (AuthReturnUrl.IsSafe(requested))
+                target += "?returnUrl=" + Uri.EscapeDataString(requested);
+            context.Response.Redirect(target);
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddAuthorization(AdminPolicies.Register);

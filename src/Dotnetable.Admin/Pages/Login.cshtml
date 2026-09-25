@@ -15,7 +15,7 @@
 @if (Model.AwaitingTwoFactor)
 {
     @* Password already accepted; nothing is signed in until this code checks out. *@
-    <form method="post" asp-page-handler="Verify">
+    <form method="post" asp-page="/Login" asp-page-handler="Verify">
         <input type="hidden" asp-for="ReturnUrl" />
         <p class="auth-subtitle">
             Enter the 6-digit code from your authenticator app, or one of your recovery codes.
@@ -40,7 +40,7 @@
 }
 else
 {
-    <form method="post">
+    <form method="post" asp-page="/Login">
         <input type="hidden" asp-for="ReturnUrl" />
         <div class="field">
             <label asp-for="Input.Username">@Model.S.UsernameLabel</label>
