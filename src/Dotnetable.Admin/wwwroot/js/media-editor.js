@@ -350,6 +350,7 @@ window.mediaEditor = (function () {
             state.originRect = null;
             state.start = null;
             canvas.style.cursor = "crosshair";
+            emitChange(state);
         };
 
         canvas.addEventListener("mousedown", onDown);
@@ -422,16 +423,25 @@ window.mediaEditor = (function () {
                 redraw(state);
             }
         }
+        emitChange(state);
     }
 
-    function naturalSize(canvasId) {
+    function setChangeHandler(canvasId, dotnetRef) {
         const state = states[canvasId];
-        if (!state) return null;
-        return { width: state.img.naturalWidth || state.img.width, height: state.img.naturalHeight || state.img.height };
+        if (!state) return;
+        state.dotnetRef = dotnetRef || null;
     }
 
-    function getCrop(canvasId) {
-        const state = states[canvasId];
+    function emitChange(state) {
+        if (!state.dotnetRef) return;
+        const crop = normalizedCrop(state);
+        const payload = crop
+            ? { active: true, x: crop.x, y: crop.y, width: crop.width, height: crop.height }
+            : { active: false, x: 0, y: 0, width: 0, height: 0 };
+        state.dotnetRef.invokeMethodAsync("OnCropChanged", payload).catch(function () { });
+    }
+
+    function normalizedCrop(state) {
         if (!state || !state.rect || state.rect.w < 4 || state.rect.h < 4) return null;
         const r = state.rect;
         return {
@@ -442,6 +452,16 @@ window.mediaEditor = (function () {
         };
     }
 
+    function naturalSize(canvasId) {
+        const state = states[canvasId];
+        if (!state) return null;
+        return { width: state.img.naturalWidth || state.img.width, height: state.img.naturalHeight || state.img.height };
+    }
+
+    function getCrop(canvasId) {
+        return normalizedCrop(states[canvasId]);
+    }
+
     function clearCrop(canvasId) {
         const state = states[canvasId];
         if (!state) return;
@@ -449,6 +469,7 @@ window.mediaEditor = (function () {
         state.dragging = false;
         state.mode = null;
         redraw(state);
+        emitChange(state);
     }
 
     function dispose(canvasId) {
@@ -470,5 +491,5 @@ window.mediaEditor = (function () {
         delete states[canvasId];
     }
 
-    return { init, getCrop, clearCrop, dispose, setAspectRatio, naturalSize };
+    return { init, getCrop, clearCrop, dispose, setAspectRatio, setChangeHandler, naturalSize };
 })();
