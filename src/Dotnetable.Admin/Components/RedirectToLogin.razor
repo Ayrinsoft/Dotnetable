@@ -7,6 +7,7 @@
    back here — with a returnUrl that doubled in length every lap. Behind IIS that burst of requests
    trips Dynamic IP Restriction, which answers with its own 403 page until the member clears their
    cookies. *@
+@using Dotnetable.Admin.Auth
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthState
 
@@ -20,14 +21,12 @@
             return;
         }
 
-        // A relative path, and never a login/access-denied URL: returnUrl must not nest inside itself.
+        // Never send the member back to login, logout, or a sign-out flag. Those returnUrls
+        // are what re-open /Login?signedOut=1 after a successful sign-in.
         var path = "/" + Nav.ToBaseRelativePath(Nav.Uri);
-        var target = IsAuthPage(path) ? "/Login" : $"/Login?returnUrl={Uri.EscapeDataString(path)}";
+        var target = AuthReturnUrl.IsSafe(path)
+            ? $"/Login?returnUrl={Uri.EscapeDataString(path)}"
+            : "/Login";
         Nav.NavigateTo(target, forceLoad: true);
     }
-
-    private static bool IsAuthPage(string path) =>
-        path.StartsWith("/Login", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/Logout", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/AccessDenied", StringComparison.OrdinalIgnoreCase);
 }

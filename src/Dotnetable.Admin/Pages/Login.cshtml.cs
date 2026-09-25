@@ -67,16 +67,24 @@ public class LoginModel : CaptchaPageModel
 
     public async Task<IActionResult> OnGetAsync(CancellationToken ct)
     {
-        if (User.Identity?.IsAuthenticated == true)
+        // A cached login document posts a dead antiforgery token. Browsers report that as 400/403,
+        // and clearing cookies does not help while the HTML itself is still the cached copy.
+        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        Response.Headers.Pragma = "no-cache";
+
+        // signedOut/signout/logout=1 must not stay on the address. The form used to post back to
+        // that exact URL, and a returnUrl pointing at it signed the member out again after every
+        // successful login — an infinite loop that also trips IIS into a 403.
+        if (RequestHasSignOutFlag())
         {
-            // Arriving straight from /Logout while still authenticated means the sign-out did not
-            // take. Bouncing to the dashboard here is what used to trap a member in a redirect loop
-            // they could only escape by clearing cookies — so sign out again and show the form.
-            if (SignedOut)
+            if (User.Identity?.IsAuthenticated == true)
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            else
-                return Redirect("/");
+            HttpContext.Session.Clear();
+            return Redirect(CleanLoginUrl());
         }
+
+        if (User.Identity?.IsAuthenticated == true)
+            return Redirect(SafeReturnUrl() ?? "/");
 
         // A stale half-finished sign-in must not survive a page reload.
         ClearPendingTwoFactor();
@@ -88,6 +96,7 @@ public class LoginModel : CaptchaPageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
+        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         await ResolveLanguageAsync(ct);
 
         if (!ModelState.IsValid)
@@ -131,13 +140,35 @@ public class LoginModel : CaptchaPageModel
         }
     }
 
-    /// <summary>Back to the page the member was refused, when it is a local path; the dashboard otherwise.</summary>
-    private IActionResult RedirectAfterSignIn() =>
-        !string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl) ? Redirect(ReturnUrl) : Redirect("/");
+    /// <summary>Back to the page the member was refused, when it is a local app path; the dashboard otherwise.</summary>
+    private IActionResult RedirectAfterSignIn() => Redirect(SafeReturnUrl() ?? "/");
+
+    private string? SafeReturnUrl() =>
+        !string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl) && AuthReturnUrl.IsSafe(ReturnUrl)
+            ? ReturnUrl
+            : null;
+
+    private bool RequestHasSignOutFlag()
+    {
+        if (SignedOut) return true;
+        foreach (var key in Request.Query.Keys)
+        {
+            if (AuthReturnUrl.IsSignOutKey(key)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Login without a sign-out flag. A safe returnUrl is kept so a refused page is not lost.</summary>
+    private string CleanLoginUrl()
+    {
+        var safe = SafeReturnUrl();
+        return safe is null ? "/Login" : "/Login?returnUrl=" + Uri.EscapeDataString(safe);
+    }
 
     /// <summary>Second step: the authenticator (or recovery) code for a member that passed the password step.</summary>
     public async Task<IActionResult> OnPostVerifyAsync(CancellationToken ct)
     {
+        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
         await ResolveLanguageAsync(ct);
 
         var pending = ReadPendingTwoFactor();
