@@ -80,6 +80,19 @@
                                 : L["media.click_to_download", "Click preview or Download to save the file"])
                         </MudText>
                     }
+                    @if (CanEditImage)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" FullWidth="true"
+                                   Class="mt-2"
+                                   StartIcon="@Icons.Material.Filled.Tune"
+                                   OnClick="EditImageAsync"
+                                   Disabled="@(_busy || _replacing)">
+                            @(_replacing ? L["media.replacing", "Replacing…"] : L["media.edit_image", "Edit image"])
+                        </MudButton>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
+                            @L["media.edit_image_hint", "Crop, resize, or watermark this image and save it over the same file. The ID and URL stay the same."]
+                        </MudText>
+                    }
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnReplaceFileSelected" Class="mt-2" Disabled="@(_busy || _replacing)">
                         <CustomContent Context="upload">
                             <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small" FullWidth="true"
@@ -240,6 +253,79 @@
         catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
     }
+
+    private bool CanEditImage
+    {
+        get
+        {
+            if (_file is null || _file.FileCategory != (byte)FileCategory.Image) return false;
+            if (string.IsNullOrWhiteSpace(MediaFormat.PublicUrl(_file))) return false;
+            return Path.GetExtension(_file.StoredFileName).ToLowerInvariant() is ".jpg" or ".jpeg" or ".png" or ".webp" or ".bmp";
+        }
+    }
+
+    /// <summary>
+    /// Opens the same crop/resize dialog used before upload, then writes the result over this file.
+    /// </summary>
+    private async Task EditImageAsync()
+    {
+        if (_file is null || _busy || _replacing || !CanEditImage) return;
+
+        var url = CacheBusted(MediaFormat.PublicUrl(_file));
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        var parameters = new DialogParameters<MediaEditDialog>
+        {
+            { x => x.ImageUrl, url },
+            { x => x.ReplaceExisting, true },
+        };
+        var dialog = await DialogService.ShowAsync<MediaEditDialog>(
+            L["media.edit_image", "Edit image"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: FileEditSpec spec } || !HasInPlaceEdits(spec))
+        {
+            if (result is { Canceled: false })
+                Snackbar.Add(L["media.edit_image_unchanged", "No changes to save."], Severity.Info);
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["media.edit_image", "Edit image"],
+            L["media.edit_image_confirm", "This overwrites the current image everywhere it's used (same ID and URL). Continue?"],
+            yesText: L["save", "Save"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+
+        _replacing = true;
+        try
+        {
+            _file = await FileService.EditImageAsync(_file.FileRecordID, new ImageEditRequest
+            {
+                Crop = spec.Crop,
+                ResizeWidth = spec.ResizeWidth,
+                ResizeHeight = spec.ResizeHeight,
+                Grayscale = spec.Grayscale,
+                // false means "leave it"; null lets the site default decide.
+                ApplyWatermark = spec.ApplyWatermark == false ? false : spec.ApplyWatermark,
+            });
+            Snackbar.Add(L["media.image_updated", "Image updated."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["media.edit_image_failed", "Could not update the image"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _replacing = false;
+        }
+    }
+
+    private static bool HasInPlaceEdits(FileEditSpec spec) =>
+        spec.Crop is not null
+        || spec.ResizeWidth is not null
+        || spec.ResizeHeight is not null
+        || spec.Grayscale
+        || spec.ApplyWatermark != false;
 
     /// <summary>
     /// Replaces this file's content in place (same ID, same URL) — a confirmation gate first since

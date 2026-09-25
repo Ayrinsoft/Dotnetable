@@ -43,6 +43,20 @@ public sealed class FileUploadRequest
     public bool? ApplyWatermark { get; init; }
 }
 
+/// <summary>Crop, resize, grayscale, and watermark applied to an image that is already in the library.</summary>
+public sealed class ImageEditRequest
+{
+    public ImageCropRect? Crop { get; init; }
+    public int? ResizeWidth { get; init; }
+    public int? ResizeHeight { get; init; }
+    public bool Grayscale { get; init; }
+
+    /// <summary>Null defers to the site setting. False leaves the pixels unwatermarked.</summary>
+    public bool? ApplyWatermark { get; init; }
+
+    public bool HasEdits => Crop is not null || ResizeWidth is not null || ResizeHeight is not null || Grayscale || ApplyWatermark is not null;
+}
+
 /// <summary>One place that references a media file (for delete confirmation).</summary>
 public sealed class FileUsageItem
 {
@@ -89,6 +103,13 @@ public interface IFileService
     /// raster→WebP conversion pass, since that can change the extension/key.
     /// </summary>
     Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName, string? mimeType, CancellationToken ct = default);
+
+    /// <summary>
+    /// Crops/resizes/re-encodes an image that is already stored and writes the result over the same
+    /// storage key. The file ID and public URL stay the same. The stored extension is kept, so this
+    /// does not convert JPEG/PNG into a new WebP object.
+    /// </summary>
+    Task<FileRecord> EditImageAsync(int id, ImageEditRequest edit, CancellationToken ct = default);
 
     Task UpdateMetadataAsync(int id, string? title, string? altText, string? fileName, int? folderId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
