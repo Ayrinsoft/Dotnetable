@@ -5,7 +5,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@L["upload.edit_title", "Edit before upload"]</MudText>
+        <MudText Typo="Typo.h6">@(ReplaceExisting ? L["media.edit_image", "Edit image"] : L["upload.edit_title", "Edit before upload"])</MudText>
     </TitleContent>
     <DialogContent>
         @if (_previewDataUrl is not null)
@@ -73,7 +73,11 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
-    [Parameter] public required IBrowserFile File { get; set; }
+    [Parameter] public IBrowserFile? File { get; set; }
+    /// <summary>Public URL of an image already in the library. Used instead of <see cref="File"/>.</summary>
+    [Parameter] public string? ImageUrl { get; set; }
+    /// <summary>When true, saving describes an in-place replacement. Unchanged dimensions are not sent as a resize.</summary>
+    [Parameter] public bool ReplaceExisting { get; set; }
     [Parameter] public FileEditSpec? Existing { get; set; }
 
     private const int PreviewMaxBytes = 15 * 1024 * 1024;
@@ -104,7 +108,9 @@
         _resizeWidth = Existing?.ResizeWidth;
         _resizeHeight = Existing?.ResizeHeight;
         _grayscale = Existing?.Grayscale ?? false;
-        _applyWatermark = Existing?.ApplyWatermark;
+        // An image already in the library was watermarked at upload when the site default is on.
+        // Leave that choice off unless the caller passed one, so a plain crop does not stamp it again.
+        _applyWatermark = ReplaceExisting ? Existing?.ApplyWatermark ?? false : Existing?.ApplyWatermark;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -112,10 +118,19 @@
         if (!firstRender || _initialized) return;
         _initialized = true;
 
+        if (!string.IsNullOrWhiteSpace(ImageUrl))
+        {
+            await StartEditorAsync(ImageUrl);
+            return;
+        }
+
+        if (File is null) return;
+
         var isImage = File.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
         if (!isImage || File.Size > PreviewMaxBytes)
         {
             _previewUnavailable = isImage;
+            StateHasChanged();
             return;
         }
 
@@ -125,13 +140,27 @@
         if (_disposed) return;
 
         _previewDataUrl = $"data:{File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        await StartEditorAsync(_previewDataUrl);
+    }
+
+    private async Task StartEditorAsync(string imageSource)
+    {
+        _previewDataUrl = imageSource;
         StateHasChanged();
         await Task.Yield();
         if (_disposed) return;
 
+        _self?.Dispose();
         _self = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("mediaEditor.init", _canvasId, _previewDataUrl, 480, 360);
+        var ready = await JS.InvokeAsync<bool>("mediaEditor.init", _canvasId, imageSource, 480, 360);
         if (_disposed) return;
+        if (!ready)
+        {
+            _previewDataUrl = null;
+            _previewUnavailable = true;
+            StateHasChanged();
+            return;
+        }
 
         _editorReady = true;
         await JS.InvokeVoidAsync("mediaEditor.setChangeHandler", _canvasId, _self);
@@ -244,6 +273,16 @@
                 crop = new ImageCropRect { X = js.X, Y = js.Y, Width = js.Width, Height = js.Height };
                 ApplyCropSizeOnSave(js);
             }
+        }
+
+        // Replacing an existing file: the fields start at the current pixel size. Sending that
+        // size back would re-encode the whole image even when the user changed nothing.
+        if (ReplaceExisting && crop is null
+            && _naturalWidth > 0 && _naturalHeight > 0
+            && _resizeWidth == _naturalWidth && _resizeHeight == _naturalHeight)
+        {
+            _resizeWidth = null;
+            _resizeHeight = null;
         }
 
         MudDialog.Close(DialogResult.Ok(new FileEditSpec

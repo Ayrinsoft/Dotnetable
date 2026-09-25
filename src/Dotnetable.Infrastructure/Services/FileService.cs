@@ -7,6 +7,7 @@ using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Dotnetable.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SkiaSharp;
 
 namespace Dotnetable.Infrastructure.Services;
@@ -16,12 +17,18 @@ public class FileService : IFileService
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IFileStorageProviderRegistry _providers;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration? _configuration;
 
-    public FileService(IDbContextFactory<AppDbContext> contextFactory, IFileStorageProviderRegistry providers, IHttpClientFactory httpClientFactory)
+    public FileService(
+        IDbContextFactory<AppDbContext> contextFactory,
+        IFileStorageProviderRegistry providers,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration? configuration = null)
     {
         _contextFactory = contextFactory;
         _providers = providers;
         _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     public async Task<PagedResult<FileRecord>> GetPagedAsync(int? websiteId, FileFilter filter, GridQuery query, CancellationToken ct = default)
@@ -124,7 +131,9 @@ public class FileService : IFileService
         var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
         if (isRasterProcessable)
         {
-            var options = await BuildProcessingOptionsAsync(_context, request, ct);
+            var options = await BuildProcessingOptionsAsync(
+            _context, request.WebsiteID, request.Crop, request.ResizeWidth, request.ResizeHeight,
+            request.Grayscale, request.ApplyWatermark, ct);
             var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
             // Re-encode when transforming, or when converting another format to WebP.
             // Already-WebP files with no transforms are stored as uploaded.
@@ -243,8 +252,52 @@ public class FileService : IFileService
     /// would change the storage key — exactly what must not happen here. The new bytes are stored
     /// as-is (the CDN sees their own correct Content-Type either way).
     /// </summary>
-    public async Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName,
-        string? mimeType, CancellationToken ct = default)
+    public Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName,
+        string? mimeType, CancellationToken ct = default) =>
+        OverwriteContentAsync(id, content, originalFileName, mimeType, validateNewExtension: true, ct);
+
+    /// <inheritdoc cref="IFileService.EditImageAsync"/>
+    public async Task<FileRecord> EditImageAsync(int id, ImageEditRequest edit, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var record = await _context.FileRecords.AsNoTracking()
+            .Include(f => f.WebsiteStorageSettings)
+            .FirstOrDefaultAsync(f => f.FileRecordID == id, ct)
+            ?? throw new InvalidOperationException("File not found.");
+
+        if ((FileCategory)record.FileCategory != FileCategory.Image)
+            throw new InvalidOperationException("Only images can be edited in place.");
+
+        var storage = record.WebsiteStorageSettings
+            ?? throw new InvalidOperationException("Storage setting not found for this file.");
+
+        var format = EncodeFormatForStoredName(record.StoredFileName)
+            ?? throw new InvalidOperationException("This image type can't be edited in place.");
+
+        var options = await BuildProcessingOptionsAsync(
+            _context, storage.WebsiteID,
+            edit.Crop, edit.ResizeWidth, edit.ResizeHeight, edit.Grayscale, edit.ApplyWatermark, ct);
+        if (!options.HasWork)
+            return record;
+
+        var sourceBytes = await DownloadStoredAsync(record.CNDUrl, ct)
+            ?? throw new InvalidOperationException("Could not read the stored image.");
+
+        await using var source = new MemoryStream(sourceBytes);
+        var processed = await ImageProcessor.TryProcessAsync(source, options, format, maxOutputBytes: null, ct)
+            ?? throw new InvalidOperationException("Could not apply the edit to this image.");
+
+        await using (processed)
+        {
+            processed.Position = 0;
+            return await OverwriteContentAsync(
+                id, processed, record.OriginalFileName, record.MimeType, validateNewExtension: false, ct);
+        }
+    }
+
+    private async Task<FileRecord> OverwriteContentAsync(int id, Stream content, string originalFileName,
+        string? mimeType, bool validateNewExtension, CancellationToken ct)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -258,8 +311,11 @@ public class FileService : IFileService
         if (!setting.Active)
             throw new InvalidOperationException("The selected storage is not active.");
 
-        var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
-        ValidateExtension(setting.AllowedExtensions, ext);
+        if (validateNewExtension)
+        {
+            var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
+            ValidateExtension(setting.AllowedExtensions, ext);
+        }
 
         await using var buffer = new MemoryStream();
         await content.CopyToAsync(buffer, ct);
@@ -717,16 +773,18 @@ public class FileService : IFileService
     }
 
     // ── Image processing ────────────────────────────────────────
-    private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(AppDbContext _context, FileUploadRequest request, CancellationToken ct)
+    private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(
+        AppDbContext _context, int websiteId, ImageCropRect? crop, int? resizeWidth, int? resizeHeight,
+        bool grayscale, bool? applyWatermark, CancellationToken ct)
     {
         WatermarkOptions? watermark = null;
 
         var setting = await _context.WebsiteWatermarkSettings.AsNoTracking()
             .Include(s => s.WatermarkFile)
-            .FirstOrDefaultAsync(s => s.WebsiteID == request.WebsiteID, ct);
+            .FirstOrDefaultAsync(s => s.WebsiteID == websiteId, ct);
 
         var shouldApply = setting is { WatermarkFile.CNDUrl: not null }
-            && (request.ApplyWatermark ?? setting.Enabled);
+            && (applyWatermark ?? setting.Enabled);
 
         if (shouldApply)
         {
@@ -745,12 +803,36 @@ public class FileService : IFileService
 
         return new ImageProcessingOptions
         {
-            Crop = request.Crop,
-            ResizeWidth = request.ResizeWidth,
-            ResizeHeight = request.ResizeHeight,
-            Grayscale = request.Grayscale,
+            Crop = crop,
+            ResizeWidth = resizeWidth,
+            ResizeHeight = resizeHeight,
+            Grayscale = grayscale,
             Watermark = watermark,
         };
+    }
+
+    /// <summary>Keeps the stored key's format. GIF and SVG are excluded — GIF would lose animation, SVG is not a bitmap.</summary>
+    private static SKEncodedImageFormat? EncodeFormatForStoredName(string storedName) =>
+        Path.GetExtension(storedName).ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => SKEncodedImageFormat.Jpeg,
+            ".png" => SKEncodedImageFormat.Png,
+            ".webp" => SKEncodedImageFormat.Webp,
+            ".bmp" => SKEncodedImageFormat.Bmp,
+            _ => null,
+        };
+
+    private async Task<byte[]?> DownloadStoredAsync(string? url, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (url.StartsWith('/'))
+        {
+            var apiBase = (_configuration?["Api:BaseUrl"] ?? "").TrimEnd('/');
+            if (string.IsNullOrEmpty(apiBase)) return null;
+            url = apiBase + url;
+        }
+
+        return await TryDownloadAsync(url, ct);
     }
 
     private async Task<byte[]?> TryDownloadAsync(string url, CancellationToken ct)

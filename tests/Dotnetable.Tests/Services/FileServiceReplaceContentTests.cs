@@ -1,3 +1,4 @@
+using System.Net;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -7,6 +8,7 @@ using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using SkiaSharp;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -69,7 +71,11 @@ public class FileServiceReplaceContentTests : IDisposable
         var registry = new Mock<IFileStorageProviderRegistry>();
         registry.Setup(r => r.Get(It.IsAny<StorageProviderType>())).Returns(_provider);
 
-        _service = new FileService(factory, registry.Object, Mock.Of<IHttpClientFactory>());
+        var http = new Mock<IHttpClientFactory>();
+        http.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(() => new HttpClient(new BlobHttpHandler(_provider), disposeHandler: false));
+
+        _service = new FileService(factory, registry.Object, http.Object);
 
         _website = new Website
         {
@@ -165,6 +171,35 @@ public class FileServiceReplaceContentTests : IDisposable
     }
 
     [Fact]
+    public async Task EditImageAsync_Crops_In_Place_And_Keeps_The_Same_Url()
+    {
+        var uploaded = await _service.UploadAsync(new FileUploadRequest
+        {
+            WebsiteID = _website.WebsiteID,
+            StorageSettingID = _setting.WebsiteStorageSettingsID,
+            Content = new MemoryStream(SolidJpeg(100, 80)),
+            OriginalFileName = "photo.jpg",
+            MimeType = "image/jpeg",
+        });
+
+        var replaced = await _service.EditImageAsync(uploaded.FileRecordID, new ImageEditRequest
+        {
+            Crop = new ImageCropRect { X = 0, Y = 0, Width = 0.5, Height = 1 },
+            ApplyWatermark = false,
+        });
+
+        replaced.FileRecordID.Should().Be(uploaded.FileRecordID);
+        replaced.StoredFileName.Should().Be(uploaded.StoredFileName);
+        replaced.CNDUrl.Should().Be(uploaded.CNDUrl);
+
+        _provider.Blobs.Should().ContainKey(uploaded.StoredFileName);
+        using var decoded = SKBitmap.Decode(_provider.Blobs[uploaded.StoredFileName]);
+        decoded.Should().NotBeNull();
+        decoded.Width.Should().Be(50);
+        decoded.Height.Should().Be(80);
+    }
+
+    [Fact]
     public async Task UploadAsync_Sanitizes_OriginalFileName_With_Spaces()
     {
         var uploaded = await _service.UploadAsync(new FileUploadRequest
@@ -180,4 +215,35 @@ public class FileServiceReplaceContentTests : IDisposable
     }
 
     public void Dispose() => _context.Dispose();
+
+    private static byte[] SolidJpeg(int width, int height)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Red);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+        return data.ToArray();
+    }
+
+    /// <summary>Serves whatever <see cref="FakeStorageProvider"/> last stored, keyed by the URL's file name.</summary>
+    private sealed class BlobHttpHandler : HttpMessageHandler
+    {
+        private readonly FakeStorageProvider _provider;
+        public BlobHttpHandler(FakeStorageProvider provider) => _provider = provider;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var name = request.RequestUri?.Segments.LastOrDefault()?.Trim('/');
+            if (name is null || !_provider.Blobs.TryGetValue(name, out var bytes))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(bytes),
+            });
+        }
+    }
 }
