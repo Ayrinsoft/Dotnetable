@@ -17,6 +17,8 @@
 @inject IPageLocalizer L
 @inject ILanguageService LanguageService
 @inject IWarrantyService WarrantyService
+@inject IProductAgentService ProductAgent
+@inject IJSRuntime JS
 
 <DNPageTitle Title="@(_isNew ? L["products.new", "New Product"] : L["products.edit", "Edit Product"])" />
 
@@ -63,6 +65,33 @@ else
 
     <DNPrerequisiteAlert Items="_prerequisites" />
     <DNValidationSummary Errors="_formErrors" />
+
+    @if (_canEdit)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["products.import_json", "Import from JSON"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                @L["products.import_json_hint", "Reads the file in the browser and fills this form, including the variants array. Nothing is stored until you save. Images, seller stock, and related products stay as they are. The full agent guide is on the products list."]
+            </MudText>
+            <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                <MudFileUpload T="IBrowserFile" FilesChanged="ImportJsonAsync" Accept=".json,application/json" Disabled="@_importing">
+                    <CustomContent Context="upload">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.UploadFile" Disabled="@_importing"
+                                   OnClick="@(() => upload.OpenFilePickerAsync())">
+                            @(_importing ? L["products.importing", "Reading…"] : L["products.import_json_button", "Choose JSON file"])
+                        </MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+                @if (!_isNew)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportJsonAsync">
+                        @L["products.export_json", "Download JSON"]
+                    </MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    }
 
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
@@ -1031,7 +1060,7 @@ else
 @code {
     [Parameter] public int? ProductId { get; set; }
 
-    private bool _loading = true, _saving;
+    private bool _loading = true, _saving, _importing;
     private bool _isNew;
     private bool _isMaster, _canEdit;
     private string[]? _formErrors;
@@ -2754,6 +2783,198 @@ else
             errors.Add(L["variants.default_required", "Mark one variant as default."]);
 
         return errors;
+    }
+
+    private async Task ImportJsonAsync(IBrowserFile? file)
+    {
+        if (file is null || !_canEdit) return;
+        _importing = true;
+        try
+        {
+            string json;
+            await using (var stream = file.OpenReadStream(ProductAgentParser.MaxBytes))
+            using (var reader = new StreamReader(stream))
+                json = await reader.ReadToEndAsync();
+
+            var prepared = await ProductAgent.PrepareAsync(_websiteId, json, _isNew ? null : ProductId, default);
+            await ApplyPreparedAsync(prepared);
+            Snackbar.Add(L["products.import_done", "Fields filled from the file. Save to store them."], Severity.Success);
+            foreach (var note in prepared.Notes)
+                Snackbar.Add(note, Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.import_failed", "Could not read the JSON file"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+
+    private async Task ApplyPreparedAsync(ProductAgentPrepared prepared)
+    {
+        var doc = prepared.Document;
+        if (doc.Has("title") && !string.IsNullOrWhiteSpace(doc.Title))
+            Model.Title = doc.Title.Trim();
+        if (doc.Has("slug") && !string.IsNullOrWhiteSpace(doc.Slug))
+        {
+            Model.Slug = doc.Slug.Trim();
+            _slugManuallyEdited = true;
+        }
+        else if (doc.Has("title") && !_slugManuallyEdited)
+            Model.Slug = Slugify(Model.Title);
+
+        if (doc.Has("short_description"))
+            Model.ShortDescription = doc.ShortDescription;
+        if (doc.Has("content_html"))
+        {
+            Model.Content = doc.ContentHtml;
+            _mainEditorVersion++;
+        }
+        if (doc.Has("expert_review_html"))
+        {
+            Model.ExpertReview = doc.ExpertReviewHtml;
+            _mainExpertReviewEditorVersion++;
+        }
+        if (prepared.ProductType is byte productType)
+            OnProductTypeChanged(productType);
+        if (prepared.Status is byte status)
+            Model.Status = status;
+        if (doc.IsActive is bool active)
+            Model.IsActive = active;
+        if (doc.IsCatalogOnly is bool catalogOnly)
+            Model.IsCatalogOnly = catalogOnly;
+        if (doc.SortOrder is int sort)
+            Model.SortOrder = sort;
+        if (doc.Has("digital_download_url"))
+            Model.DigitalDownloadUrl = doc.DigitalDownloadUrl;
+        if (doc.Has("digital_service_url"))
+            Model.DigitalServiceUrl = doc.DigitalServiceUrl;
+        if (doc.Has("digital_delivery_note"))
+            Model.DigitalDeliveryNote = doc.DigitalDeliveryNote;
+
+        if (prepared.BrandId is int brandId)
+            _selectedBrand = _brands.FirstOrDefault(b => b.BrandID == brandId) ?? _selectedBrand;
+        if (prepared.CategoryId is int categoryId)
+        {
+            var category = _categories.FirstOrDefault(c => c.ProductCategoryID == categoryId);
+            if (category is not null)
+                await OnCategoryChanged(category);
+        }
+
+        foreach (var (language, title, slug, shortText, content, expert) in prepared.Translations)
+        {
+            _tr[language] = (title, slug, shortText, content, expert);
+            _translationEditorVersions[language] = TranslationEditorVersion(language) + 1;
+            _translationExpertReviewEditorVersions[language] = TranslationExpertReviewEditorVersion(language) + 1;
+        }
+
+        foreach (var option in prepared.TouchedOptions)
+        {
+            var def = option.IsVariantAttribute
+                ? GetVariantDef(option.AttributeDefinitionId)
+                : _allProductLevelAttributes.FirstOrDefault(a => a.AttributeDefinitionID == option.AttributeDefinitionId);
+            if (def is null) continue;
+            AttachOptionToDefinition(def, new AttributeOption
+            {
+                AttributeOptionID = option.AttributeOptionId,
+                AttributeDefinitionID = option.AttributeDefinitionId,
+                Value = option.Value,
+                ColorHex = option.ColorHex,
+            });
+        }
+
+        if (prepared.Variants is not null)
+        {
+            while (_variants.Count > 0)
+                RemoveVariantAt(0);
+            foreach (var row in prepared.Variants)
+            {
+                var variant = new ProductVariant
+                {
+                    ProductVariantID = row.ProductVariantId,
+                    Sku = row.Sku,
+                    Title = row.Title,
+                    IsDefault = row.IsDefault,
+                    IsActive = row.IsActive,
+                    Weight = row.Weight,
+                    Barcode = row.Barcode,
+                    ImageFileID = row.ImageFileId,
+                    ReferencePrice = row.Price,
+                    CompareAtPrice = row.CompareAtPrice,
+                };
+                foreach (var (defId, optionId) in row.Options)
+                {
+                    variant.VariantAttributeValues.Add(new VariantAttributeValue
+                    {
+                        AttributeDefinitionID = defId,
+                        AttributeOptionID = optionId,
+                    });
+                }
+                _variants.Add(variant);
+                _stockOnHand[variant] = 0;
+                _stockReserved[variant] = 0;
+                SetDisplayPrice(variant, row.Price);
+                SetDisplayCompareAt(variant, row.CompareAtPrice);
+            }
+            CaptureVariantAttributeOptions(_variants);
+            if (!_isNew)
+                await LoadVariantStockAsync(_variants);
+        }
+
+        if (prepared.AttributeValues is not null)
+        {
+            _attrValues.Clear();
+            foreach (var row in prepared.AttributeValues)
+            {
+                _attrValues[row.AttributeDefinitionId] = new ProductAttributeValue
+                {
+                    AttributeDefinitionID = row.AttributeDefinitionId,
+                    AttributeOptionID = row.OptionId,
+                    CustomValue = row.Custom,
+                    NumericValue = row.Numeric,
+                };
+            }
+            SeedExtraAttributesFromExistingValues();
+        }
+
+        if (prepared.Warnings is not null)
+        {
+            _warnings = prepared.Warnings.Select(w => new ProductWarning
+            {
+                Severity = w.Severity,
+                Text = w.Text,
+                IsActive = w.IsActive,
+            }).ToList();
+        }
+
+        if (prepared.Warranties is not null)
+        {
+            _warranties = prepared.Warranties.Select(w => new ProductWarranty
+            {
+                WarrantyID = w.WarrantyId,
+                CustomTitle = w.WarrantyId is null ? w.Title : null,
+                CustomDescription = w.Description,
+                IsActive = true,
+            }).ToList();
+        }
+    }
+
+    private async Task ExportJsonAsync()
+    {
+        if (_isNew || ProductId is not int id) return;
+        try
+        {
+            var json = await ProductAgent.ExportJsonAsync(id);
+            var name = string.IsNullOrWhiteSpace(Model.Slug) ? "product" : Model.Slug;
+            var bytes = global::System.Text.Encoding.UTF8.GetBytes(json);
+            await JS.InvokeVoidAsync("dotnetableFile.download", name + ".json", Convert.ToBase64String(bytes), "application/json");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.import_failed", "Could not read the JSON file"]}: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task SaveAsync()

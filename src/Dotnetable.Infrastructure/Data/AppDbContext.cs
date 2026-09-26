@@ -3914,6 +3914,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BrandName)
                 .HasMaxLength(60)
                 .HasComment("show in title of pages");
+            entity.Property(e => e.CatalogAgentKey)
+                .HasComment("Secret for POST /api/product-agent. Not the public storefront key.");
             entity.Property(e => e.DefaultCurrencyCode)
                 .HasMaxLength(3)
                 .IsUnicode(false)

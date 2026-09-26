@@ -7658,6 +7658,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(60)")
                         .HasComment("show in title of pages");
 
+                    b.Property<Guid?>("CatalogAgentKey")
+                        .HasColumnType("uniqueidentifier")
+                        .HasComment("Secret for POST /api/product-agent. Not the public storefront key.");
+
                     b.Property<string>("DefaultCurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)

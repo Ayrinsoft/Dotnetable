@@ -141,6 +141,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVendorProductService, VendorProductService>();
         services.AddScoped<IVendorCreditService, VendorCreditService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IProductAgentService, ProductAgentService>();
         services.AddScoped<IPriceListService, PriceListService>();
 
         // E-commerce: inventory / stock / suppliers.
