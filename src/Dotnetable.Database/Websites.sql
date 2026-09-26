@@ -3,6 +3,7 @@
     [TradeName]                     NVARCHAR (32)    NOT NULL,
     [WebsiteAddress]                VARCHAR (60)     NOT NULL,
     [AuthCode]                      UNIQUEIDENTIFIER NOT NULL,
+    [CatalogAgentKey]               UNIQUEIDENTIFIER NULL,
     [Active]                        BIT              NOT NULL,
     [Manager]                       NVARCHAR (30)    NOT NULL,
     [Mobile]                        VARCHAR (15)     NOT NULL,

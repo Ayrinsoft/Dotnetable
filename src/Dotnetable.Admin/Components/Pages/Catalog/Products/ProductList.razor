@@ -12,6 +12,8 @@
 @inject NavigationManager Nav
 @inject IPageLocalizer L
 @inject IJSRuntime JS
+@inject IProductAgentService ProductAgent
+@inject IConfiguration Config
 
 <DNPageTitle Title=@L["products", "Products"] />
 
@@ -62,6 +64,74 @@
 }
 
 <DNPrerequisiteAlert Items="_prerequisites" />
+
+@if (_websiteId > 0 && _canEdit)
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">@L["products.agent_title", "JSON و API کالا"]</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            @L["products.agent_file", "فایل JSON همهٔ اطلاعات اولیهٔ کالا را می‌گیرد: عنوان، نامک، توضیح کوتاه، متن، بررسی تخصصی، نوع، وضعیت، برند، دسته، ترجمه‌ها، ویژگی‌ها، هشدار، گارانتی و آرایهٔ variants (SKU، عنوان، قیمت به واحد پول سایت، قیمت قبل از تخفیف، وزن، بارکد و options مثل رنگ و سایز). تصویر شاخص، گالری، موجودی فروشنده و کالاهای مرتبط داخل این فایل نیستند."]
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            @L["products.agent_form", "در صفحهٔ کالای جدید یا ویرایش، «Choose JSON file» فقط فرم را پر می‌کند و تا زدن ذخیره چیزی نوشته نمی‌شود. دکمهٔ زیر همین فهرست، فایل را بلافاصله اعمال می‌کند: اگر product_code یا slug مال یک کالای موجود باشد به‌روز می‌شود، وگرنه کالای جدید ساخته می‌شود. کلیدهایی که در JSON نباشند در به‌روزرسانی دست نمی‌خورند. اگر variants باشد، کل واریته‌ها جایگزین می‌شوند و SKU قبلی شناسه‌اش را نگه می‌دارد."]
+        </MudText>
+        <MudStack Row="true" Spacing="2" Class="flex-wrap mb-3">
+            <MudFileUpload T="IBrowserFile" FilesChanged="ImportAgentJsonAsync" Accept=".json,application/json" Disabled="@_agentBusy">
+                <CustomContent Context="upload">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.UploadFile" Disabled="@_agentBusy"
+                               OnClick="@(() => upload.OpenFilePickerAsync())">
+                        @(_agentBusy ? L["products.importing", "Reading…"] : L["products.agent_import", "اعمال فایل JSON"])
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyAgentSampleAsync">
+                @L["products.agent_copy_sample", "کپی نمونه JSON"]
+            </MudButton>
+        </MudStack>
+
+        @if (_vendorId is null)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">
+                @L["products.agent_api", "برای اینکه هوش مصنوعی خودش کالا را بسازد یا به‌روز کند، همین JSON را با POST به آدرس زیر بفرستد. خواندن کالای فعلی (حتی پیش‌نویس) با GET و همان سربرگ‌ها، با slug یا کد کالا در انتهای آدرس است. X-Website-Key همان کلید عمومی فروشگاه است و به‌تنهایی اجازهٔ نوشتن ندارد. X-Catalog-Agent-Key را از همین صفحه بسازید و فقط به عامل بدهید."]
+            </MudText>
+            @if (_agentSchemaMissing)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                    @L["products.agent_migration", "ستون کلید عامل هنوز روی پایگاه نیست. از به‌روزرسانی پایگاه، مهاجرت AddCatalogAgentKey را اعمال کنید."]
+                </MudAlert>
+            }
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap mb-2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="@_agentBusy" OnClick="RotateAgentKeyAsync">
+                    @(string.IsNullOrEmpty(_agentKey) ? L["products.agent_key_create", "ساخت کلید عامل"] : L["products.agent_key_rotate", "عوض کردن کلید عامل"])
+                </MudButton>
+                @if (!string.IsNullOrEmpty(_agentKey))
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="@(() => CopyTextAsync(_agentCurl))">
+                        @L["products.agent_copy_curl", "کپی دستور نمونه"]
+                    </MudButton>
+                }
+            </MudStack>
+            @if (!string.IsNullOrEmpty(_agentKey))
+            {
+                <MudTextField Value="@_agentCurl" T="string" Lines="8" ReadOnly="true" Variant="Variant.Outlined"
+                              Style="font-family:monospace; font-size:12px;" />
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @L["products.agent_key_missing", "هنوز کلید عامل ساخته نشده. تا ساخته نشود، API نوشتن کالا را رد می‌کند."]
+                </MudText>
+            }
+        }
+
+        <MudExpansionPanels Elevation="0" Class="mt-3">
+            <MudExpansionPanel Text="@L["products.agent_sample_title", "نمونه JSON"]">
+                <pre style="white-space:pre-wrap; max-height:320px; overflow:auto; margin:0; font-size:12px;">@ProductAgentSample.Json</pre>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </MudPaper>
+}
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
     @if (_loading)
@@ -116,6 +186,12 @@
 
     private bool _loading = true;
     private bool _excelBusy;
+    private bool _agentBusy;
+    private string? _agentKey;
+    private bool _agentSchemaMissing;
+    private string? _websiteKey;
+    private string _apiBase = "";
+    private string _agentCurl = "";
     private bool _isMaster;
     private bool _canInsert, _canDelete, _canEdit;
     private int _websiteId;
@@ -196,7 +272,108 @@
         }
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categories.Count, rates.Count);
 
+        _agentSchemaMissing = false;
+        if (_canEdit && _vendorId is null && _websiteId > 0)
+        {
+            var site = await WebsiteService.GetByIdAsync(_websiteId);
+            _websiteKey = site?.AuthCode.ToString();
+            _apiBase = (Config["Api:BaseUrl"] ?? "").Trim().TrimEnd('/');
+            try
+            {
+                var agentKey = await WebsiteService.GetCatalogAgentKeyAsync(_websiteId);
+                _agentKey = agentKey?.ToString();
+                _agentCurl = BuildAgentCurl();
+            }
+            catch (Exception)
+            {
+                _agentKey = null;
+                _agentCurl = "";
+                _agentSchemaMissing = true;
+            }
+        }
+
         _loading = false;
+    }
+
+    private string BuildAgentCurl()
+    {
+        var root = string.IsNullOrWhiteSpace(_apiBase) ? "https://your-api" : _apiBase;
+        return "curl -X POST \"" + root + "/api/product-agent\" \\\n"
+            + "  -H \"Content-Type: application/json\" \\\n"
+            + "  -H \"X-Api-Version: 1.0\" \\\n"
+            + "  -H \"X-Website-Key: " + (_websiteKey ?? "") + "\" \\\n"
+            + "  -H \"X-Catalog-Agent-Key: " + (_agentKey ?? "") + "\" \\\n"
+            + "  --data-binary @product.json\n\n"
+            + "curl \"" + root + "/api/product-agent/DN-42\" \\\n"
+            + "  -H \"X-Api-Version: 1.0\" \\\n"
+            + "  -H \"X-Website-Key: " + (_websiteKey ?? "") + "\" \\\n"
+            + "  -H \"X-Catalog-Agent-Key: " + (_agentKey ?? "") + "\"";
+    }
+
+    private async Task RotateAgentKeyAsync()
+    {
+        if (_websiteId <= 0 || _vendorId is not null) return;
+        _agentBusy = true;
+        try
+        {
+            var key = await WebsiteService.RotateCatalogAgentKeyAsync(_websiteId);
+            _agentKey = key.ToString();
+            _agentCurl = BuildAgentCurl();
+            Snackbar.Add(L["products.agent_key_ready", "کلید عامل ساخته شد. دستور را کپی کنید و به هوش مصنوعی بدهید."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _agentBusy = false;
+        }
+    }
+
+    private async Task ImportAgentJsonAsync(IBrowserFile? file)
+    {
+        if (file is null || _websiteId <= 0 || !_canEdit) return;
+        _agentBusy = true;
+        try
+        {
+            string json;
+            await using (var stream = file.OpenReadStream(ProductAgentParser.MaxBytes))
+            using (var reader = new StreamReader(stream))
+                json = await reader.ReadToEndAsync();
+
+            var restrict = _vendorId is null ? (int?)null : _vendorMemberId;
+            var result = await ProductAgent.ApplyAsync(_websiteId, json, _vendorMemberId, restrict);
+            Snackbar.Add(result.Created
+                ? string.Format(L["products.agent_created", "کالا ساخته شد: {0}"], result.ProductCode)
+                : string.Format(L["products.agent_updated", "کالا به‌روز شد: {0}"], result.ProductCode), Severity.Success);
+            foreach (var note in result.Notes)
+                Snackbar.Add(note, Severity.Warning);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["products.import_failed", "Could not read the JSON file"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _agentBusy = false;
+        }
+    }
+
+    private async Task CopyAgentSampleAsync() => await CopyTextAsync(ProductAgentSample.Json);
+
+    private async Task CopyTextAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add(L["copied", "Copied to clipboard."], Severity.Info);
+        }
+        catch
+        {
+            Snackbar.Add(L["copy_failed", "Copy failed."], Severity.Warning);
+        }
     }
 
     private string FormatMinPrice(decimal? minSiteCurrency)

@@ -12,6 +12,12 @@ public interface IWebsiteService
     /// <summary>Resolves a website by its per-site key (<see cref="Website.AuthCode"/>), or null if no match.</summary>
     Task<Website?> GetByAuthCodeAsync(Guid authCode, CancellationToken ct = default);
 
+    /// <summary>Current catalog-agent secret, or null when none has been generated.</summary>
+    Task<Guid?> GetCatalogAgentKeyAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>Replaces the catalog-agent secret and returns the new value.</summary>
+    Task<Guid> RotateCatalogAgentKeyAsync(int websiteId, CancellationToken ct = default);
+
     Task<IEnumerable<Website>> GetAllAsync(CancellationToken ct = default);
 
     /// <summary>Server-side paged/sorted/searched websites.</summary>

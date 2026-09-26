@@ -7651,6 +7651,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(60)")
                         .HasComment("show in title of pages");
 
+                    b.Property<Guid?>("CatalogAgentKey")
+                        .HasColumnType("uuid")
+                        .HasComment("Secret for POST /api/product-agent. Not the public storefront key.");
+
                     b.Property<string>("DefaultCurrencyCode")
                         .IsRequired()
                         .HasMaxLength(3)

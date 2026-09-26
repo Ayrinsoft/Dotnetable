@@ -42,6 +42,26 @@ public class WebsiteService : IWebsiteService
             .FirstOrDefaultAsync(w => w.AuthCode == authCode, ct);
     }
 
+    public async Task<Guid?> GetCatalogAgentKeyAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        return await context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId)
+            .Select(w => w.CatalogAgentKey)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<Guid> RotateCatalogAgentKeyAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var key = Guid.NewGuid();
+        var updated = await context.Websites.Where(w => w.WebsiteID == websiteId)
+            .ExecuteUpdateAsync(s => s.SetProperty(w => w.CatalogAgentKey, key), ct);
+        if (updated == 0)
+            throw new InvalidOperationException("Website was not found.");
+        return key;
+    }
+
     public async Task<IEnumerable<Website>> GetAllAsync(CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
