@@ -171,6 +171,48 @@ public class FileServiceReplaceContentTests : IDisposable
     }
 
     [Fact]
+    public async Task ReplaceContentAsync_Converts_Png_To_Webp_Like_Upload()
+    {
+        var stored = Guid.NewGuid().ToString("N") + ".png";
+        var png = SolidPng(640, 480);
+        _provider.Blobs[stored] = png;
+        var record = new FileRecord
+        {
+            WebsiteID = _website.WebsiteID,
+            WebsiteStorageSettingsID = _setting.WebsiteStorageSettingsID,
+            StorageProvider = _setting.StorageProvider,
+            StoragePath = $"{_website.WebsiteID}/{stored}",
+            CNDUrl = $"https://cdn.test/{_website.WebsiteID}/{stored}",
+            CDNFileCode = stored,
+            OriginalFileName = "scan.png",
+            StoredFileName = stored,
+            MimeType = "image/png",
+            FileSizeKB = (int)Math.Ceiling(png.Length / 1024d),
+            FileCategory = (byte)FileCategory.Image,
+            IsDeleted = false,
+            UploadDate = DateTime.UtcNow,
+        };
+        _context.FileRecords.Add(record);
+        _context.SaveChanges();
+
+        var replaced = await _service.ReplaceContentAsync(
+            record.FileRecordID, new MemoryStream(SolidPng(640, 480)), "scan.png", "image/png");
+
+        replaced.FileRecordID.Should().Be(record.FileRecordID);
+        replaced.MimeType.Should().Be("image/webp");
+        replaced.StoredFileName.Should().EndWith(".webp");
+        replaced.OriginalFileName.Should().Be("scan.webp");
+        replaced.CNDUrl.Should().EndWith(".webp");
+        replaced.FileSizeKB.Should().BeLessThan(record.FileSizeKB);
+        _provider.Blobs.Should().NotContainKey(stored);
+        _provider.Blobs.Should().ContainKey(replaced.StoredFileName);
+        using var decoded = SKBitmap.Decode(_provider.Blobs[replaced.StoredFileName]);
+        decoded.Should().NotBeNull();
+        decoded.Width.Should().Be(640);
+        decoded.Height.Should().Be(480);
+    }
+
+    [Fact]
     public async Task EditImageAsync_Crops_In_Place_And_Keeps_The_Same_Url()
     {
         var uploaded = await _service.UploadAsync(new FileUploadRequest
@@ -215,6 +257,16 @@ public class FileServiceReplaceContentTests : IDisposable
     }
 
     public void Dispose() => _context.Dispose();
+
+    private static byte[] SolidPng(int width, int height)
+    {
+        using var bitmap = new SKBitmap(width, height);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Orange);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
 
     private static byte[] SolidJpeg(int width, int height)
     {

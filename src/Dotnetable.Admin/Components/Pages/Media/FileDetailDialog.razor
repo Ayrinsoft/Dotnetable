@@ -338,7 +338,7 @@
 
         var confirmed = await DialogService.ShowMessageBoxAsync(
             L["media.replace_file", "Replace file"],
-            L["media.replace_confirm", "This replaces the current file's content everywhere it's used (same ID and URL). Continue?"],
+            L["media.replace_confirm", "This replaces the current file everywhere it is used (same ID). Photos are optimized to WebP the same way as a new upload, so the public address can change. Continue?"],
             yesText: L["media.replace_file", "Replace file"], cancelText: L["cancel", "Cancel"]);
         if (confirmed != true) return;
 
