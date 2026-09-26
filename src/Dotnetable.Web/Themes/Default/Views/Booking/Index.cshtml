@@ -1,0 +1,47 @@
+@model Dotnetable.Application.DTOs.BookingCatalogDto
+@{
+    ViewData["Title"] = "نوبت‌دهی";
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+}
+
+@await Html.PartialAsync("_PageHeader", ("نوبت‌دهی", "یک خدمت را انتخاب کنید"))
+
+<section class="site-section">
+    <div class="container">
+        @if (Model is null || Model.Resources.Count == 0)
+        {
+            <p>هنوز خدمتی برای رزرو تعریف نشده است.</p>
+        }
+        else
+        {
+            @foreach (var person in Model.Resources)
+            {
+                <h2 class="h5 mt-4">@person.Name <small class="text-muted">@person.Hours</small></h2>
+                <div class="row g-3">
+                    @foreach (var item in person.Offerings)
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h3 class="h6">@item.Name</h3>
+                                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                                    {
+                                        <p class="small text-muted">@item.Description</p>
+                                    }
+                                    <p class="mb-1">مدت: @item.DurationMinutes دقیقه</p>
+                                    <p class="mb-1">هزینه خدمت: @item.FullPrice.ToString("0.##") @Model.CurrencyCode</p>
+                                    <p class="mb-3">مبلغ رزرو: @item.DepositAmount.ToString("0.##") @Model.CurrencyCode</p>
+                                    <a class="btn btn-primary" asp-action="Book" asp-route-offeringId="@item.OfferingId">انتخاب زمان</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            @if (Model.BookThrough is not null)
+            {
+                <p class="small text-muted mt-4">رزرو تا @Model.BookThrough باز است.</p>
+            }
+        }
+    </div>
+</section>

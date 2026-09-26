@@ -635,6 +635,279 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("BankAccounts");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingAppointment", b =>
+                {
+                    b.Property<int>("BookingAppointmentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingAppointmentID"));
+
+                    b.Property<int>("BookingOfferingID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BookingResourceID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("EndsAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("StartsAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("BookingAppointmentID");
+
+                    b.HasIndex("BookingOfferingID");
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_BookingAppointments_OrderID");
+
+                    b.HasIndex(new[] { "BookingResourceID", "StartsAtUtc" }, "IX_BookingAppointments_Resource_Start");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_BookingAppointments_WebsiteID");
+
+                    b.ToTable("BookingAppointments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingClosure", b =>
+                {
+                    b.Property<int>("BookingClosureID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingClosureID"));
+
+                    b.Property<int?>("BookingResourceID")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("BookingClosureID");
+
+                    b.HasIndex("BookingResourceID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Date" }, "IX_BookingClosures_WebsiteID_Date");
+
+                    b.ToTable("BookingClosures");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingOffering", b =>
+                {
+                    b.Property<int>("BookingOfferingID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingOfferingID"));
+
+                    b.Property<int>("BookingResourceID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DepositAmount")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("FullPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("BookingOfferingID");
+
+                    b.HasIndex(new[] { "BookingResourceID" }, "IX_BookingOfferings_BookingResourceID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_BookingOfferings_WebsiteID");
+
+                    b.ToTable("BookingOfferings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingProfile", b =>
+                {
+                    b.Property<int>("BookingProfileID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingProfileID"));
+
+                    b.Property<bool>("AllowOfflinePayment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("AllowOnlinePayment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateOnly?>("BookThrough")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("BreakEndMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BreakStartMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DayEndMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1020);
+
+                    b.Property<int>("DayStartMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(540);
+
+                    b.Property<int>("HoldMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("LeadMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(60);
+
+                    b.Property<bool>("RequirePayment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("RetentionDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(180);
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("WorkDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)31);
+
+                    b.HasKey("BookingProfileID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "UQ_BookingProfiles_WebsiteID")
+                        .IsUnique();
+
+                    b.ToTable("BookingProfiles");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingResource", b =>
+                {
+                    b.Property<int>("BookingResourceID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingResourceID"));
+
+                    b.Property<int?>("BreakEndMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BreakStartMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DayEndMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1020);
+
+                    b.Property<int>("DayStartMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(540);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("WorkDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)31);
+
+                    b.HasKey("BookingResourceID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_BookingResources_WebsiteID");
+
+                    b.ToTable("BookingResources");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Brand", b =>
                 {
                     b.Property<int>("BrandID")
@@ -8932,6 +9205,75 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingAppointment", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.BookingOffering", "Offering")
+                        .WithMany("Appointments")
+                        .HasForeignKey("BookingOfferingID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.BookingResource", "Resource")
+                        .WithMany("Appointments")
+                        .HasForeignKey("BookingResourceID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Offering");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingClosure", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.BookingResource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("BookingResourceID")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingOffering", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.BookingResource", "Resource")
+                        .WithMany("Offerings")
+                        .HasForeignKey("BookingResourceID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingProfile", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingResource", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Brand", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
@@ -12336,6 +12678,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("Settlements");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingOffering", b =>
+                {
+                    b.Navigation("Appointments");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.BookingResource", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("Offerings");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Brand", b =>

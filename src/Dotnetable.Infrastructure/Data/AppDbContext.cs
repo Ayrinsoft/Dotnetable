@@ -38,6 +38,16 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
 
+    public virtual DbSet<BookingAppointment> BookingAppointments { get; set; }
+
+    public virtual DbSet<BookingClosure> BookingClosures { get; set; }
+
+    public virtual DbSet<BookingOffering> BookingOfferings { get; set; }
+
+    public virtual DbSet<BookingProfile> BookingProfiles { get; set; }
+
+    public virtual DbSet<BookingResource> BookingResources { get; set; }
+
     public virtual DbSet<Brand> Brands { get; set; }
 
     public virtual DbSet<BrandTranslation> BrandTranslations { get; set; }

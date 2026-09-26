@@ -1,0 +1,84 @@
+@model Dotnetable.Web.Controllers.BookingController.BookPage
+@{
+    ViewData["Title"] = Model.Offering.Name;
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    var prev = Model.Month == 1 ? (Model.Year - 1, 12) : (Model.Year, Model.Month - 1);
+    var next = Model.Month == 12 ? (Model.Year + 1, 1) : (Model.Year, Model.Month + 1);
+}
+
+@await Html.PartialAsync("_PageHeader", (Model.Offering.Name, Model.Person))
+
+<section class="site-section">
+    <div class="container">
+        <p>
+            <a asp-action="Index">بازگشت به خدمات</a>
+        </p>
+        <p>مدت @Model.Offering.DurationMinutes دقیقه — هزینه خدمت @Model.Offering.FullPrice.ToString("0.##") @Model.Catalog.CurrencyCode
+            @if (Model.Catalog.RequirePayment && Model.Offering.DepositAmount > 0)
+            {
+                <span> — برای رزرو @Model.Offering.DepositAmount.ToString("0.##") @Model.Catalog.CurrencyCode پرداخت می‌شود و بعد از انتخاب زمان به صفحهٔ پرداخت می‌روید.</span>
+            }
+        </p>
+
+        @if (TempData["BookingError"] is string error)
+        {
+            <div class="alert alert-warning">@error</div>
+        }
+        @if (TempData["BookingOk"] is string ok)
+        {
+            <div class="alert alert-success">@ok</div>
+        }
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a asp-action="Book" asp-route-offeringId="@Model.Offering.OfferingId" asp-route-year="@prev.Item1" asp-route-month="@prev.Item2">ماه قبل</a>
+            <strong>@Model.Year / @Model.Month</strong>
+            <a asp-action="Book" asp-route-offeringId="@Model.Offering.OfferingId" asp-route-year="@next.Item1" asp-route-month="@next.Item2">ماه بعد</a>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            @foreach (var day in Model.Days)
+            {
+                if (!day.Open)
+                {
+                    <span class="btn btn-outline-secondary btn-sm disabled">@day.Date[8..]</span>
+                }
+                else
+                {
+                    <a class="btn btn-sm @(day.Date == Model.Date ? "btn-primary" : "btn-outline-primary")"
+                       asp-action="Book" asp-route-offeringId="@Model.Offering.OfferingId"
+                       asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-date="@day.Date">@day.Date[8..]</a>
+                }
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Date))
+        {
+            <h2 class="h6">ساعت‌های آزاد @Model.Date</h2>
+            @if (Model.Slots.Count == 0)
+            {
+                <p>در این روز ساعت آزادی نمانده است.</p>
+            }
+            else
+            {
+                <form asp-action="Reserve" method="post" class="d-flex flex-column gap-3">
+                    <input type="hidden" name="offeringId" value="@Model.Offering.OfferingId" />
+                    <input type="hidden" name="date" value="@Model.Date" />
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var slot in Model.Slots)
+                        {
+                            <label class="btn btn-outline-dark">
+                                <input type="radio" name="start" value="@slot.Start" required />
+                                @slot.Start – @slot.End
+                            </label>
+                        }
+                    </div>
+                    <div>
+                        <label class="form-label" for="note">یادداشت</label>
+                        <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+                    </div>
+                    <button class="btn btn-primary" type="submit">ثبت این زمان</button>
+                </form>
+            }
+        }
+    </div>
+</section>

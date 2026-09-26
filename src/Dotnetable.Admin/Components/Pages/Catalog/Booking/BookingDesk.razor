@@ -1,0 +1,603 @@
+@page "/booking"
+@attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@inject IBookingService Bookings
+@inject IWebsiteClientService Clients
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject IJSRuntime JS
+
+<DNPageTitle Title="@L["booking", "نوبت‌دهی"]" />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["booking", "نوبت‌دهی"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["booking.subtitle", "خدمات، ساعت کاری، تعطیلی‌ها و دفتر روزانه. صفحهٔ مشتری: /booking"]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_profile is not null)
+{
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="app-card rounded-lg pa-2">
+        <MudTabPanel Text="@L["booking.daybook", "دفتر روز"]">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End" Class="flex-wrap pa-2">
+                <MudDatePicker @bind-Date="_sheetDate" Label="@L["booking.date", "تاریخ"]" Variant="Variant.Outlined" />
+                <MudSelect T="int?" @bind-Value="_sheetResourceId" Label="@L["booking.person", "فرد"]" Variant="Variant.Outlined" Style="min-width:180px" Clearable="true">
+                    @foreach (var r in _resources)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)r.BookingResourceID)">@r.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSheetAsync">@L["booking.show", "نمایش"]</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">@L["booking.print", "چاپ"]</MudButton>
+            </MudStack>
+
+            @if (_canEdit)
+            {
+                <MudPaper Elevation="0" Class="border rounded-lg pa-3 ma-2">
+                    <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["booking.add", "ثبت نوبت توسط مدیر"]</MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="int" @bind-Value="_addOfferingId" Label="@L["booking.service", "خدمت"]" Variant="Variant.Outlined">
+                                @foreach (var o in _offerings.Where(x => x.IsActive))
+                                {
+                                    var person = _resources.FirstOrDefault(r => r.BookingResourceID == o.BookingResourceID)?.Name;
+                                    <MudSelectItem T="int" Value="@o.BookingOfferingID">@person — @o.Name (@o.DurationMinutes)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="6" sm="2"><MudTextField @bind-Value="_addTime" Label="@L["booking.time", "ساعت"]" Placeholder="10:00" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="3"><MudTextField @bind-Value="_addName" Label="@L["booking.customer", "نام"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="6" sm="3"><MudTextField @bind-Value="_addPhone" Label="@L["booking.phone", "تلفن"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudAutocomplete T="WebsiteClient" Value="_addClient" ValueChanged="OnClientPicked" Label="@L["booking.account", "حساب مشتری (برای فاکتور)"]"
+                                             SearchFunc="SearchClients" ToStringFunc="@(c => c is null ? "" : ClientLabel(c))" Variant="Variant.Outlined" Clearable="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4"><MudTextField @bind-Value="_addNote" Label="@L["booking.note", "یادداشت"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="2" Class="d-flex align-center">
+                            <MudSwitch @bind-Value="_addMarkPaid" Label="@L["booking.mark_paid", "پرداخت شد"]" Color="Color.Primary" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="AdminAddAsync">@L["booking.save_slot", "ثبت نوبت"]</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+
+            <div id="booking-day-sheet" class="pa-2">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@(_sheetDate?.ToString("yyyy-MM-dd"))</MudText>
+                <MudSimpleTable Dense="true" Hover="true" Bordered="true">
+                    <thead>
+                        <tr>
+                            <th>@L["booking.time", "ساعت"]</th>
+                            <th>@L["booking.person", "فرد"]</th>
+                            <th>@L["booking.service", "خدمت"]</th>
+                            <th>@L["booking.customer", "مشتری"]</th>
+                            <th>@L["booking.money", "خدمت / رزرو"]</th>
+                            <th>@L["booking.state", "وضعیت"]</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_rows.Count == 0)
+                        {
+                            <tr><td colspan="7">@L["booking.empty_day", "برای این روز نوبتی نیست."]</td></tr>
+                        }
+                        @foreach (var row in _rows)
+                        {
+                            <tr>
+                                <td>@row.Start–@row.End</td>
+                                <td>@row.ResourceName</td>
+                                <td>@row.OfferingName</td>
+                                <td>@row.CustomerName<br /><span class="mud-text-secondary">@row.Phone</span>@if (!string.IsNullOrWhiteSpace(row.Note)) { <div>@row.Note</div> }</td>
+                                <td>@row.FullPrice.ToString("0.##") / @row.DepositAmount.ToString("0.##")</td>
+                                <td>
+                                    @row.Status
+                                    @if (row.Paid) { <MudChip T="string" Size="Size.Small" Color="Color.Success">@L["booking.paid", "پرداخت‌شده"]</MudChip> }
+                                    else { <MudChip T="string" Size="Size.Small" Color="Color.Warning">@L["booking.unpaid", "پرداخت‌نشده"]</MudChip> }
+                                    @if (row.OrderId is int orderId)
+                                    {
+                                        <MudLink Href="@($"/orders/{orderId}")">@row.OrderNumber</MudLink>
+                                    }
+                                </td>
+                                <td>
+                                    @if (_canEdit)
+                                    {
+                                        @if (!row.Paid)
+                                        {
+                                            <MudButton Size="Size.Small" OnClick="@(() => MarkPaidAsync(row.AppointmentId))">@L["booking.receive", "ثبت دریافت"]</MudButton>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => CancelAsync(row.AppointmentId))" />
+                                        }
+                                        <MudButton Size="Size.Small" OnClick="@(() => BeginMove(row))">@L["booking.move", "جابجایی"]</MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+
+            @if (_moveId is int)
+            {
+                <MudPaper Elevation="0" Class="border rounded-lg pa-3 ma-2">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">@L["booking.move_title", "انتقال به زمان دیگر"]</MudText>
+                    <MudStack Row="true" Spacing="2">
+                        <MudDatePicker @bind-Date="_moveDate" Label="@L["booking.date", "تاریخ"]" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_moveTime" Label="@L["booking.time", "ساعت"]" Placeholder="14:30" Variant="Variant.Outlined" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="MoveAsync">@L["save", "Save"]</MudButton>
+                        <MudButton OnClick="@(() => _moveId = null)">@L["cancel", "Cancel"]</MudButton>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["booking.setup", "افراد و خدمات"]">
+            <div class="pa-2">
+                <MudText Typo="Typo.body2" Class="mb-3">
+                    @L["booking.setup_hint", "هر فرد تقویم جدا دارد. مدت خدمت (مثلاً ۱۰ دقیقه ویزیت یا ۶۰ دقیقه کاشت) همان بازه‌ای است که برای بقیه بسته می‌شود. مبلغ خدمت و مبلغ رزرو جدا هستند."]
+                </MudText>
+                @if (_canEdit)
+                {
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-3 mb-3">
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@(_editResource.BookingResourceID == 0 ? L["booking.new_person", "فرد جدید"] : L["booking.edit_person", "ویرایش فرد"])</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_editResource.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_startHour" Label="@L["booking.from_hour", "از ساعت"]" Min="0" Max="23" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_endHour" Label="@L["booking.to_hour", "تا ساعت"]" Min="1" Max="24" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="int?" @bind-Value="_breakStartHour" Label="@L["booking.break_from", "استراحت از"]" Min="0" Max="23" Variant="Variant.Outlined" Clearable="true" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="int?" @bind-Value="_breakEndHour" Label="@L["booking.break_to", "استراحت تا"]" Min="0" Max="24" Variant="Variant.Outlined" Clearable="true" /></MudItem>
+                            <MudItem xs="12">
+                                <MudStack Row="true" Spacing="1" Class="flex-wrap">
+                                    @for (var i = 0; i < _dayLabels.Length; i++)
+                                    {
+                                        var bit = _dayBits[i];
+                                        var on = (_editResource.WorkDays & bit) != 0;
+                                        <MudCheckBox T="bool" Value="on" ValueChanged="@(v => ToggleDay(bit, v))" Label="@_dayLabels[i]" Color="Color.Primary" />
+                                    }
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="SaveResourceAsync">@L["save", "Save"]</MudButton>
+                                @if (_editResource.BookingResourceID != 0)
+                                {
+                                    <MudButton OnClick="ResetResource">@L["booking.new_person", "فرد جدید"]</MudButton>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead><tr><th>@L["name", "Name"]</th><th>@L["booking.hours", "ساعت"]</th><th>@L["booking.days", "روزها"]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in _resources)
+                        {
+                            <tr>
+                                <td>@r.Name</td>
+                                <td>@Minutes(r.DayStartMinutes)–@Minutes(r.DayEndMinutes)</td>
+                                <td>@DaysLabel(r.WorkDays)</td>
+                                <td>
+                                    @if (_canEdit)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditResource(r))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteResourceAsync(r.BookingResourceID))" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                @if (_canEdit && _resources.Count > 0)
+                {
+                    <MudPaper Elevation="0" Class="border rounded-lg pa-3 mt-4">
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold mb-2">@L["booking.new_service", "خدمت"]</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="3">
+                                <MudSelect T="int" @bind-Value="_editOffering.BookingResourceID" Label="@L["booking.person", "فرد"]" Variant="Variant.Outlined">
+                                    @foreach (var r in _resources)
+                                    {
+                                        <MudSelectItem T="int" Value="@r.BookingResourceID">@r.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="3"><MudTextField @bind-Value="_editOffering.Name" Label="@L["name", "Name"]" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_editOffering.DurationMinutes" Label="@L["booking.minutes", "دقیقه"]" Min="5" Max="480" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="decimal" @bind-Value="_editOffering.FullPrice" Label="@L["booking.full_price", "هزینه خدمت"]" Min="0" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="6" sm="2"><MudNumericField T="decimal" @bind-Value="_editOffering.DepositAmount" Label="@L["booking.deposit", "مبلغ رزرو"]" Min="0" Variant="Variant.Outlined" /></MudItem>
+                            <MudItem xs="12"><MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="SaveOfferingAsync">@L["save", "Save"]</MudButton></MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+                <MudSimpleTable Dense="true" Hover="true" Class="mt-3">
+                    <thead><tr><th>@L["booking.service", "خدمت"]</th><th>@L["booking.person", "فرد"]</th><th>@L["booking.minutes", "دقیقه"]</th><th>@L["booking.full_price", "خدمت"]</th><th>@L["booking.deposit", "رزرو"]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var o in _offerings)
+                        {
+                            <tr>
+                                <td>@o.Name</td>
+                                <td>@_resources.FirstOrDefault(r => r.BookingResourceID == o.BookingResourceID)?.Name</td>
+                                <td>@o.DurationMinutes</td>
+                                <td>@o.FullPrice.ToString("0.##")</td>
+                                <td>@o.DepositAmount.ToString("0.##")</td>
+                                <td>
+                                    @if (_canEdit)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => _editOffering = CloneOffering(o))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteOfferingAsync(o.BookingOfferingID))" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["booking.closures", "روزهای تعطیل"]">
+            <div class="pa-2">
+                <MudText Typo="Typo.body2" Class="mb-3">@L["booking.closures_hint", "روزی که اینجا باشد از رزرو حذف می‌شود، حتی اگر در روزهای کاری هفته باشد. می‌توانید فقط برای یک فرد ببندید، یا برای همه. بعداً همان ردیف را حذف کنید تا روز دوباره باز شود."]</MudText>
+                @if (_canEdit)
+                {
+                    <MudGrid Spacing="2" Class="mb-3">
+                        <MudItem xs="12" sm="3"><MudDatePicker @bind-Date="_closureDate" Label="@L["booking.date", "تاریخ"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudSelect T="int?" @bind-Value="_closureResourceId" Label="@L["booking.person", "فرد"]" Variant="Variant.Outlined" Clearable="true" Placeholder="@L["booking.everyone", "همه"]">
+                                @foreach (var r in _resources)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)r.BookingResourceID)">@r.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="4"><MudTextField @bind-Value="_closureNote" Label="@L["booking.note", "یادداشت"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="2" Class="d-flex align-end"><MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddClosureAsync">@L["booking.close_day", "بستن روز"]</MudButton></MudItem>
+                    </MudGrid>
+                }
+                <MudSimpleTable Dense="true">
+                    <thead><tr><th>@L["booking.date", "تاریخ"]</th><th>@L["booking.person", "فرد"]</th><th>@L["booking.note", "یادداشت"]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var c in _closures)
+                        {
+                            <tr>
+                                <td>@c.Date.ToString("yyyy-MM-dd")</td>
+                                <td>@(c.BookingResourceID is int rid ? _resources.FirstOrDefault(r => r.BookingResourceID == rid)?.Name : L["booking.everyone", "همه"])</td>
+                                <td>@c.Note</td>
+                                <td>@if (_canEdit) { <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteClosureAsync(c.BookingClosureID))" /> }</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@L["booking.settings", "تنظیمات"]">
+            <div class="pa-2">
+                @if (_profile is not null)
+                {
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="4"><MudDatePicker Date="_bookThrough" DateChanged="OnBookThrough" Label="@L["booking.horizon", "آخرین روز قابل رزرو"]" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_profile.RetentionDays" Label="@L["booking.retention", "حذف داده بعد از (روز)"]" Min="0" Variant="Variant.Outlined" HelperText="@L["booking.retention_hint", "۰ یعنی هیچ‌وقت حذف نشود. فاکتور باقی می‌ماند."]" /></MudItem>
+                        <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_profile.HoldMinutes" Label="@L["booking.hold", "مهلت پرداخت (دقیقه)"]" Min="5" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="6" sm="2"><MudNumericField T="int" @bind-Value="_profile.LeadMinutes" Label="@L["booking.lead", "حداقل فاصله تا نوبت"]" Min="0" Variant="Variant.Outlined" /></MudItem>
+                        <MudItem xs="12" sm="4"><MudTextField @bind-Value="_profile.TimeZoneId" Label="@L["booking.tz", "منطقه زمانی"]" Variant="Variant.Outlined" HelperText="Asia/Tehran" /></MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_profile.RequirePayment" Label="@L["booking.require_pay", "رزرو بدون پرداخت ثبت نهایی نشود"]" Color="Color.Primary" />
+                            <MudSwitch @bind-Value="_profile.AllowOnlinePayment" Label="@L["booking.allow_online", "پرداخت آنلاین"]" Color="Color.Primary" />
+                            <MudSwitch @bind-Value="_profile.AllowOfflinePayment" Label="@L["booking.allow_offline", "فیش بانکی / کارت‌به‌کارت"]" Color="Color.Primary" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @L["booking.pay_hint", "مبلغ رزرو روی فاکتور می‌نشیند، مثل خرید کالا. پرداخت آنلاین و ثبت فیش همان صفحهٔ پرداخت سفارش است. تا تأیید فیش، آن ساعت برای دیگران بسته می‌ماند. اگر هر دو روش پرداخت خاموش باشد، نوبت بدون فاکتور قطعی می‌شود."]
+                            </MudText>
+                        </MudItem>
+                        @if (_canEdit)
+                        {
+                            <MudItem xs="12"><MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="SaveProfileAsync">@L["save", "Save"]</MudButton></MudItem>
+                        }
+                    </MudGrid>
+                }
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private static readonly string[] _dayLabels = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+    private static readonly byte[] _dayBits = [1, 2, 4, 8, 16, 32, 64];
+
+    private bool _loading = true, _busy, _isMaster, _canEdit;
+    private int _websiteId;
+    private int? _memberId;
+    private List<Website> _websites = new();
+    private BookingProfile? _profile;
+    private List<BookingResource> _resources = new();
+    private List<BookingOffering> _offerings = new();
+    private List<BookingClosure> _closures = new();
+    private List<BookingDayRowDto> _rows = new();
+    private DateTime? _sheetDate = DateTime.Today;
+    private DateTime? _bookThrough;
+    private int? _sheetResourceId;
+    private int _addOfferingId;
+    private string _addTime = "10:00";
+    private string _addName = "";
+    private string _addPhone = "";
+    private string _addNote = "";
+    private bool _addMarkPaid;
+    private WebsiteClient? _addClient;
+    private int? _moveId;
+    private DateTime? _moveDate = DateTime.Today;
+    private string _moveTime = "10:00";
+    private BookingResource _editResource = new();
+    private int _startHour = 9, _endHour = 17;
+    private int? _breakStartHour, _breakEndHour;
+    private BookingOffering _editOffering = new() { DurationMinutes = 30 };
+    private DateTime? _closureDate = DateTime.Today;
+    private int? _closureResourceId;
+    private string _closureNote = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid)) _memberId = mid;
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await ReloadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id) { _websiteId = id; await ReloadAsync(); }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        if (_websiteId <= 0) { _loading = false; return; }
+        _profile = await Bookings.GetOrCreateProfileAsync(_websiteId);
+        _bookThrough = _profile.BookThrough?.ToDateTime(TimeOnly.MinValue);
+        _resources = await Bookings.GetResourcesAsync(_websiteId);
+        _offerings = await Bookings.GetOfferingsAsync(_websiteId);
+        _closures = await Bookings.GetClosuresAsync(_websiteId);
+        if (_editResource.BookingResourceID == 0)
+        {
+            _editResource.WorkDays = _profile.WorkDays;
+            _startHour = _profile.DayStartMinutes / 60;
+            _endHour = _profile.DayEndMinutes / 60;
+        }
+        if (_editOffering.BookingResourceID == 0 && _resources.Count > 0)
+            _editOffering.BookingResourceID = _resources[0].BookingResourceID;
+        if (_addOfferingId == 0 && _offerings.Count > 0)
+            _addOfferingId = _offerings[0].BookingOfferingID;
+        await LoadSheetAsync();
+        _loading = false;
+    }
+
+    private async Task LoadSheetAsync()
+    {
+        if (_profile is null || _sheetDate is null) return;
+        var date = DateOnly.FromDateTime(_sheetDate.Value);
+        _rows = (await Bookings.GetDaySheetAsync(_websiteId, date, _sheetResourceId)).ToList();
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        if (_profile is null) return;
+        _busy = true;
+        try
+        {
+            _profile.BookThrough = _bookThrough is null ? null : DateOnly.FromDateTime(_bookThrough.Value);
+            await Bookings.SaveProfileAsync(_profile);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void OnBookThrough(DateTime? value) => _bookThrough = value;
+
+    private void ToggleDay(byte bit, bool on)
+    {
+        if (on) _editResource.WorkDays |= bit;
+        else _editResource.WorkDays = (byte)(_editResource.WorkDays & ~bit);
+    }
+
+    private async Task SaveResourceAsync()
+    {
+        _busy = true;
+        try
+        {
+            _editResource.WebsiteID = _websiteId;
+            _editResource.DayStartMinutes = _startHour * 60;
+            _editResource.DayEndMinutes = _endHour * 60;
+            _editResource.BreakStartMinutes = _breakStartHour is int bs ? bs * 60 : null;
+            _editResource.BreakEndMinutes = _breakEndHour is int be ? be * 60 : null;
+            await Bookings.SaveResourceAsync(_editResource);
+            ResetResource();
+            _resources = await Bookings.GetResourcesAsync(_websiteId);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void ResetResource()
+    {
+        var days = _profile?.WorkDays ?? (byte)31;
+        _editResource = new BookingResource { WebsiteID = _websiteId, WorkDays = days };
+        _startHour = (_profile?.DayStartMinutes ?? 540) / 60;
+        _endHour = (_profile?.DayEndMinutes ?? 1020) / 60;
+        _breakStartHour = null;
+        _breakEndHour = null;
+    }
+
+    private void EditResource(BookingResource r)
+    {
+        _editResource = new BookingResource
+        {
+            BookingResourceID = r.BookingResourceID,
+            WebsiteID = r.WebsiteID,
+            Name = r.Name,
+            IsActive = r.IsActive,
+            SortOrder = r.SortOrder,
+            WorkDays = r.WorkDays,
+            BreakStartMinutes = r.BreakStartMinutes,
+            BreakEndMinutes = r.BreakEndMinutes,
+        };
+        _startHour = r.DayStartMinutes / 60;
+        _endHour = r.DayEndMinutes / 60;
+        _breakStartHour = r.BreakStartMinutes / 60;
+        _breakEndHour = r.BreakEndMinutes / 60;
+    }
+
+    private async Task DeleteResourceAsync(int id)
+    {
+        try { await Bookings.DeleteResourceAsync(id); _resources = await Bookings.GetResourcesAsync(_websiteId); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task SaveOfferingAsync()
+    {
+        _busy = true;
+        try
+        {
+            _editOffering.WebsiteID = _websiteId;
+            await Bookings.SaveOfferingAsync(_editOffering);
+            var resourceId = _editOffering.BookingResourceID;
+            _editOffering = new BookingOffering { WebsiteID = _websiteId, BookingResourceID = resourceId, DurationMinutes = 30 };
+            _offerings = await Bookings.GetOfferingsAsync(_websiteId);
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task DeleteOfferingAsync(int id)
+    {
+        try { await Bookings.DeleteOfferingAsync(id); _offerings = await Bookings.GetOfferingsAsync(_websiteId); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private static BookingOffering CloneOffering(BookingOffering o) => new()
+    {
+        BookingOfferingID = o.BookingOfferingID,
+        WebsiteID = o.WebsiteID,
+        BookingResourceID = o.BookingResourceID,
+        Name = o.Name,
+        Description = o.Description,
+        DurationMinutes = o.DurationMinutes,
+        FullPrice = o.FullPrice,
+        DepositAmount = o.DepositAmount,
+        IsActive = o.IsActive,
+        SortOrder = o.SortOrder,
+    };
+
+    private async Task AddClosureAsync()
+    {
+        if (_closureDate is null) return;
+        await Bookings.AddClosureAsync(_websiteId, _closureResourceId, DateOnly.FromDateTime(_closureDate.Value), _closureNote);
+        _closureNote = "";
+        _closures = await Bookings.GetClosuresAsync(_websiteId);
+    }
+
+    private async Task DeleteClosureAsync(int id)
+    {
+        await Bookings.DeleteClosureAsync(id);
+        _closures = await Bookings.GetClosuresAsync(_websiteId);
+    }
+
+    private async Task AdminAddAsync()
+    {
+        if (_sheetDate is null || !TimeOnly.TryParse(_addTime, out var time))
+        {
+            Snackbar.Add(L["booking.bad_time", "ساعت را مثل 10:00 بنویسید."], Severity.Warning);
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var result = await Bookings.AdminAddAsync(
+                _websiteId, _memberId ?? 0, _addOfferingId, DateOnly.FromDateTime(_sheetDate.Value), time,
+                _addClient?.WebsiteClientID, _addName, _addPhone, _addNote, _addMarkPaid);
+            if (!result.Success) Snackbar.Add(result.Error ?? "Failed", Severity.Error);
+            else
+            {
+                Snackbar.Add(L["saved", "Saved."], Severity.Success);
+                _addName = ""; _addPhone = ""; _addNote = "";
+                await LoadSheetAsync();
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task CancelAsync(int id)
+    {
+        var error = await Bookings.CancelUnpaidAsync(id, _memberId);
+        if (error is not null) Snackbar.Add(error, Severity.Warning);
+        else await LoadSheetAsync();
+    }
+
+    private async Task MarkPaidAsync(int id)
+    {
+        var error = await Bookings.MarkReceivedAsync(id, _memberId ?? 0);
+        if (error is not null) Snackbar.Add(error, Severity.Warning);
+        else await LoadSheetAsync();
+    }
+
+    private void BeginMove(BookingDayRowDto row)
+    {
+        _moveId = row.AppointmentId;
+        _moveDate = _sheetDate;
+        _moveTime = row.Start;
+    }
+
+    private async Task MoveAsync()
+    {
+        if (_moveId is not int id || _moveDate is null || !TimeOnly.TryParse(_moveTime, out var time)) return;
+        var error = await Bookings.RescheduleAsync(id, DateOnly.FromDateTime(_moveDate.Value), time);
+        if (error is not null) Snackbar.Add(error, Severity.Warning);
+        else { _moveId = null; await LoadSheetAsync(); }
+    }
+
+    private async Task<IEnumerable<WebsiteClient>> SearchClients(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return Array.Empty<WebsiteClient>();
+        return await Clients.SearchAsync(_websiteId, value, 15, ct);
+    }
+
+    private void OnClientPicked(WebsiteClient? client)
+    {
+        _addClient = client;
+        if (client is null) return;
+        _addName = ClientLabel(client);
+        _addPhone = client.Cellphone ?? "";
+    }
+
+    private static string ClientLabel(WebsiteClient c)
+    {
+        var name = $"{c.Givenname} {c.Surname}".Trim();
+        return string.IsNullOrWhiteSpace(name) ? (c.Email ?? c.Cellphone ?? c.WebsiteClientID.ToString()) : name;
+    }
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+
+    private static string Minutes(int m) => $"{m / 60:00}:{m % 60:00}";
+
+    private string DaysLabel(byte mask)
+    {
+        var names = new List<string>();
+        for (var i = 0; i < _dayBits.Length; i++)
+            if ((mask & _dayBits[i]) != 0) names.Add(_dayLabels[i]);
+        return string.Join(" ", names);
+    }
+}

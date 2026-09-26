@@ -79,6 +79,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("redirects", "Redirects", "/content/redirects", Icons.Material.Filled.CallSplit, "content", "Content", RoleKeys.RedirectsView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
 
         new AdminSearchPage("products", "Products", "/catalog/products", Icons.Material.Filled.ShoppingBag, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog),
+        new AdminSearchPage("booking", "Appointments", "/booking", Icons.Material.Filled.EventAvailable, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("price_lists", "Price lists", "/catalog/price-lists", Icons.Material.Filled.RequestQuote, "nav.catalog", "Catalog", RoleKeys.PriceListsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("categories", "Categories", "/catalog/categories", Icons.Material.Filled.Category, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("attributes", "Attributes", "/catalog/attributes", Icons.Material.Filled.Tune, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
