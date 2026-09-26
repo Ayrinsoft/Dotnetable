@@ -322,9 +322,10 @@
         @if (NavSurface.Shows(AdminNavArea.Catalog))
         {
             <MudNavGroup Title="@L["nav.catalog", "Catalog"]" Icon="@Icons.Material.Filled.Inventory2"
-                         Expanded="@IsGroupActive("/catalog/")">
+                         Expanded="@IsGroupActive("/catalog/", "/booking")">
                 <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
                     <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
+                    <MudNavLink Href="/booking" Icon="@Icons.Material.Filled.EventAvailable">@L["booking", "Appointments"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.PriceListsView" Context="pl">
                     <MudNavLink Href="/catalog/price-lists" Icon="@Icons.Material.Filled.RequestQuote">@L["price_lists", "Price lists"]</MudNavLink>

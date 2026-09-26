@@ -897,6 +897,53 @@ public class ApiClient
     public Task<AuthApiResult> AnswerQuestionAsync(int questionId, string body, CancellationToken ct = default) =>
         PostAsync($"api/questions/{questionId}/answers", new { body }, ct);
 
+    // ── Appointments ─────────────────────────────────────────────────
+
+    public Task<BookingCatalogDto?> GetBookingCatalogAsync(CancellationToken ct = default) =>
+        GetOrNullAsync<BookingCatalogDto>("api/bookings/catalog", ct);
+
+    public async Task<IReadOnlyList<BookingDayDto>> GetBookingDaysAsync(int offeringId, int year, int month, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<List<BookingDayDto>>(
+                $"api/bookings/days?offeringId={offeringId}&year={year}&month={month}", ct)
+                ?? new List<BookingDayDto>();
+        }
+        catch (HttpRequestException) { return Array.Empty<BookingDayDto>(); }
+        catch (JsonException) { return Array.Empty<BookingDayDto>(); }
+    }
+
+    public async Task<IReadOnlyList<BookingSlotDto>> GetBookingSlotsAsync(int offeringId, string date, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<List<BookingSlotDto>>(
+                $"api/bookings/slots?offeringId={offeringId}&date={Uri.EscapeDataString(date)}", ct)
+                ?? new List<BookingSlotDto>();
+        }
+        catch (HttpRequestException) { return Array.Empty<BookingSlotDto>(); }
+        catch (JsonException) { return Array.Empty<BookingSlotDto>(); }
+    }
+
+    public async Task<BookingBookResult> ReserveBookingAsync(int offeringId, string date, string start, string? note, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync("api/bookings", new { offeringId, date, start, note }, ct);
+            var body = await response.Content.ReadFromJsonAsync<BookingBookResult>(cancellationToken: ct);
+            return body ?? new BookingBookResult { Success = false, Error = "پاسخ نامعتبر از سرویس." };
+        }
+        catch (HttpRequestException)
+        {
+            return new BookingBookResult { Success = false, Error = "سرویس در دسترس نیست." };
+        }
+        catch (JsonException)
+        {
+            return new BookingBookResult { Success = false, Error = "رزرو انجام نشد." };
+        }
+    }
+
     // ── Post / page comments ─────────────────────────────────────────
 
     /// <summary>Approved comments of a post or page (not cached — a newly approved comment should

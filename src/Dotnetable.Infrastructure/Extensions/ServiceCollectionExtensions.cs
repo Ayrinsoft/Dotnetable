@@ -76,6 +76,7 @@ public static class ServiceCollectionExtensions
         // OrderExpiryService is the other half of the checkout transaction: checkout reserves stock
         // before payment, and without this nothing ever gives it back for orders that are abandoned.
         services.AddHostedService<OrderExpiryService>();
+        services.AddHostedService<BookingMaintenanceService>();
         services.AddHostedService<MaintenanceService>();
         // Media backfill: thumbnails, immutable Cache-Control and bucket robots.txt for pre-existing files.
         services.AddHostedService<FileMediaBackfillService>();
@@ -142,6 +143,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVendorCreditService, VendorCreditService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IProductAgentService, ProductAgentService>();
+        services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IPriceListService, PriceListService>();
 
         // E-commerce: inventory / stock / suppliers.
