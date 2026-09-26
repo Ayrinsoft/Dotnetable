@@ -78,6 +78,73 @@ public sealed class PostImportDocument
     };
 }
 
+/// <summary>Canonical file written for agents and read back by <see cref="PostImportParser"/>.</summary>
+public sealed class PostImportFile
+{
+    public string? Language { get; set; }
+    public string? Title { get; set; }
+    public string? Slug { get; set; }
+    public string? Summary { get; set; }
+
+    [JsonPropertyName("meta_title")]
+    public string? MetaTitle { get; set; }
+
+    [JsonPropertyName("meta_description")]
+    public string? MetaDescription { get; set; }
+
+    public string? Keywords { get; set; }
+
+    [JsonPropertyName("content_html")]
+    public string? ContentHtml { get; set; }
+
+    public Dictionary<string, PostImportFile>? Translations { get; set; }
+}
+
+public static class PostImportWriter
+{
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = global::System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    public static string Write(string language, PostImportLocale main, IEnumerable<KeyValuePair<string, PostImportLocale>> translations)
+    {
+        var file = From(language, main);
+        var others = new Dictionary<string, PostImportFile>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (code, locale) in translations)
+        {
+            if (string.IsNullOrWhiteSpace(code) || code.Equals(language, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!HasText(locale)) continue;
+            others[code.Trim()] = From(code.Trim(), locale);
+        }
+        if (others.Count > 0) file.Translations = others;
+        return JsonSerializer.Serialize(file, Options);
+    }
+
+    private static PostImportFile From(string language, PostImportLocale locale) => new()
+    {
+        Language = language,
+        Title = locale.Title,
+        Slug = locale.Slug,
+        Summary = locale.ExcerptText,
+        MetaTitle = locale.MetaTitle,
+        MetaDescription = locale.MetaDescription,
+        Keywords = locale.KeywordsText,
+        ContentHtml = locale.BodyHtml,
+    };
+
+    private static bool HasText(PostImportLocale locale) =>
+        !string.IsNullOrWhiteSpace(locale.Title)
+        || !string.IsNullOrWhiteSpace(locale.Slug)
+        || !string.IsNullOrWhiteSpace(locale.ExcerptText)
+        || !string.IsNullOrWhiteSpace(locale.MetaTitle)
+        || !string.IsNullOrWhiteSpace(locale.MetaDescription)
+        || !string.IsNullOrWhiteSpace(locale.KeywordsText)
+        || !string.IsNullOrWhiteSpace(locale.BodyHtml);
+}
+
 public static class PostImportParser
 {
     public const long MaxBytes = 2 * 1024 * 1024;
