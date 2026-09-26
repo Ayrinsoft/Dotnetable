@@ -34,13 +34,12 @@ else if (_model is not null)
     <MudForm @ref="_form">
         <MudGrid Spacing="4">
             <MudItem xs="12" md="8">
-                @if (_isNew)
-                {
-                    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
-                        <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.import_json", "Import from JSON"]</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                            @L["posts.import_json_hint", "Reads the file in the browser and fills the form. Nothing is stored. Then set categories and the featured image, and publish."]
-                        </MudText>
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.import_json", "Import from JSON"]</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        @L["posts.import_json_hint", "Reads the file in the browser and fills the text fields. Nothing is stored. Categories, the featured image, and the other publish settings stay as they are."]
+                    </MudText>
+                    <MudStack Row="true" Spacing="2" Class="flex-wrap">
                         <MudFileUpload T="IBrowserFile" FilesChanged="ImportJsonAsync" Accept=".json,application/json" Disabled="@_importing">
                             <CustomContent Context="upload">
                                 <MudButton Variant="Variant.Outlined"
@@ -52,19 +51,25 @@ else if (_model is not null)
                                 </MudButton>
                             </CustomContent>
                         </MudFileUpload>
-                        <MudExpansionPanels Elevation="0" Class="mt-3">
-                            <MudExpansionPanel Text="@L["posts.import_sample", "JSON sample for agents"]">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
-                                    @L["posts.import_sample_hint", "language is the main block. summary fills the excerpt, keywords fill meta keywords, content_html fills the body. translations is keyed by language code. Do not include the image or categories."]
-                                </MudText>
-                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyImportSampleAsync" Class="mb-2">
-                                    @L["posts.import_copy_sample", "Copy sample"]
-                                </MudButton>
-                                <pre style="white-space:pre-wrap; max-height:280px; overflow:auto; margin:0; font-size:12px;">@PostImportSample.Json</pre>
-                            </MudExpansionPanel>
-                        </MudExpansionPanels>
-                    </MudPaper>
-                }
+                        @if (!_isNew)
+                        {
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" OnClick="ExportJsonAsync">
+                                @L["posts.export_json", "Download JSON"]
+                            </MudButton>
+                        }
+                    </MudStack>
+                    <MudExpansionPanels Elevation="0" Class="mt-3">
+                        <MudExpansionPanel Text="@L["posts.import_sample", "JSON sample for agents"]">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+                                @L["posts.import_sample_hint", "language is the main block. summary fills the excerpt, keywords fill meta keywords, content_html fills the body. translations is keyed by language code. Do not include the image or categories."]
+                            </MudText>
+                            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyImportSampleAsync" Class="mb-2">
+                                @L["posts.import_copy_sample", "Copy sample"]
+                            </MudButton>
+                            <pre style="white-space:pre-wrap; max-height:280px; overflow:auto; margin:0; font-size:12px;">@PostImportSample.Json</pre>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudPaper>
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                     <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
                     <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Required="true" Class="mb-3" />
@@ -474,7 +479,7 @@ else if (_model is not null)
 
     private async Task ImportJsonAsync(IBrowserFile? file)
     {
-        if (file is null || _model is null || !_isNew) return;
+        if (file is null || _model is null) return;
 
         _importing = true;
         try
@@ -486,7 +491,7 @@ else if (_model is not null)
 
             var doc = PostImportParser.Parse(json);
             ApplyImport(doc);
-            Snackbar.Add(L["posts.import_done", "Fields filled from the file. Set categories and the featured image, then save."], Severity.Success);
+            Snackbar.Add(L["posts.import_done", "Text fields filled from the file. Categories and the image were left as they are."], Severity.Success);
         }
         catch (Exception ex)
         {
@@ -563,6 +568,38 @@ else if (_model is not null)
         if (keywords.Length > 0) target.MetaKeywords = keywords;
         var body = locale.BodyHtml;
         if (body.Length > 0) target.Content = body;
+    }
+
+    private async Task ExportJsonAsync()
+    {
+        if (_model is null) return;
+        var main = new PostImportLocale
+        {
+            Title = _model.Title,
+            Slug = _model.Slug,
+            Summary = _model.Excerpt,
+            MetaTitle = _model.MetaTitle,
+            MetaDescription = _model.MetaDescription,
+            Keywords = _model.MetaKeywords,
+            ContentHtml = _model.Content,
+        };
+        var others = _translations.ToDictionary(
+            kv => kv.Key,
+            kv => new PostImportLocale
+            {
+                Title = kv.Value.Title,
+                Slug = kv.Value.Slug,
+                Summary = kv.Value.Excerpt,
+                MetaTitle = kv.Value.MetaTitle,
+                MetaDescription = kv.Value.MetaDescription,
+                Keywords = kv.Value.MetaKeywords,
+                ContentHtml = kv.Value.Content,
+            },
+            StringComparer.OrdinalIgnoreCase);
+        var json = PostImportWriter.Write(_defaultLanguageCode, main, others);
+        var name = string.IsNullOrWhiteSpace(_model.Slug) ? "post" : _model.Slug;
+        var bytes = global::System.Text.Encoding.UTF8.GetBytes(json);
+        await JS.InvokeVoidAsync("dotnetableFile.download", name + ".json", Convert.ToBase64String(bytes), "application/json");
     }
 
     private async Task CopyImportSampleAsync()
