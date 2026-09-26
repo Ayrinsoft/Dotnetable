@@ -97,10 +97,9 @@ public interface IFileService
     Task<FileRecord> UploadAsync(FileUploadRequest request, CancellationToken ct = default);
 
     /// <summary>
-    /// Replaces a file's content while keeping its ID and storage key/URL — the storage object is
-    /// overwritten in place, so every existing reference (an FK by ID or a URL already baked into
-    /// published HTML) keeps working. Unlike <see cref="UploadAsync"/>, this never runs the
-    /// raster→WebP conversion pass, since that can change the extension/key.
+    /// Replaces a file's content while keeping its ID. Raster images run the same WebP (and
+    /// watermark) pass as <see cref="UploadAsync"/>; that can change the stored extension and public
+    /// URL. Records that reference the file by ID keep working. Other file types overwrite the same key.
     /// </summary>
     Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName, string? mimeType, CancellationToken ct = default);
 

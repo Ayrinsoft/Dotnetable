@@ -243,18 +243,15 @@ public class FileService : IFileService
     }
 
     /// <summary>
-    /// Swaps a file's content in place: the row's <see cref="FileRecord.FileRecordID"/> and its
-    /// storage key (<see cref="FileRecord.StoredFileName"/>, hence <see cref="FileRecord.StoragePath"/>/
-    /// <see cref="FileRecord.CNDUrl"/>) never change, so every existing reference — an FK by ID
-    /// (Post.FeaturedImageFileID, etc.) or a public URL baked into already-published HTML — keeps
-    /// working without anyone having to re-pick or re-save anything. Unlike a fresh upload, this does
-    /// NOT run the raster→WebP conversion pass: that pass can change the file's extension, which
-    /// would change the storage key — exactly what must not happen here. The new bytes are stored
-    /// as-is (the CDN sees their own correct Content-Type either way).
+    /// Swaps a file's content while keeping <see cref="FileRecord.FileRecordID"/>.
+    /// Raster images (everything except SVG and GIF) go through the same WebP pass as
+    /// <see cref="UploadAsync"/>, including the site watermark when it is enabled. When that pass
+    /// changes the extension, the storage key and public URL change with it and the previous object
+    /// is deleted. Records that point at the file by ID keep working. Non-images overwrite the same key.
     /// </summary>
     public Task<FileRecord> ReplaceContentAsync(int id, Stream content, string originalFileName,
         string? mimeType, CancellationToken ct = default) =>
-        OverwriteContentAsync(id, content, originalFileName, mimeType, validateNewExtension: true, ct);
+        OverwriteContentAsync(id, content, originalFileName, mimeType, validateNewExtension: true, processRaster: true, ct);
 
     /// <inheritdoc cref="IFileService.EditImageAsync"/>
     public async Task<FileRecord> EditImageAsync(int id, ImageEditRequest edit, CancellationToken ct = default)
@@ -292,12 +289,12 @@ public class FileService : IFileService
         {
             processed.Position = 0;
             return await OverwriteContentAsync(
-                id, processed, record.OriginalFileName, record.MimeType, validateNewExtension: false, ct);
+                id, processed, record.OriginalFileName, record.MimeType, validateNewExtension: false, processRaster: false, ct);
         }
     }
 
     private async Task<FileRecord> OverwriteContentAsync(int id, Stream content, string originalFileName,
-        string? mimeType, bool validateNewExtension, CancellationToken ct)
+        string? mimeType, bool validateNewExtension, bool processRaster, CancellationToken ct)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -325,27 +322,84 @@ public class FileService : IFileService
 
         var mime = string.IsNullOrWhiteSpace(mimeType) ? "application/octet-stream" : mimeType!;
         var category = ClassifyMime(mime);
+        var storedName = record.StoredFileName;
+        Stream uploadSource = buffer;
+
+        // Same raster → lossy WebP pass as a normal upload, so a 2 MB PNG dropped onto "replace"
+        // becomes a small WebP instead of being stored untouched. SVG and GIF stay as-is.
+        var incomingExt = Path.GetExtension(originalFileName).ToLowerInvariant();
+        if (processRaster && category != FileCategory.Image
+            && incomingExt is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".tif" or ".tiff")
+            category = FileCategory.Image;
+        var isRasterProcessable = processRaster && category == FileCategory.Image && incomingExt is not (".svg" or ".gif");
+        if (isRasterProcessable)
+        {
+            var options = await BuildProcessingOptionsAsync(
+                _context, setting.WebsiteID, crop: null, resizeWidth: null, resizeHeight: null,
+                grayscale: false, applyWatermark: null, ct);
+            var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase)
+                || incomingExt == ".webp";
+            if (options.HasWork || !alreadyWebp)
+            {
+                buffer.Position = 0;
+                var originalLength = buffer.Length;
+                var processed = await ImageProcessor.TryProcessAsync(
+                    buffer, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
+                if (processed is not null)
+                {
+                    if (!options.HasWork && processed.Length >= originalLength)
+                    {
+                        await processed.DisposeAsync();
+                    }
+                    else
+                    {
+                        uploadSource = processed;
+                        sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                        if (!alreadyWebp)
+                        {
+                            mime = "image/webp";
+                            storedName = Path.GetFileNameWithoutExtension(record.StoredFileName) + ".webp";
+                            originalFileName = WithExtension(originalFileName, ".webp");
+                        }
+                    }
+                }
+            }
+        }
 
         var ctx = ToContext(setting);
         var provider = _providers.Get((StorageProviderType)setting.StorageProvider);
 
-        // Same key as before — this overwrites the existing object rather than creating a new one.
-        // Its bytes can change again, so it gets a short cache lifetime rather than the immutable one.
-        buffer.Position = 0;
-        var uploaded = await provider.UploadAsync(ctx, buffer, record.StoredFileName, mime, StorageCacheControl.Replaceable, ct);
+        // A format change needs a new key (the public URL is the stored name). Same-type
+        // replacements overwrite the existing object. Either way the bytes can change again,
+        // so the cache lifetime stays short.
+        uploadSource.Position = 0;
+        var uploaded = await provider.UploadAsync(ctx, uploadSource, storedName, mime, StorageCacheControl.Replaceable, ct);
+        if (!string.Equals(storedName, record.StoredFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            // Providers accept the bare stored name (local and object storage) or rebuild a full
+            // path from it (Dropbox). The previous object must go so the PNG is not left behind.
+            await DeleteFromStorageAsync(provider, ctx, record.StoredFileName, ct);
+            if (!string.IsNullOrWhiteSpace(record.ThumbnailStorage))
+            {
+                var oldThumb = Path.GetFileName(record.ThumbnailStorage);
+                if (!string.IsNullOrWhiteSpace(oldThumb))
+                    await DeleteFromStorageAsync(provider, ctx, oldThumb, ct);
+            }
+        }
 
         string? thumbStorage = null, thumbCdn = null;
         DateTime? thumbCheckedAt = DateTime.UtcNow;
-        if (setting.AutoGenerateThumbnails && category == FileCategory.Image && ImageThumbnailer.Supports(record.StoredFileName))
+        if (setting.AutoGenerateThumbnails && category == FileCategory.Image && ImageThumbnailer.Supports(storedName))
         {
-            buffer.Position = 0;
-            await using var thumb = await ImageThumbnailer.TryCreateAsync(buffer, ct);
+            uploadSource.Position = 0;
+            await using var thumb = await ImageThumbnailer.TryCreateAsync(uploadSource, ct);
             if (thumb is not null)
             {
-                // Reuse the existing thumbnail key when there is one, so it overwrites in place too.
-                var thumbName = !string.IsNullOrWhiteSpace(record.ThumbnailStorage)
+                // A new main-file extension gets a new thumbnail name. Otherwise reuse the old key.
+                var thumbName = string.Equals(storedName, record.StoredFileName, StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(record.ThumbnailStorage)
                     ? Path.GetFileName(record.ThumbnailStorage)
-                    : ImageThumbnailer.NameFor(record.StoredFileName);
+                    : ImageThumbnailer.NameFor(storedName);
                 var thumbResult = await provider.UploadAsync(ctx, thumb, thumbName, "image/webp", StorageCacheControl.Replaceable, ct);
                 thumbStorage = thumbResult.StoragePath;
                 thumbCdn = thumbResult.CdnUrl;
@@ -360,6 +414,7 @@ public class FileService : IFileService
                 await DeleteFromStorageAsync(provider, ctx, thumbKey, ct);
         }
 
+        record.StoredFileName = storedName;
         record.StoragePath = uploaded.StoragePath;
         record.CNDUrl = uploaded.CdnUrl;
         record.CDNFileCode = uploaded.CdnFileCode;
@@ -371,7 +426,10 @@ public class FileService : IFileService
         record.ThumbnailCDN = thumbCdn;
         // Thumbnails off for this storage: leave it pending so the backfill covers it if they are turned on.
         record.ThumbnailCheckedAt = !setting.AutoGenerateThumbnails && category == FileCategory.Image
-            && ImageThumbnailer.Supports(record.StoredFileName) ? null : thumbCheckedAt;
+            && ImageThumbnailer.Supports(storedName) ? null : thumbCheckedAt;
+
+        if (!ReferenceEquals(uploadSource, buffer))
+            await uploadSource.DisposeAsync();
         // Keeps the backfill from stamping the immutable header onto a key that was just replaced.
         record.CacheControlSetAt = DateTime.UtcNow;
         record.UploadDate = DateTime.UtcNow;
