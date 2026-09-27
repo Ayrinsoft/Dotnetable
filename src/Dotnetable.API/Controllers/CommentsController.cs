@@ -1,3 +1,4 @@
+using System.Net;
 using Dotnetable.API.Auth;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
@@ -19,8 +20,12 @@ namespace Dotnetable.API.Controllers;
 [AllowAnonymous]
 public class CommentsController : BaseController
 {
-    // Stops a script from posting a burst of comments from one IP; the captcha is the real bot gate.
+    // Stops a script from posting a burst; the captcha is the real bot gate.
     private static readonly TimeSpan ThrottleWindow = TimeSpan.FromSeconds(15);
+
+    // One accepted comment per visitor per post or page. The storefront shows that comment back
+    // until the window ends; clearing the site cookie does not reset it when X-Client-Ip is sent.
+    private static readonly TimeSpan CommentLockWindow = TimeSpan.FromHours(24);
 
     private readonly IContentCommentService _comments;
     private readonly IWebsiteService _websiteService;
@@ -70,8 +75,9 @@ public class CommentsController : BaseController
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         const string pendingMessage = "Thanks! Your comment will appear after it has been reviewed.";
+        const string lockedMessage = "You can comment here again after 24 hours. The comment you sent is waiting for review.";
 
-        // Honeypot tripped: pretend success so the bot learns nothing.
+        // Honeypot tripped: pretend success so the bot learns nothing. Do not start the 24-hour lock.
         if (!string.IsNullOrEmpty(request.Website))
             return Ok(new { message = pendingMessage });
 
@@ -85,28 +91,69 @@ public class CommentsController : BaseController
             clientId = id;
         }
 
-        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var throttleKey = $"comment-throttle:{website.WebsiteID}:{clientId?.ToString() ?? remoteIp}";
-        if (!string.IsNullOrEmpty(remoteIp) && _cache.TryGetValue(throttleKey, out _))
+        // The storefront's server is the TCP peer, so the 24-hour lock uses only the headers that
+        // identify the person. Falling back to the connection address would lock every visitor of that site.
+        var clientIp = ClientIp(Request);
+        var visitorId = VisitorId(Request);
+        var identity = clientId?.ToString() ?? visitorId ?? clientIp ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+        var dayKeys = LockKeys(website.WebsiteID, target, targetId, visitorId, clientIp, clientId).ToList();
+        if (dayKeys.Any(key => _cache.TryGetValue(key, out _)))
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { message = lockedMessage });
+
+        var throttleKey = $"comment-throttle:{website.WebsiteID}:{target}:{targetId}:{identity}";
+        if (!string.IsNullOrEmpty(identity) && _cache.TryGetValue(throttleKey, out _))
             return StatusCode(StatusCodes.Status429TooManyRequests, new { message = "Please wait a moment before posting another comment." });
 
         // A signed-in customer already proved themselves at sign-in; guests must pass the captcha.
-        if (clientId is null && !await _captcha.VerifyAsync(website.WebsiteID, request.CaptchaToken, request.CaptchaAnswer, remoteIp, ct))
+        if (clientId is null && !await _captcha.VerifyAsync(website.WebsiteID, request.CaptchaToken, request.CaptchaAnswer, clientIp, ct))
             return BadRequest(new { message = "Captcha verification failed. Please try again." });
+
+        var userAgent = Request.Headers["X-Visitor-User-Agent"].ToString();
+        if (string.IsNullOrWhiteSpace(userAgent))
+            userAgent = Request.Headers.UserAgent.ToString();
 
         var result = await _comments.SubmitAsync(new CommentSubmission(
             website.WebsiteID, target, targetId, request.ParentCommentId, clientId,
             request.AuthorName, request.AuthorEmail, request.Body,
-            remoteIp, Request.Headers.UserAgent.ToString()), ct);
+            clientIp, userAgent), ct);
 
         if (!result.Success)
             return result.NotFound
                 ? NotFound(new { message = result.Error })
                 : BadRequest(new { message = result.Error });
 
-        if (!string.IsNullOrEmpty(remoteIp))
+        if (!string.IsNullOrEmpty(identity))
             _cache.Set(throttleKey, true, ThrottleWindow);
+        foreach (var key in dayKeys)
+            _cache.Set(key, true, CommentLockWindow);
 
         return Ok(new { commentId = result.CommentId, status = "pending", message = pendingMessage });
+    }
+
+    private static IEnumerable<string> LockKeys(int websiteId, CommentTarget target, int targetId, string? visitorId, string? clientIp, int? clientId)
+    {
+        var prefix = $"comment-day:{websiteId}:{(byte)target}:{targetId}:";
+        if (clientId is int id)
+            yield return prefix + "c:" + id;
+        if (!string.IsNullOrEmpty(visitorId))
+            yield return prefix + "v:" + visitorId;
+        if (!string.IsNullOrEmpty(clientIp))
+            yield return prefix + "ip:" + clientIp;
+    }
+
+    /// <summary>Cookie id minted by the storefront. Ignored unless it looks like that id.</summary>
+    private static string? VisitorId(HttpRequest request)
+    {
+        var id = request.Headers["X-Visitor-Id"].ToString().Trim();
+        if (id.Length is >= 8 and <= 64 && id.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-'))
+            return id;
+        return null;
+    }
+
+    /// <summary>Visitor address as seen by the storefront. The API's own connection address is not used here.</summary>
+    private static string? ClientIp(HttpRequest request)
+    {
+        var ip = request.Headers["X-Client-Ip"].ToString().Trim();
+        return IPAddress.TryParse(ip, out var parsed) ? parsed.ToString() : null;
     }
 }

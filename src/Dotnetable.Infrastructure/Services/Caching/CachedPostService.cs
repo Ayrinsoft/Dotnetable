@@ -98,6 +98,12 @@ public class CachedPostService : IPostService
     public Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default) =>
         _inner.GetBySlugAsync(websiteId, slug, languageCode, ct);
 
+    public Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default) =>
+        _inner.RecordViewAsync(websiteId, postId, ct);
+
+    public Task<int> SumViewCountAsync(int? websiteId, CancellationToken ct = default) =>
+        _inner.SumViewCountAsync(websiteId, ct);
+
     public Task<List<PostSummaryDto>> GetFeaturedAsync(int websiteId, int take, string? languageCode = null, CancellationToken ct = default) =>
         _cache.GetOrCreateAsync(
             $"post:featured:{websiteId}:{take}:{languageCode}",

@@ -5,6 +5,7 @@
 @inject IAdminTaskService TaskService
 @inject IStaffTaskService StaffTaskService
 @inject IContentCommentService CommentService
+@inject IPostService PostService
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 @inject IPageLocalizer L
@@ -115,7 +116,7 @@
         @StatBox("#348fe2", L["dashboard.total_sales", "Total Sales"], "$0.00", Icons.Material.Filled.AttachMoney, L["dashboard.total_sales_sub", "Total orders: 0 · Avg: $0.00"])
         @StatBox("#49b6d6", L["dashboard.conversion_rate", "Conversion Rate"], "0.00%", Icons.Material.Filled.TrendingUp, L["dashboard.conversion_rate_sub", "Added to cart · Checkout · Converted"])
         @StatBox("#f59c1a", L["dashboard.store_sessions", "Store Sessions"], "0", Icons.Material.Filled.Devices, L["dashboard.store_sessions_sub", "Mobile · Desktop · Tablet"])
-        @StatBox("#727cb6", L["dashboard.total_page_views", "Total Page Views"], "0K", Icons.Material.Filled.Visibility, L["dashboard.total_page_views_sub", "New & returning visitors"])
+        @StatBox("#727cb6", L["dashboard.total_page_views", "Total Page Views"], _pageViews, Icons.Material.Filled.Visibility, L["dashboard.total_page_views_sub", "Recorded post views, bots excluded"])
     </MudGrid>
 
     <MudGrid Spacing="3" Class="mt-1">
@@ -150,7 +151,7 @@ else
     @* ════════════════ WEBSITE DASHBOARD (v2) ════════════════ *@
     <MudGrid Spacing="3">
         @StatBox("#348fe2", L["dashboard.todays_visits", "Today's Visits"], "0", Icons.Material.Filled.PeopleAlt, L["dashboard.vs_last_week", "vs last week"])
-        @StatBox("#49b6d6", L["dashboard.page_views", "Page Views"], "0", Icons.Material.Filled.Visibility, L["dashboard.vs_last_week", "vs last week"])
+        @StatBox("#49b6d6", L["dashboard.page_views", "Page Views"], _pageViews, Icons.Material.Filled.Visibility, L["posts.views", "Recorded post views"])
         @StatBox("#f59c1a", L["dashboard.new_members", "New Members"], "0", Icons.Material.Filled.PersonAdd, L["dashboard.vs_last_week", "vs last week"])
         @StatBox("#ff5b57", L["dashboard.new_comments", "New Comments"], "0", Icons.Material.Filled.Comment, L["dashboard.vs_last_week", "vs last week"])
     </MudGrid>
@@ -211,6 +212,7 @@ else
     private int _memberId;
     private int _unreadCount;
     private int _openTaskCount;
+    private string _pageViews = "0";
     private List<AdminNotification> _notifications = new();
     private IReadOnlyList<AdminOpenTask> _openTasks = Array.Empty<AdminOpenTask>();
 
@@ -230,6 +232,9 @@ else
             var site = await WebsiteService.GetByIdAsync(_websiteId);
             _isShop = site?.WebsiteType.GetCategory() == WebsiteCategory.Commerce;
         }
+
+        var views = await PostService.SumViewCountAsync(_websiteId > 0 ? _websiteId : null);
+        _pageViews = views.ToString("N0");
 
         var includeOrders = _isMaster || AdminPolicies.Allows(user, RoleKeys.OrdersView);
         var includePayments = _isMaster || AdminPolicies.Allows(user, RoleKeys.PaymentsView);

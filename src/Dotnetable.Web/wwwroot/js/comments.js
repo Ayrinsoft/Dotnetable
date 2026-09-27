@@ -24,6 +24,40 @@
     var challenge = null;
     var turnstileWidgetId = null;
     var turnstileScriptPromise = null;
+    var lockKey = 'dn-comment:' + target + ':' + targetId;
+    var lockWindowMs = 24 * 60 * 60 * 1000;
+
+    function readLock() {
+        try {
+            var raw = localStorage.getItem(lockKey);
+            if (!raw) return null;
+            var saved = JSON.parse(raw);
+            if (!saved || !saved.at || (Date.now() - saved.at) > lockWindowMs) {
+                localStorage.removeItem(lockKey);
+                return null;
+            }
+            return saved;
+        } catch (e) { return null; }
+    }
+
+    // The form stays hidden until the 24-hour window ends, with the text they already sent.
+    function showPending(saved) {
+        var wrap = document.getElementById('comment-form-wrap');
+        if (!wrap) return;
+        var notice = saved.message || 'Your comment was sent and will appear in the list after it is approved.';
+        wrap.innerHTML =
+            '<div class="alert alert-success">' +
+            '<p class="mb-2">' + escapeHtml(notice) + '</p>' +
+            (saved.body
+                ? '<div class="border rounded p-3 bg-white"><strong>' + escapeHtml(saved.name || '') + '</strong>' +
+                  '<p class="comment-body mb-0 mt-2">' + escapeHtml(saved.body) + '</p></div>'
+                : '') +
+            '<p class="small mb-0 mt-2">You can send another comment on this page after 24 hours.</p>' +
+            '</div>';
+        list.querySelectorAll('.comment-reply').forEach(function (button) { button.remove(); });
+    }
+
+    var pending = readLock();
 
     function escapeHtml(s) {
         var div = document.createElement('div');
@@ -64,13 +98,16 @@
             '      <small class="text-muted">' + escapeHtml(formatDate(c.createdAt)) + '</small>' +
             '    </div>' +
             '    <p class="comment-body mb-1">' + escapeHtml(c.body) + '</p>' +
+            (pending ? '' :
             '    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none comment-reply"' +
             '            data-comment-id="' + c.commentID + '" data-author="' + escapeAttr(c.authorName) + '">' +
-            '      <i class="bi bi-reply me-1"></i>Reply</button>' +
+            '      <i class="bi bi-reply me-1"></i>Reply</button>') +
             (replies ? '<div class="comment-replies' + (depth < 3 ? ' comment-replies-indent' : '') + '">' + replies + '</div>' : '') +
             '  </div>' +
             '</div>';
     }
+
+    if (pending) showPending(pending);
 
     if (moreBtn) {
         moreBtn.addEventListener('click', function () {
@@ -89,6 +126,8 @@
                 .catch(function () { moreBtn.disabled = false; });
         });
     }
+
+    if (pending) return;
 
     // ── Reply targeting ─────────────────────────────────────────────
 
@@ -217,10 +256,15 @@
                     return;
                 }
 
-                showAlert(result.body.message || 'Thanks! Your comment will appear after it has been reviewed.', 'success');
-                form.reset();
-                clearReply();
-                resetCaptcha();
+                var sent = {
+                    at: Date.now(),
+                    name: name,
+                    body: body,
+                    message: result.body.message || 'Your comment was sent and will appear in the list after it is approved.'
+                };
+                try { localStorage.setItem(lockKey, JSON.stringify(sent)); } catch (e) { }
+                pending = sent;
+                showPending(sent);
             })
             .catch(function () {
                 submitBtn.disabled = false;

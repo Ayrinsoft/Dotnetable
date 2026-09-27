@@ -38,8 +38,16 @@ public interface IPostService
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
         int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default);
 
-    /// <summary>A single published post by slug (base slug or a translated slug). Increments the view count.</summary>
+    /// <summary>A single published post by slug (base slug or a translated slug). Does not count a view —
+    /// callers that rendered the page for a person send <see cref="RecordViewAsync"/> separately, so
+    /// crawlers that only fetch the post are left out of the counter.</summary>
     Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default);
+
+    /// <summary>Adds one to the published post's view count. Returns false when the post is missing or not public.</summary>
+    Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default);
+
+    /// <summary>Sum of <c>ViewCount</c> across posts. Null website id includes every site (master admin).</summary>
+    Task<int> SumViewCountAsync(int? websiteId, CancellationToken ct = default);
 
     /// <summary>Featured published posts for a website (newest first).</summary>
     Task<List<PostSummaryDto>> GetFeaturedAsync(int websiteId, int take, string? languageCode = null, CancellationToken ct = default);

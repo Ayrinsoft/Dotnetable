@@ -45,6 +45,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<BearerTokenHandler>();
 builder.Services.AddTransient<CartSessionHandler>();
+builder.Services.AddTransient<VisitorIdentityHandler>();
 
 builder.Services.AddDotnetableRateLimiting(
     trustForwardedFor: builder.Configuration.GetValue("Hosting:BehindReverseProxy", false));
@@ -69,7 +70,8 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     client.DefaultRequestHeaders.TryAddWithoutValidation("X-Api-Version", "1.0");
 })
 .AddHttpMessageHandler<BearerTokenHandler>()
-.AddHttpMessageHandler<CartSessionHandler>();
+.AddHttpMessageHandler<CartSessionHandler>()
+.AddHttpMessageHandler<VisitorIdentityHandler>();
 
 builder.Services.AddScoped<ContentShortcodeProcessor>();
 

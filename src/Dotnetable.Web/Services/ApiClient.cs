@@ -175,13 +175,26 @@ public class ApiClient
         }) ?? new PagedResult<PostSummaryDto>();
     }
 
-    /// <summary>A single published post by slug, or null when not found / unreachable. Not cached —
-    /// the API increments the post's view count as part of this read.</summary>
+    /// <summary>A single published post by slug, or null when not found / unreachable. Not cached.
+    /// A view is recorded separately, and only for a person, via <see cref="RecordPostViewAsync"/>.</summary>
     public async Task<PostDetailDto?> GetPostAsync(string slug, string? lang = null, CancellationToken ct = default)
     {
         var path = $"api/posts/{Uri.EscapeDataString(slug)}";
         if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
         return await GetOrNullAsync<PostDetailDto>(path, ct);
+    }
+
+    /// <summary>Asks the API to count one view. The visitor headers are added by <see cref="VisitorIdentityHandler"/>;
+    /// callers skip this entirely for bots. Failures are ignored so a counter outage does not break the page.</summary>
+    public async Task RecordPostViewAsync(int postId, CancellationToken ct = default)
+    {
+        if (postId <= 0) return;
+        try
+        {
+            using var response = await _http.PostAsync($"api/posts/{postId}/view", new StringContent("{}", System.Text.Encoding.UTF8, "application/json"), ct);
+        }
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) { }
     }
 
     /// <summary>Featured published posts.</summary>

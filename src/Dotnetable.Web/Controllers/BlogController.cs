@@ -52,7 +52,12 @@ public class BlogController : Controller
     public async Task<IActionResult> Post(string slug, CancellationToken ct = default)
     {
         var post = await _api.GetPostAsync(slug, CurrentLang(), ct);
-        return post is null ? NotFound() : View(post);
+        if (post is null) return NotFound();
+
+        // Crawlers still receive the article. They are not a view.
+        if (!BotDetector.IsBot(HttpContext))
+            await _api.RecordPostViewAsync(post.PostID, ct);
+        return View(post);
     }
 
     /// <summary>Current UI language from the <c>lang</c> cookie, or null for the site default.</summary>

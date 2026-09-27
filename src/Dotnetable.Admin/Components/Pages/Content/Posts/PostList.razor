@@ -50,7 +50,7 @@
     <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
         @if (_items.Count == 0)
         {
-            <tr><td colspan="6" style="text-align:center; padding:32px;">
+            <tr><td colspan="7" style="text-align:center; padding:32px;">
                 <MudText Color="Color.Secondary">@L["posts.empty", "No posts yet."]</MudText>
             </td></tr>
         }
@@ -75,6 +75,7 @@
                     <td>@(p.PostType?.Name ?? "-")</td>
                     <td>@StatusLabel(p.Status)</td>
                     <td>@(p.PublishedAt?.ToString("yyyy-MM-dd") ?? "-")</td>
+                    <td>@p.ViewCount.ToString("N0")</td>
                     <td>
                         <MudSwitch T="bool" Value="p.IsActive" Color="Color.Success"
                                    Disabled="@(!_canEdit || _busy.Contains(p.PostID))"
@@ -121,6 +122,7 @@
                 new() { ColumnTitle = L["post_type", "Post Type"], ColumnName = "" },
                 new() { ColumnTitle = L["status", "Status"], ColumnName = "" },
                 new() { ColumnTitle = L["posts.published", "Published"], ColumnName = nameof(Post.PublishedAt), HasSort = true },
+                new() { ColumnTitle = L["posts.views", "Views"], ColumnName = nameof(Post.ViewCount), HasSort = true },
                 new() { ColumnTitle = L["active", "Active"], ColumnName = "" },
             }
         };

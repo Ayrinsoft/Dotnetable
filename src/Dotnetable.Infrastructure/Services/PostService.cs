@@ -323,15 +323,29 @@ public class PostService : IPostService
             .FirstOrDefaultAsync(p => p.Slug == slug || p.PostTranslations.Any(t => t.Slug == slug), ct);
         if (post is null) return null;
 
-        // Best-effort view counter.
-        try
-        {
-            await _context.Posts.Where(p => p.PostID == post.PostID)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => p.ViewCount + 1), ct);
-        }
-        catch (Exception) { }
-
         return ProjectDetail(post, languageCode);
+    }
+
+    public async Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var updated = await _context.Posts
+            .Where(p => p.PostID == postId && p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus &&
+                        (p.PublishedAt == null || p.PublishedAt <= now))
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => p.ViewCount + 1), ct);
+        return updated > 0;
+    }
+
+    public async Task<int> SumViewCountAsync(int? websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var query = _context.Posts.AsNoTracking().AsQueryable();
+        if (websiteId is int id && id > 0)
+            query = query.Where(p => p.WebsiteID == id);
+        return await query.SumAsync(p => (int?)p.ViewCount, ct) ?? 0;
     }
 
     public async Task<List<PostSummaryDto>> GetFeaturedAsync(int websiteId, int take, string? languageCode = null, CancellationToken ct = default)
