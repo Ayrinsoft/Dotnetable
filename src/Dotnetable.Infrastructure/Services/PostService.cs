@@ -290,8 +290,15 @@ public class PostService : IPostService
         if (!string.IsNullOrWhiteSpace(postTypeSlug))
             q = q.Where(p => p.PostType.Slug == postTypeSlug);
         if (!string.IsNullOrWhiteSpace(categorySlug))
-            q = q.Where(p => p.PostCategories.Any(pc =>
-                pc.Category.Slug == categorySlug || pc.Category.CategoryTranslations.Any(t => t.Slug == categorySlug)));
+        {
+            // A parent such as «مقالات» often has no posts of its own; the posts live on its children.
+            // When nothing is published directly in the matched categories, the listing is the latest
+            // posts from the whole subtree.
+            var scope = await CategoryFilterIdsAsync(_context, websiteId, categorySlug, now, ct);
+            q = scope.Count == 0
+                ? q.Where(p => false)
+                : q.Where(p => p.PostCategories.Any(pc => scope.Contains(pc.CategoryID)));
+        }
         if (!string.IsNullOrWhiteSpace(tagSlug))
             q = q.Where(p => p.Tags.Any(t => t.Slug == tagSlug || t.TagTranslations.Any(tt => tt.Slug == tagSlug)));
         if (!string.IsNullOrWhiteSpace(authorSlug))
@@ -313,6 +320,57 @@ public class PostService : IPostService
             TotalCount = total,
         };
     }
+
+    /// <summary>
+    /// Category ids a public listing should use. The slug's own categories when they have published
+    /// posts; otherwise those categories plus every descendant.
+    /// </summary>
+    private static async Task<List<int>> CategoryFilterIdsAsync(
+        AppDbContext context, int websiteId, string categorySlug, DateTime now, CancellationToken ct)
+    {
+        var rows = await context.Categories.AsNoTracking()
+            .Where(c => c.WebsiteID == websiteId && c.IsActive)
+            .Select(c => new
+            {
+                c.CategoryID,
+                c.ParentCategoryID,
+                c.Slug,
+                Translated = c.CategoryTranslations.Select(t => t.Slug).ToList(),
+            })
+            .ToListAsync(ct);
+
+        var roots = rows
+            .Where(c => SlugEquals(c.Slug, categorySlug) || c.Translated.Any(t => SlugEquals(t, categorySlug)))
+            .Select(c => c.CategoryID)
+            .Distinct()
+            .ToList();
+        if (roots.Count == 0)
+            return roots;
+
+        var hasOwnPosts = await context.Posts.AnyAsync(p =>
+            p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus &&
+            (p.PublishedAt == null || p.PublishedAt <= now) &&
+            p.PostCategories.Any(pc => roots.Contains(pc.CategoryID)), ct);
+        if (hasOwnPosts)
+            return roots;
+
+        var byParent = rows.ToLookup(c => c.ParentCategoryID);
+        var scope = new HashSet<int>(roots);
+        var pending = new Stack<int>(roots);
+        while (pending.Count > 0)
+        {
+            foreach (var child in byParent[pending.Pop()])
+            {
+                if (scope.Add(child.CategoryID))
+                    pending.Push(child.CategoryID);
+            }
+        }
+        return scope.ToList();
+    }
+
+    private static bool SlugEquals(string? left, string? right) =>
+        !string.IsNullOrWhiteSpace(left) &&
+        string.Equals(left.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     public async Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
