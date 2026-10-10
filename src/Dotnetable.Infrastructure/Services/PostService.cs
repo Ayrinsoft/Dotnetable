@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -73,6 +74,8 @@ public class PostService : IPostService
             .Include(p => p.PostCategories)
             .Include(p => p.Tags)
             .Include(p => p.FeaturedImageFile)
+            .Include(p => p.PostLocation).ThenInclude(l => l!.PostLocationTranslations)
+            .Include(p => p.PostLocation).ThenInclude(l => l!.City)
             .FirstOrDefaultAsync(p => p.PostID == postId, ct);
     }
 
@@ -124,6 +127,11 @@ public class PostService : IPostService
         if (post is null) return;
 
         post.Tags.Clear();
+        var locationTranslations = await _context.PostLocationTranslations.Where(t => t.PostID == postId).ToListAsync(ct);
+        _context.PostLocationTranslations.RemoveRange(locationTranslations);
+        var location = await _context.PostLocations.FirstOrDefaultAsync(l => l.PostID == postId, ct);
+        if (location is not null)
+            _context.PostLocations.Remove(location);
         foreach (var mi in post.MenuItems)
             mi.PostID = null;
         // Comment FKs are NO ACTION; the whole reply tree goes in the same SaveChanges.
@@ -207,6 +215,84 @@ public class PostService : IPostService
             }
         }
 
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task SetLocationAsync(int postId, bool hasLocation, PostLocationInput? location, IReadOnlyList<PostLocationTranslation> translations, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (post is null) return;
+
+        var existing = await _context.PostLocations
+            .Include(l => l.PostLocationTranslations)
+            .FirstOrDefaultAsync(l => l.PostID == postId, ct);
+
+        if (!hasLocation || location is null)
+        {
+            if (existing is not null)
+            {
+                _context.PostLocationTranslations.RemoveRange(existing.PostLocationTranslations);
+                _context.PostLocations.Remove(existing);
+            }
+            post.HasLocation = false;
+            post.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(ct);
+            return;
+        }
+
+        if (location.Latitude is < -90 or > 90 || location.Longitude is < -180 or > 180)
+            throw new InvalidOperationException("Latitude must be between -90 and 90, and longitude between -180 and 180.");
+
+        if (!Enum.IsDefined(location.Kind))
+            throw new InvalidOperationException("The place type is not recognized.");
+
+        if (location.CityID is int cityId && !await _context.Cities.AnyAsync(c => c.CityID == cityId, ct))
+            throw new InvalidOperationException("The selected city was not found.");
+
+        if (existing is null)
+        {
+            existing = new PostLocation { PostID = postId };
+            _context.PostLocations.Add(existing);
+        }
+
+        existing.Latitude = location.Latitude;
+        existing.Longitude = location.Longitude;
+        existing.Kind = (byte)location.Kind;
+        existing.Address = string.IsNullOrWhiteSpace(location.Address) ? null : location.Address.Trim();
+        existing.CityID = location.CityID;
+
+        var keep = translations
+            .Where(t => !string.IsNullOrWhiteSpace(t.LanguageCode) && !string.IsNullOrWhiteSpace(t.Address))
+            .Select(t => t.LanguageCode.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _context.PostLocationTranslations.RemoveRange(
+            existing.PostLocationTranslations.Where(t => !keep.Contains(t.LanguageCode)));
+
+        foreach (var t in translations)
+        {
+            if (string.IsNullOrWhiteSpace(t.LanguageCode) || string.IsNullOrWhiteSpace(t.Address)) continue;
+            var code = t.LanguageCode.Trim();
+            var current = existing.PostLocationTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, code, StringComparison.OrdinalIgnoreCase));
+            if (current is null)
+            {
+                _context.PostLocationTranslations.Add(new PostLocationTranslation
+                {
+                    PostID = postId,
+                    LanguageCode = code,
+                    Address = t.Address.Trim(),
+                });
+            }
+            else
+            {
+                current.Address = t.Address.Trim();
+            }
+        }
+
+        post.HasLocation = true;
+        post.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
     }
 
@@ -430,6 +516,8 @@ public class PostService : IPostService
             .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.AuthorProfileTranslations)
             .Include(p => p.FeaturedImageFile)
             .Include(p => p.PostTranslations)
+            .Include(p => p.PostLocation).ThenInclude(l => l!.PostLocationTranslations)
+            .Include(p => p.PostLocation).ThenInclude(l => l!.City).ThenInclude(c => c!.CityTranslations)
             .Include(p => p.PostCategories).ThenInclude(pc => pc.Category).ThenInclude(c => c.CategoryTranslations)
             .Include(p => p.Tags).ThenInclude(t => t.TagTranslations);
 
@@ -444,6 +532,7 @@ public class PostService : IPostService
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
+            HasLocation = p.HasLocation && p.PostLocation is not null, Location = ProjectLocation(p, lang),
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
         };
     }
@@ -458,6 +547,7 @@ public class PostService : IPostService
             PostID = p.PostID, Slug = slug, Title = title, Excerpt = excerpt,
             FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
+            HasLocation = p.HasLocation && p.PostLocation is not null, Location = ProjectLocation(p, lang),
             PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content,
             // The post type can switch comments off for every post of that type.
@@ -467,6 +557,46 @@ public class PostService : IPostService
     }
 
     private static string? FeaturedUrl(Post p) => p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl;
+
+    private static PostLocationDto? ProjectLocation(Post p, string? lang)
+    {
+        if (!p.HasLocation || p.PostLocation is not { } loc) return null;
+
+        var address = loc.Address;
+        if (!string.IsNullOrWhiteSpace(lang))
+        {
+            var translated = loc.PostLocationTranslations.FirstOrDefault(x =>
+                string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
+            if (translated is not null && !string.IsNullOrWhiteSpace(translated.Address))
+                address = translated.Address;
+        }
+
+        string? cityName = null;
+        if (loc.City is not null)
+        {
+            cityName = loc.City.Title;
+            if (!string.IsNullOrWhiteSpace(lang))
+            {
+                var cityTranslation = loc.City.CityTranslations.FirstOrDefault(x =>
+                    string.Equals(x.LanguageCode, lang, StringComparison.OrdinalIgnoreCase));
+                if (cityTranslation is not null && !string.IsNullOrWhiteSpace(cityTranslation.Title))
+                    cityName = cityTranslation.Title;
+            }
+        }
+
+        var kind = (PostLocationKind)loc.Kind;
+        if (!Enum.IsDefined(kind)) kind = PostLocationKind.Unspecified;
+
+        return new PostLocationDto
+        {
+            Latitude = loc.Latitude,
+            Longitude = loc.Longitude,
+            Kind = kind,
+            Address = address,
+            CityID = loc.CityID,
+            CityName = cityName,
+        };
+    }
 
     private static List<CategoryDto> Categories(Post p, string? lang) =>
         p.PostCategories.Where(pc => pc.Category is not null)

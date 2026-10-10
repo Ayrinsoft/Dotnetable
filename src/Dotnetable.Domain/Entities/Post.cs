@@ -48,6 +48,9 @@ public partial class Post
 
     public bool CommentsEnabled { get; set; }
 
+    /// <summary>When true, <see cref="PostLocation"/> holds this post's map point. The row is removed when this is turned off.</summary>
+    public bool HasLocation { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -63,6 +66,8 @@ public partial class Post
     public virtual ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
 
     public virtual ICollection<PostCategory> PostCategories { get; set; } = new List<PostCategory>();
+
+    public virtual PostLocation? PostLocation { get; set; }
 
     public virtual ICollection<PostTranslation> PostTranslations { get; set; } = new List<PostTranslation>();
 

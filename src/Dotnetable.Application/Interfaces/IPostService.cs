@@ -24,6 +24,13 @@ public interface IPostService
     Task<List<PostTranslation>> GetTranslationsAsync(int postId, CancellationToken ct = default);
     Task SetTranslationsAsync(int postId, IReadOnlyList<PostTranslation> translations, CancellationToken ct = default);
 
+    /// <summary>
+    /// Turns the post's map point on or off. <paramref name="location"/> is ignored when
+    /// <paramref name="hasLocation"/> is false; the row and its address translations are removed.
+    /// A blank translation address removes that language.
+    /// </summary>
+    Task SetLocationAsync(int postId, bool hasLocation, PostLocationInput? location, IReadOnlyList<PostLocationTranslation> translations, CancellationToken ct = default);
+
     // ── Category / tag assignment ───────────────────────────────────
     Task<List<int>> GetCategoryIdsAsync(int postId, CancellationToken ct = default);
     Task SetCategoriesAsync(int postId, IReadOnlyList<int> categoryIds, int? primaryCategoryId, CancellationToken ct = default);

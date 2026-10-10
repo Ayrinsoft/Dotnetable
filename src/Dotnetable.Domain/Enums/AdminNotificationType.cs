@@ -20,4 +20,6 @@ public enum AdminNotificationType : byte
     StaffTask = 12,
     /// <summary>A message an admin sent by hand from Messages → Send message.</summary>
     DirectMessage = 13,
+    /// <summary>A visitor reported a bug or a content problem on the public site.</summary>
+    SiteReport = 14,
 }

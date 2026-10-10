@@ -17,6 +17,8 @@ public static class EmailTemplateKeys
     public const string Newsletter = "Newsletter";
     public const string ContactFormNotification = "ContactFormNotification";
     public const string AdminSiteNotification = "AdminSiteNotification";
+    /// <summary>Sent to the website manager (<c>Website.Email</c>) when a visitor files a site report.</summary>
+    public const string SiteReportNotification = "SiteReportNotification";
 }
 
 /// <summary>One built-in template shipped as the master website's default row.</summary>
@@ -181,6 +183,21 @@ public static class EmailTemplateDefaults
                 "<p style=\"margin:0 0 12px;\">Hello <strong>{{AdminName}}</strong>,</p>" +
                 "<p style=\"margin:0 0 12px;\">{{MessageBody}}</p>" +
                 Button("{{ActionUrl}}", "Open in admin")),
+            EmailAccountType.Info),
+
+        new(EmailTemplateKeys.SiteReportNotification, "Site report — manager",
+            "New site report on {{SiteName}}: {{Subject}}",
+            Layout("New site report",
+                "<p style=\"margin:0 0 12px;\">Hello <strong>{{ManagerName}}</strong>,</p>" +
+                "<p style=\"margin:0 0 12px;\">A visitor reported a problem on {{SiteName}}.</p>" +
+                $"<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:{PanelBg};border-radius:6px;margin:0 0 18px;\"><tr><td style=\"padding:16px 20px;\">" +
+                "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Type</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">{{{{Kind}}}}</td></tr>" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">From</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">{{{{ReporterName}}}} ({{{{Email}}}})</td></tr>" +
+                $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Page</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">{{{{PageUrl}}}}</td></tr>" +
+                "</table></td></tr></table>" +
+                "<p style=\"margin:0 0 8px;\"><strong>{{Subject}}</strong></p>" +
+                Quote("{{MessageBody}}")),
             EmailAccountType.Info),
     ];
 

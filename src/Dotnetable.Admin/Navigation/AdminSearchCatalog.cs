@@ -131,6 +131,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("messages.send", "Send Message", "/messages/send", Icons.Material.Filled.Send, "messages", "Messages", RoleKeys.MessagesSend, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("messages.log", "Send Log", "/messages/log", Icons.Material.Filled.History, "messages", "Messages", RoleKeys.MessagesLog, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("contact_messages", "Contact Messages", "/messages/contacts", Icons.Material.Filled.ContactMail, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),
+        new AdminSearchPage("site_reports", "Site Reports", "/messages/reports", Icons.Material.Filled.Report, "messages", "Messages", RoleKeys.MessagesView, NavArea: AdminNavArea.Messages),
         new AdminSearchPage("email_accounts", "Email Accounts", "/messages/email-accounts", Icons.Material.Filled.AlternateEmail, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("email_templates", "Email Templates", "/messages/email-templates", Icons.Material.Filled.Description, "messages", "Messages", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),
         new AdminSearchPage("sms_gateways", "SMS Gateways", "/messages/sms-gateways", Icons.Material.Filled.Sms, "messages", "Messages", RoleKeys.MessagesGateways, NavArea: AdminNavArea.Messages, VendorMemberAllowed: false),

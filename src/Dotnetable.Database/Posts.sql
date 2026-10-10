@@ -18,6 +18,7 @@ CREATE TABLE [dbo].[Posts] (
     [ViewCount]           INT NOT NULL,
     [LikeCount]           INT CONSTRAINT [DF_Posts_LikeCount] DEFAULT ((0)) NOT NULL,
     [CommentsEnabled]     BIT NOT NULL,
+    [HasLocation]         BIT CONSTRAINT [DF_Posts_HasLocation] DEFAULT ((0)) NOT NULL,
     [IsActive]            BIT NOT NULL,
     [CreatedAt]           DATETIME NOT NULL,
     [UpdatedAt]           DATETIME NOT NULL,

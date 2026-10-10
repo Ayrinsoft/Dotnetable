@@ -127,6 +127,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
         services.AddScoped<IContactMessageService, ContactMessageService>();
+        services.AddScoped<ISiteReportService, SiteReportService>();
 
         // E-commerce: currency master list + per-website exchange rates + USD conversion helper.
         services.AddScoped<ICurrencyService, CurrencyService>();

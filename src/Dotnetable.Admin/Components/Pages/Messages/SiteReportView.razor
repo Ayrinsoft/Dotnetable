@@ -1,0 +1,167 @@
+@page "/messages/reports/{Id:int}"
+@attribute [Authorize(Policy = RoleKeys.MessagesView)]
+@inject ISiteReportService ReportService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["site_report", "Site Report"] />
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="px-0 pb-2" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_item is not null)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@_item.Subject</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @($"{KindLabel((SiteReportKind)_item.Kind)} — {_item.ReporterName} — {_item.LogTime:yyyy-MM-dd HH:mm}")
+            </MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                   StartIcon="@Icons.Material.Filled.ArrowBack" Href="/messages/reports">
+            @L["back", "Back"]
+        </MudButton>
+    </MudStack>
+
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["site_reports.reporter", "Reporter"]</MudText>
+                <MudStack Spacing="2">
+                    @if (_isMaster)
+                    {
+                        <div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["website", "Website"]</MudText>
+                            <MudText>@(_item.Website?.TradeName ?? _item.WebsiteID.ToString())</MudText>
+                        </div>
+                    }
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["name", "Name"]</MudText>
+                        <MudText>@_item.ReporterName</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["email", "Email"]</MudText>
+                        <MudLink Href="@($"mailto:{_item.EmailAddress}")">@_item.EmailAddress</MudLink>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["site_reports.page", "Page"]</MudText>
+                        @if (string.IsNullOrWhiteSpace(_item.PageUrl))
+                        {
+                            <MudText>—</MudText>
+                        }
+                        else if (_item.PageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <MudLink Href="@_item.PageUrl" Target="_blank">@_item.PageUrl</MudLink>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">@_item.PageUrl</MudText>
+                        }
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@L["ip_address", "IP Address"]</MudText>
+                        <MudText Typo="Typo.body2">@_item.SenderIPAddress</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6 mb-4">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["message", "Message"]</MudText>
+                <MudText Style="white-space: pre-wrap;">@_item.MessageBody</MudText>
+            </MudPaper>
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">@L["site_reports.review", "Review"]</MudText>
+                <MudSelect T="byte" @bind-Value="_status" Label="@L["status", "Status"]" Variant="Variant.Outlined" Class="mb-3">
+                    <MudSelectItem T="byte" Value="@((byte)SiteReportStatus.New)">@StatusLabel(SiteReportStatus.New)</MudSelectItem>
+                    <MudSelectItem T="byte" Value="@((byte)SiteReportStatus.InReview)">@StatusLabel(SiteReportStatus.InReview)</MudSelectItem>
+                    <MudSelectItem T="byte" Value="@((byte)SiteReportStatus.Resolved)">@StatusLabel(SiteReportStatus.Resolved)</MudSelectItem>
+                    <MudSelectItem T="byte" Value="@((byte)SiteReportStatus.Dismissed)">@StatusLabel(SiteReportStatus.Dismissed)</MudSelectItem>
+                </MudSelect>
+                <MudTextField @bind-Value="_adminNote" Label="@L["site_reports.note", "Admin note"]" Variant="Variant.Outlined"
+                              Lines="3" AutoGrow="true" Class="mb-3" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">@L["save", "Save"]</MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private SiteReport? _item;
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private int _websiteId;
+    private byte _status;
+    private string? _adminNote;
+
+    private List<BreadcrumbItem> _breadcrumbs => new()
+    {
+        new(L["dashboard", "Dashboard"], "/"),
+        new(L["site_reports", "Site Reports"], "/messages/reports"),
+        new($"#{Id}", null, true),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        _item = await ReportService.GetByIdAsync(Id, _isMaster ? null : _websiteId);
+        if (_item is null)
+        {
+            Nav.NavigateTo("/messages/reports");
+            return;
+        }
+        _status = _item.Status;
+        _adminNote = _item.AdminNote;
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_item is null) return;
+        _saving = true;
+        try
+        {
+            var ok = await ReportService.UpdateReviewAsync(Id, _isMaster ? null : _websiteId, (SiteReportStatus)_status, _adminNote);
+            if (!ok)
+            {
+                Snackbar.Add(L["site_reports.missing", "Report was not found."], Severity.Warning);
+                return;
+            }
+            _item.Status = _status;
+            _item.AdminNote = _adminNote;
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        finally { _saving = false; }
+    }
+
+    private string KindLabel(SiteReportKind kind) => kind switch
+    {
+        SiteReportKind.Bug => L["site_reports.kind.bug", "Bug"],
+        SiteReportKind.BrokenPage => L["site_reports.kind.broken", "Broken page"],
+        SiteReportKind.WrongContent => L["site_reports.kind.wrong", "Wrong content"],
+        SiteReportKind.InappropriateContent => L["site_reports.kind.inappropriate", "Inappropriate content"],
+        _ => L["site_reports.kind.other", "Other"],
+    };
+
+    private string StatusLabel(SiteReportStatus status) => status switch
+    {
+        SiteReportStatus.InReview => L["site_reports.status.review", "In review"],
+        SiteReportStatus.Resolved => L["site_reports.status.resolved", "Resolved"],
+        SiteReportStatus.Dismissed => L["site_reports.status.dismissed", "Dismissed"],
+        _ => L["site_reports.status.new", "New"],
+    };
+}

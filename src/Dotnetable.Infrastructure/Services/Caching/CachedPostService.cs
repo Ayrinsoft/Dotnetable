@@ -68,6 +68,12 @@ public class CachedPostService : IPostService
         await InvalidateAsync(ct);
     }
 
+    public async Task SetLocationAsync(int postId, bool hasLocation, PostLocationInput? location, IReadOnlyList<PostLocationTranslation> translations, CancellationToken ct = default)
+    {
+        await _inner.SetLocationAsync(postId, hasLocation, location, translations, ct);
+        await InvalidateAsync(ct);
+    }
+
     public Task<List<int>> GetCategoryIdsAsync(int postId, CancellationToken ct = default) =>
         _inner.GetCategoryIdsAsync(postId, ct);
 

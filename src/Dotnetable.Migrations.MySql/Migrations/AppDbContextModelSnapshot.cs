@@ -4832,6 +4832,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int?>("FeaturedImageFileID")
                         .HasColumnType("int");
 
+                    b.Property<bool>("HasLocation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
@@ -4915,6 +4920,64 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "CategoryID" }, "IX_PostCategories_CategoryID");
 
                     b.ToTable("PostCategories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
+                {
+                    b.Property<int>("PostID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int?>("CityID")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("Kind")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double");
+
+                    b.HasKey("PostID");
+
+                    b.HasIndex(new[] { "CityID" }, "IX_PostLocations_CityID");
+
+                    b.ToTable("PostLocations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocationTranslation", b =>
+                {
+                    b.Property<int>("PostLocationTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<int>("PostID")
+                        .HasColumnType("int");
+
+                    b.HasKey("PostLocationTranslationID");
+
+                    b.HasIndex(new[] { "PostID", "LanguageCode" }, "IX_PostLocationTranslations_PostID_LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("PostLocationTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostTranslation", b =>
@@ -6213,6 +6276,75 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "StateID" }, "IX_ShippingRates_StateID");
 
                     b.ToTable("ShippingRates");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SiteReport", b =>
+                {
+                    b.Property<int>("SiteReportID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("EmailAddress")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateTime>("LogTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("MessageBody")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("PageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("SenderIPAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<byte>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("SiteReportID");
+
+                    b.HasIndex(new[] { "WebsiteClientID" }, "IX_SiteReports_WebsiteClientID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_SiteReports_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Status" }, "IX_SiteReports_WebsiteID_Status");
+
+                    b.ToTable("SiteReports");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Slideshow", b =>
@@ -10710,6 +10842,37 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.City", "City")
+                        .WithMany("PostLocations")
+                        .HasForeignKey("CityID")
+                        .HasConstraintName("FK_PostLocations_Cities");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithOne("PostLocation")
+                        .HasForeignKey("Dotnetable.Domain.Entities.PostLocation", "PostID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_PostLocations_Posts");
+
+                    b.Navigation("City");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocationTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.PostLocation", "PostLocation")
+                        .WithMany("PostLocationTranslations")
+                        .HasForeignKey("PostID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_PostLocationTranslations_PostLocations");
+
+                    b.Navigation("PostLocation");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
@@ -11324,6 +11487,24 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("ShippingMethod");
 
                     b.Navigation("State");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.SiteReport", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany("SiteReports")
+                        .HasForeignKey("WebsiteClientID")
+                        .HasConstraintName("FK_SiteReports_WebsiteClients");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("SiteReports")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_SiteReports_Websites");
+
+                    b.Navigation("Website");
+
+                    b.Navigation("WebsiteClient");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Slideshow", b =>
@@ -12390,6 +12571,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                 {
                     b.Navigation("CityTranslations");
 
+                    b.Navigation("PostLocations");
+
                     b.Navigation("ShippingRates");
 
                     b.Navigation("WebsiteClientAddresses");
@@ -12754,7 +12937,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("PostCategories");
 
+                    b.Navigation("PostLocation");
+
                     b.Navigation("PostTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
+                {
+                    b.Navigation("PostLocationTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostType", b =>
@@ -13072,6 +13262,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("ShippingMethods");
 
+                    b.Navigation("SiteReports");
+
                     b.Navigation("Slideshows");
 
                     b.Navigation("StaffTasks");
@@ -13162,6 +13354,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("ProductQuestions");
 
                     b.Navigation("ProductReviews");
+
+                    b.Navigation("SiteReports");
 
                     b.Navigation("SupportSessions");
 

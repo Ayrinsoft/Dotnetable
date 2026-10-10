@@ -827,6 +827,10 @@ window.DOCS_ADMIN = {
               en: "Create a post, set taxonomy, body, media, then publish. Open \"SEO / Meta\" to override the meta title/description/keywords for this post — optional, falls back to the title/excerpt when blank.",
               fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا را بگذارید و منتشر کنید. بخش «SEO / Meta» را برای تنظیم عنوان/توضیحات/کلمات کلیدی متای این پست باز کنید — اختیاری است و در صورت خالی بودن به عنوان/خلاصه برمی‌گردد.",
             },
+            {
+              en: "Turn on **This post has a location** to store a place type, latitude, longitude, an optional city and an address. The address can be translated per language. Place types are Unspecified (0), Office (1), Store (2), Branch (3), Showroom (4), Warehouse (5), Venue (6) and Other (7). The public site does not draw the map yet; the API already returns `hasLocation` and `location` (including numeric `kind`).",
+              fa: "گزینه **This post has a location** را روشن کنید تا نوع مکان، عرض و طول جغرافیایی، شهر اختیاری و آدرس ذخیره شود. آدرس برای هر زبان قابل ترجمه است. نوع مکان یکی از این‌هاست: نامشخص (۰)، دفتر (۱)، فروشگاه (۲)، شعبه (۳)، شوروم (۴)، انبار (۵)، محل برگزاری (۶) و سایر (۷). سایت عمومی هنوز نقشه را نشان نمی‌دهد؛ API از الان `hasLocation` و `location` (شامل `kind` عددی) را برمی‌گرداند.",
+            },
           ],
           related: ["content-categories", "content-tags", "post-types", "media-library", "content-comments", "content-authors"],
         },
@@ -2838,7 +2842,31 @@ window.DOCS_ADMIN = {
               fa: "Contact Messages را باز کنید، بخوانید، طبق فرایند handle کنید.",
             },
           ],
-          related: ["forms", "support-tickets", "email-accounts"],
+          related: ["forms", "support-tickets", "email-accounts", "site-reports"],
+        },
+        {
+          id: "site-reports",
+          title: { en: "Site reports", fa: "گزارش‌های سایت" },
+          adminPath: "/messages/reports",
+          summary: {
+            en: "Visitor reports of bugs, broken pages, wrong content and inappropriate content. Members of website 1 see every site.",
+            fa: "گزارش بازدیدکننده از باگ، صفحه خراب، محتوای نادرست و محتوای نامناسب. اعضای وب‌سایت ۱ همه سایت‌ها را می‌بینند.",
+          },
+          purpose: {
+            en: "Give the site manager a queue for problems visitors saw, separate from the contact form.",
+            fa: "برای مدیر سایت یک صف از مشکلاتی که بازدیدکننده دیده، جدا از فرم تماس.",
+          },
+          howTo: [
+            {
+              en: "Open Site Reports, read the message and the page URL, then set the status to in review, resolved or dismissed. An optional admin note stays on the report.",
+              fa: "Site Reports را باز کنید، پیام و آدرس صفحه را بخوانید، سپس وضعیت را روی در حال بررسی، حل‌شده یا ردشده بگذارید. یادداشت ادمین اختیاری روی همان گزارش می‌ماند.",
+            },
+            {
+              en: "A new report emails the address stored on the website (**Manager email**) with the Site report template, and also notifies that site's admins in the panel.",
+              fa: "گزارش جدید به ایمیل ذخیره‌شده روی وب‌سایت (**ایمیل مدیر**) با قالب Site report می‌رود و به ادمین‌های همان سایت در پنل هم اطلاع می‌دهد.",
+            },
+          ],
+          related: ["contact-messages", "email-templates"],
         },
         {
           id: "email-accounts",

@@ -1622,8 +1622,8 @@ window.DOCS_API = {
       id: "content",
       title: { en: "Content & site shell", fa: "محتوا و پوسته سایت" },
       summary: {
-        en: "Pages, posts, menus, slideshows, advertisements, theme, site info, forms, contact, redirects, files.",
-        fa: "صفحه، پست، منو، اسلایدشو، تبلیغات، تم، اطلاعات سایت، فرم، تماس، ریدایرکت، فایل.",
+        en: "Pages, posts, menus, slideshows, advertisements, theme, site info, forms, contact, site reports, redirects, files.",
+        fa: "صفحه، پست، منو، اسلایدشو، تبلیغات، تم، اطلاعات سایت، فرم، تماس، گزارش سایت، ریدایرکت، فایل.",
       },
       pages: [
         {
@@ -1706,6 +1706,8 @@ window.DOCS_API = {
                   items: [
                     {
                       slug: "hello", title: "Hello", authorName: "Sara Ahmadi", likeCount: 31,
+                      hasLocation: true,
+                      location: { latitude: 35.7, longitude: 51.4, kind: 2, address: "Valiasr St", cityId: 12, cityName: "Tehran" },
                       featuredImageUrl: "https://cdn.example.com/3f2a…_thumb.webp", featuredImageFullUrl: "https://cdn.example.com/3f2a….webp",
                       author: { name: "Sara Ahmadi", slug: "sara-ahmadi", headline: "Senior .NET developer", bio: "I write about .NET.", photoUrl: "https://cdn.example.com/sara.jpg" },
                     },
@@ -1721,6 +1723,10 @@ window.DOCS_API = {
                 {
                   en: "`featuredImageUrl` is the small WebP thumbnail (longest edge 640px) when one exists — show it on the page. `featuredImageFullUrl` is the original; load it only when the visitor opens the image. Every uploaded image also has its thumbnail at `{name}_thumb.webp` next to the original, so a site can derive it for images embedded in `content`.",
                   fa: "`featuredImageUrl` در صورت وجود، تصویر کوچک WebP (ضلع بلند ۶۴۰ پیکسل) است — همین را در صفحه نشان دهید. `featuredImageFullUrl` فایل اصلی است؛ فقط وقتی بازدیدکننده تصویر را باز می‌کند بارگذاری شود. هر تصویر آپلودشده، تصویر کوچکش را با نام `{name}_thumb.webp` کنار فایل اصلی دارد، پس سایت می‌تواند آن را برای تصاویر داخل `content` بسازد.",
+                },
+                {
+                  en: "`hasLocation` is false and `location` is null when the post has no map point. When it is set, `address` and `cityName` follow `lang` (address translations fall back to the default language). `kind` is a number: 0 Unspecified, 1 Office, 2 Store, 3 Branch, 4 Showroom, 5 Warehouse, 6 Venue, 7 Other. New kinds are appended; existing numbers stay. The storefront does not render this yet.",
+                  fa: "وقتی پست نقطه نقشه ندارد `hasLocation` برابر false و `location` برابر null است. اگر تنظیم شده باشد، `address` و `cityName` از `lang` پیروی می‌کنند (ترجمه آدرس در صورت نبود به زبان پیش‌فرض برمی‌گردد). `kind` عدد است: ۰ نامشخص، ۱ دفتر، ۲ فروشگاه، ۳ شعبه، ۴ شوروم، ۵ انبار، ۶ محل برگزاری، ۷ سایر. مقدارهای جدید به انتها اضافه می‌شوند و شماره‌های فعلی عوض نمی‌شوند. استورفرانت هنوز این را نشان نمی‌دهد.",
                 },
               ],
             },
@@ -2008,6 +2014,7 @@ window.DOCS_API = {
             fa: "ارسال فرم تماس ساده → پیام‌های تماس ادمین.",
           },
           relatedAdmin: ["contact-messages"],
+          related: ["site-reports"],
           endpoints: [
             {
               title: { en: "Submit contact", fa: "ارسال تماس" },
@@ -2018,6 +2025,43 @@ window.DOCS_API = {
                 body: { name: "Ali", email: "a@b.com", subject: "Hi", body: "…" },
               },
               response: { status: 200, body: { message: "Your message has been sent." } },
+            },
+          ],
+        },
+        {
+          id: "site-reports",
+          title: { en: "Site reports", fa: "گزارش‌های سایت" },
+          summary: {
+            en: "Visitor report of a bug, a broken page, wrong content or inappropriate content. Emails the site manager and shows up in Admin → Site Reports. Same captcha and honeypot (`website`) as the contact form.",
+            fa: "گزارش بازدیدکننده از باگ، صفحه خراب، محتوای نادرست یا محتوای نامناسب. به مدیر سایت ایمیل می‌شود و در ادمین → گزارش‌های سایت دیده می‌شود. کپچا و honeypot (`website`) مثل فرم تماس است.",
+          },
+          relatedAdmin: ["site-reports"],
+          endpoints: [
+            {
+              title: { en: "Submit a report", fa: "ارسال گزارش" },
+              method: "POST",
+              path: "/api/SiteReports",
+              auth: "website",
+              request: {
+                body: {
+                  reporterName: "Neda",
+                  emailAddress: "neda@example.com",
+                  kind: 4,
+                  subject: "Inappropriate photo",
+                  messageBody: "This image should not be public.",
+                  pageUrl: "/posts/hello",
+                  captchaToken: "…",
+                  captchaAnswer: "7",
+                  website: "",
+                },
+              },
+              response: { status: 200, body: { message: "Your report has been sent." } },
+              notes: [
+                {
+                  en: "`kind`: 1 bug, 2 broken page, 3 wrong content, 4 inappropriate content, 5 other. `pageUrl` is optional: a path starting with `/` or an http(s) URL. A signed-in customer token is optional and only links the report to that customer.",
+                  fa: "`kind`: ۱ باگ، ۲ صفحه خراب، ۳ محتوای نادرست، ۴ محتوای نامناسب، ۵ سایر. `pageUrl` اختیاری است: مسیری که با `/` شروع شود یا آدرس http(s). توکن مشتری واردشده اختیاری است و فقط گزارش را به همان مشتری وصل می‌کند.",
+                },
+              ],
             },
           ],
         },

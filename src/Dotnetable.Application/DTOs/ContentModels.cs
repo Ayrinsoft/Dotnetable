@@ -1,3 +1,5 @@
+using Dotnetable.Domain.Enums;
+
 namespace Dotnetable.Application.DTOs;
 
 // ── Public read projections (consumed by the website through the API) ──────────
@@ -17,6 +19,10 @@ public class PostSummaryDto
     /// <summary>Author box (name, headline, bio, photo, résumé-page slug); null when the post has no author.</summary>
     public AuthorCardDto? Author { get; init; }
     public bool IsFeatured { get; init; }
+    /// <summary>True when the post has a map point. <see cref="Location"/> is filled on both list and detail reads.</summary>
+    public bool HasLocation { get; init; }
+    /// <summary>Map point and localized address. Null when <see cref="HasLocation"/> is false.</summary>
+    public PostLocationDto? Location { get; init; }
     public int ViewCount { get; init; }
     /// <summary>Signed-in customers who liked the post (once each).</summary>
     public int LikeCount { get; init; }
@@ -35,6 +41,28 @@ public sealed class PostDetailDto : PostSummaryDto
     /// <summary>Admin override for the search-result/social-preview description; falls back to <see cref="PostSummaryDto.Excerpt"/>.</summary>
     public string? MetaDescription { get; init; }
     public string? MetaKeywords { get; init; }
+}
+
+/// <summary>Map point returned with a post. <see cref="Address"/> and <see cref="CityName"/> follow the requested language.</summary>
+public sealed class PostLocationDto
+{
+    public double Latitude { get; init; }
+    public double Longitude { get; init; }
+    /// <summary><see cref="Domain.Enums.PostLocationKind"/>.</summary>
+    public PostLocationKind Kind { get; init; }
+    public string? Address { get; init; }
+    public int? CityID { get; init; }
+    public string? CityName { get; init; }
+}
+
+/// <summary>Admin save payload for <c>IPostService.SetLocationAsync</c>. Null means the post has no location.</summary>
+public sealed class PostLocationInput
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public PostLocationKind Kind { get; set; }
+    public string? Address { get; set; }
+    public int? CityID { get; set; }
 }
 
 /// <summary>A CMS page projected for public rendering, localized when a translation exists.</summary>

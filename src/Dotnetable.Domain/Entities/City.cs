@@ -25,6 +25,8 @@ public partial class City
 
     public virtual Country Country { get; set; } = null!;
 
+    public virtual ICollection<PostLocation> PostLocations { get; set; } = new List<PostLocation>();
+
     public virtual ICollection<ShippingRate> ShippingRates { get; set; } = new List<ShippingRate>();
 
     public virtual State? State { get; set; }

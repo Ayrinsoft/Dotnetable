@@ -162,6 +162,8 @@ public partial class Website
 
     public virtual ICollection<ContactUsMessage> ContactUsMessages { get; set; } = new List<ContactUsMessage>();
 
+    public virtual ICollection<SiteReport> SiteReports { get; set; } = new List<SiteReport>();
+
     public virtual ICollection<Coupon> Coupons { get; set; } = new List<Coupon>();
 
     public virtual ICollection<CurrencyRate> CurrencyRates { get; set; } = new List<CurrencyRate>();

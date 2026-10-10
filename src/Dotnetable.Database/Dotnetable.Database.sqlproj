@@ -65,6 +65,8 @@
   <ItemGroup>
     <Build Include="TagTranslations.sql" />
     <Build Include="Tags.sql" />
+    <Build Include="PostLocationTranslations.sql" />
+    <Build Include="PostLocations.sql" />
     <Build Include="PostTranslations.sql" />
     <Build Include="PostTags.sql" />
     <Build Include="Posts.sql" />
@@ -175,6 +177,7 @@
     <Build Include="ClientWalletTransactions.sql" />
     <Build Include="ClientWalletWithdrawals.sql" />
     <Build Include="ContactUsMessages.sql" />
+    <Build Include="SiteReports.sql" />
     <Build Include="ClientReactions.sql" />
     <Build Include="ContentComments.sql" />
     <Build Include="Countries.sql" />

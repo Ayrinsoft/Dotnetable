@@ -1,0 +1,165 @@
+@page "/messages/reports"
+@attribute [Authorize(Policy = RoleKeys.MessagesView)]
+@inject ISiteReportService ReportService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["site_reports", "Site Reports"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["site_reports", "Site Reports"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["site_reports.subtitle", "Bugs and content reports sent from the public site"]</MudText>
+    </MudStack>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    <DNGridView GridHeaderParams="_grid" OnSearchChanged="OnGridChanged">
+        @if (_items.Count == 0)
+        {
+            <tr>
+                <td colspan="@(_isMaster ? 8 : 7)" style="text-align:center; padding:32px;">
+                    <MudText Color="Color.Secondary">@L["site_reports.empty", "No reports found."]</MudText>
+                </td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var r in _items)
+            {
+                <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/messages/reports/{r.SiteReportID}"))">
+                    <td @onclick:stopPropagation="true">
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Href="@($"/messages/reports/{r.SiteReportID}")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                           Color="Color.Error" OnClick="@(() => DeleteAsync(r))" />
+                        </MudStack>
+                    </td>
+                    @if (_isMaster)
+                    {
+                        <td>@(r.Website?.TradeName ?? r.WebsiteID.ToString())</td>
+                    }
+                    <td>@KindLabel((SiteReportKind)r.Kind)</td>
+                    <td>@r.ReporterName</td>
+                    <td>@r.Subject</td>
+                    <td>@r.LogTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor((SiteReportStatus)r.Status)">@StatusLabel((SiteReportStatus)r.Status)</MudChip>
+                    </td>
+                </tr>
+            }
+        }
+    </DNGridView>
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<SiteReport> _items = new();
+    private GridViewHeaderParameters _grid = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+
+        var headers = new List<GridViewHeaderParameters.HeaderItemDetail>
+        {
+            new() { ColumnTitle = "", ColumnName = "" },
+        };
+        if (_isMaster)
+            headers.Add(new() { ColumnTitle = L["website", "Website"], ColumnName = "" });
+        headers.Add(new()
+        {
+            ColumnTitle = L["type", "Type"], ColumnName = nameof(SiteReport.Kind), HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new()
+            {
+                [KindLabel(SiteReportKind.Bug)] = ((byte)SiteReportKind.Bug).ToString(),
+                [KindLabel(SiteReportKind.BrokenPage)] = ((byte)SiteReportKind.BrokenPage).ToString(),
+                [KindLabel(SiteReportKind.WrongContent)] = ((byte)SiteReportKind.WrongContent).ToString(),
+                [KindLabel(SiteReportKind.InappropriateContent)] = ((byte)SiteReportKind.InappropriateContent).ToString(),
+                [KindLabel(SiteReportKind.Other)] = ((byte)SiteReportKind.Other).ToString(),
+            }
+        });
+        headers.Add(new() { ColumnTitle = L["sender", "Sender"], ColumnName = nameof(SiteReport.ReporterName), HasSearch = true });
+        headers.Add(new() { ColumnTitle = L["subject", "Subject"], ColumnName = nameof(SiteReport.Subject), HasSearch = true });
+        headers.Add(new() { ColumnTitle = L["date", "Date"], ColumnName = nameof(SiteReport.LogTime), HasSort = true });
+        headers.Add(new()
+        {
+            ColumnTitle = L["status", "Status"], ColumnName = nameof(SiteReport.Status), HasSearch = true,
+            SearchType = SearchColumnType.DropDown,
+            OtherDropDownValues = new()
+            {
+                [StatusLabel(SiteReportStatus.New)] = ((byte)SiteReportStatus.New).ToString(),
+                [StatusLabel(SiteReportStatus.InReview)] = ((byte)SiteReportStatus.InReview).ToString(),
+                [StatusLabel(SiteReportStatus.Resolved)] = ((byte)SiteReportStatus.Resolved).ToString(),
+                [StatusLabel(SiteReportStatus.Dismissed)] = ((byte)SiteReportStatus.Dismissed).ToString(),
+            }
+        });
+
+        _grid = new GridViewHeaderParameters
+        {
+            Pagination = new PaginationModel { PageSize = 25 },
+            HeaderItems = headers,
+        };
+
+        await LoadAsync();
+    }
+
+    private Task OnGridChanged(GridViewHeaderParameters _) => LoadAsync();
+
+    private async Task DeleteAsync(SiteReport report)
+    {
+        await ReportService.DeleteAsync(report.SiteReportID, _isMaster ? null : _websiteId);
+        Snackbar.Add(L["site_reports.deleted", "Report deleted."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var websiteId = _isMaster ? (int?)null : _websiteId;
+        var result = await ReportService.GetPagedAsync(websiteId, _grid.ToQuery());
+        _items = result.Items.ToList();
+        _grid.Pagination.MaxLength = result.TotalCount;
+        _loading = false;
+    }
+
+    private string KindLabel(SiteReportKind kind) => kind switch
+    {
+        SiteReportKind.Bug => L["site_reports.kind.bug", "Bug"],
+        SiteReportKind.BrokenPage => L["site_reports.kind.broken", "Broken page"],
+        SiteReportKind.WrongContent => L["site_reports.kind.wrong", "Wrong content"],
+        SiteReportKind.InappropriateContent => L["site_reports.kind.inappropriate", "Inappropriate content"],
+        _ => L["site_reports.kind.other", "Other"],
+    };
+
+    private string StatusLabel(SiteReportStatus status) => status switch
+    {
+        SiteReportStatus.InReview => L["site_reports.status.review", "In review"],
+        SiteReportStatus.Resolved => L["site_reports.status.resolved", "Resolved"],
+        SiteReportStatus.Dismissed => L["site_reports.status.dismissed", "Dismissed"],
+        _ => L["site_reports.status.new", "New"],
+    };
+
+    private static Color StatusColor(SiteReportStatus status) => status switch
+    {
+        SiteReportStatus.InReview => Color.Info,
+        SiteReportStatus.Resolved => Color.Success,
+        SiteReportStatus.Dismissed => Color.Default,
+        _ => Color.Warning,
+    };
+}

@@ -65,6 +65,9 @@
                 <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
                     @L["contact_messages", "Contact Messages"]
                 </MudNavLink>
+                <MudNavLink Href="/messages/reports" Icon="@Icons.Material.Filled.Report">
+                    @L["site_reports", "Site Reports"]
+                </MudNavLink>
             </AuthorizeView>
         }
     }
@@ -171,6 +174,9 @@
                 <AuthorizeView Policy="@RoleKeys.MessagesView" Context="cm">
                     <MudNavLink Href="/messages/contacts" Icon="@Icons.Material.Filled.ContactMail">
                         @L["contact_messages", "Contact Messages"]
+                    </MudNavLink>
+                    <MudNavLink Href="/messages/reports" Icon="@Icons.Material.Filled.Report">
+                        @L["site_reports", "Site Reports"]
                     </MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="em">

@@ -11,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 @inject ILanguageService LanguageService
+@inject ILocationService LocationService
 @inject IJSRuntime JS
 
 <DNPageTitle Title=@(_isNew ? L["posts.new", "New Post"] : L["posts.edit", "Edit Post"]) />
@@ -217,6 +218,47 @@ else if (_model is not null)
                     }
                 </MudPaper>
 
+                <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.location", "Location"]</MudText>
+                    <MudSwitch T="bool" @bind-Value="_model.HasLocation" Color="Color.Primary"
+                               Label="@L["posts.has_location", "This post has a location"]" />
+                    @if (_model.HasLocation)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            @L["posts.location_hint", "Address is stored in the site default language. Other languages are optional and fall back to it."]
+                        </MudText>
+                        <MudSelect T="PostLocationKind" @bind-Value="_locationKind" Label="@L["posts.location_kind", "Place type"]"
+                                   Variant="Variant.Outlined" Class="mb-3">
+                            @foreach (var kind in Enum.GetValues<PostLocationKind>())
+                            {
+                                <MudSelectItem T="PostLocationKind" Value="kind">@KindLabel(kind)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <CountrySelector Value="_countryId" ValueChanged="OnLocationCountryChanged"
+                                         Countries="_countries" Label="@L["country", "Country"]" Class="mb-3" Clearable="true" />
+                        <CitySelector Value="_cityId" ValueChanged="@(id => _cityId = id)"
+                                      Cities="_cities" Label="@L["city", "City"]" Class="mb-3" Clearable="true"
+                                      Disabled="@(_countryId is null)" />
+                        <MudNumericField T="double" @bind-Value="_latitude" Label="@L["latitude", "Latitude"]"
+                                         Variant="Variant.Outlined" Min="-90" Max="90" Class="mb-3" />
+                        <MudNumericField T="double" @bind-Value="_longitude" Label="@L["longitude", "Longitude"]"
+                                         Variant="Variant.Outlined" Min="-180" Max="180" Class="mb-3" />
+                        <MudTextField @bind-Value="_address" Label="@L["address", "Address"]" Variant="Variant.Outlined"
+                                      Lines="2" AutoGrow="true" />
+                        @if (_languages.Length > 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-3 mb-2">@L["posts.address_translations", "Address in other languages"]</MudText>
+                            @foreach (var (code, label) in _languages)
+                            {
+                                var addressCode = code;
+                                <MudTextField T="string" Value="@LocationAddress(addressCode)" ValueChanged="@(v => _locationAddresses[addressCode] = v)"
+                                              Label="@($"{L["address", "Address"]} ({label})")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                              Lines="2" AutoGrow="true" Class="mb-2" />
+                            }
+                        }
+                    }
+                </MudPaper>
+
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                     <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.featured_image", "Featured Image"]</MudText>
                     @if (_featuredFile is not null && !string.IsNullOrEmpty(_featuredFile.CNDUrl))
@@ -271,6 +313,16 @@ else if (_model is not null)
     private string _tagSearchText = string.Empty;
     private bool _addingTag;
 
+    private double _latitude;
+    private double _longitude;
+    private PostLocationKind _locationKind = PostLocationKind.Unspecified;
+    private string _address = "";
+    private int? _countryId;
+    private int? _cityId;
+    private List<Country> _countries = new();
+    private List<City> _cities = new();
+    private readonly Dictionary<string, string> _locationAddresses = new(StringComparer.OrdinalIgnoreCase);
+
     private sealed class TranslationModel
     {
         public string Title = ""; public string Slug = ""; public string Excerpt = ""; public string Content = "";
@@ -311,6 +363,18 @@ else if (_model is not null)
                         Title = t.Title, Slug = t.Slug, Excerpt = t.Excerpt ?? "", Content = t.Content ?? "",
                         MetaTitle = t.MetaTitle ?? "", MetaDescription = t.MetaDescription ?? "", MetaKeywords = t.MetaKeywords ?? "",
                     };
+                if (_model.PostLocation is { } loc)
+                {
+                    _model.HasLocation = true;
+                    _latitude = loc.Latitude;
+                    _longitude = loc.Longitude;
+                    _locationKind = Enum.IsDefined((PostLocationKind)loc.Kind) ? (PostLocationKind)loc.Kind : PostLocationKind.Unspecified;
+                    _address = loc.Address ?? "";
+                    _cityId = loc.CityID;
+                    _countryId = loc.City?.CountryID;
+                    foreach (var t in loc.PostLocationTranslations)
+                        _locationAddresses[t.LanguageCode] = t.Address ?? "";
+                }
             }
         }
 
@@ -322,6 +386,9 @@ else if (_model is not null)
             ?? "en";
         _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+        if (_countryId is int countryId)
+            _cities = (await LocationService.GetCitiesByCountryAsync(countryId)).ToList();
         _postTypes = await PostTypeService.GetAllAsync(wid);
         _categories = await CategoryService.GetAllAsync(wid);
         _tags = await TagService.GetAllAsync(wid);
@@ -647,11 +714,41 @@ else if (_model is not null)
 
     private void ClearImage() { _model!.FeaturedImageFileID = null; _featuredFile = null; }
 
+    private string LocationAddress(string code) =>
+        _locationAddresses.TryGetValue(code, out var value) ? value : "";
+
+    private string KindLabel(PostLocationKind kind) => kind switch
+    {
+        PostLocationKind.Office => L["posts.kind.office", "Office"],
+        PostLocationKind.Store => L["posts.kind.store", "Store"],
+        PostLocationKind.Branch => L["posts.kind.branch", "Branch"],
+        PostLocationKind.Showroom => L["posts.kind.showroom", "Showroom"],
+        PostLocationKind.Warehouse => L["posts.kind.warehouse", "Warehouse"],
+        PostLocationKind.Venue => L["posts.kind.venue", "Venue"],
+        PostLocationKind.Other => L["posts.kind.other", "Other"],
+        _ => L["posts.kind.unspecified", "Unspecified"],
+    };
+
+    private async Task OnLocationCountryChanged(int? countryId)
+    {
+        if (_countryId == countryId) return;
+        _countryId = countryId;
+        _cityId = null;
+        _cities = countryId is int id
+            ? (await LocationService.GetCitiesByCountryAsync(id)).ToList()
+            : new List<City>();
+    }
+
     private async Task SaveAsync()
     {
         await _form.Validate();
         _formErrors = _form.Errors;
         if (!_form.IsValid || _model is null) return;
+        if (_model.HasLocation && (_latitude is < -90 or > 90 || _longitude is < -180 or > 180))
+        {
+            Snackbar.Add(L["posts.location_range", "Latitude must be between -90 and 90, and longitude between -180 and 180."], Severity.Warning);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(_model.Slug)) _model.Slug = _model.Title.Trim();
         _model.PublishedAt = _publishedAt;
         _model.ScheduledAt = _scheduledAt;
@@ -676,6 +773,18 @@ else if (_model is not null)
             var primary = _primaryCategoryId is int pid && categoryIds.Contains(pid) ? pid : (int?)null;
             await PostService.SetCategoriesAsync(_model.PostID, categoryIds, primary);
             await PostService.SetTagsAsync(_model.PostID, _selectedTagIds.ToList());
+
+            var locationTranslations = _locationAddresses
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                .Select(kv => new PostLocationTranslation { LanguageCode = kv.Key, Address = kv.Value })
+                .ToList();
+            await PostService.SetLocationAsync(
+                _model.PostID,
+                _model.HasLocation,
+                _model.HasLocation
+                    ? new PostLocationInput { Latitude = _latitude, Longitude = _longitude, Kind = _locationKind, Address = _address, CityID = _cityId }
+                    : null,
+                locationTranslations);
 
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             Nav.NavigateTo("/content/posts");

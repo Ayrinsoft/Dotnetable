@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Data;
@@ -83,6 +84,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ClientReaction> ClientReactions { get; set; }
 
     public virtual DbSet<ContactUsMessage> ContactUsMessages { get; set; }
+
+    public virtual DbSet<SiteReport> SiteReports { get; set; }
 
     public virtual DbSet<ContentComment> ContentComments { get; set; }
 
@@ -210,6 +213,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Post> Posts { get; set; }
 
     public virtual DbSet<PostCategory> PostCategories { get; set; }
+
+    public virtual DbSet<PostLocation> PostLocations { get; set; }
+
+    public virtual DbSet<PostLocationTranslation> PostLocationTranslations { get; set; }
 
     public virtual DbSet<PostTranslation> PostTranslations { get; set; }
 
@@ -1383,6 +1390,32 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ContactUsMessages_Websites");
+        });
+
+        modelBuilder.Entity<SiteReport>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_SiteReports_WebsiteID");
+            entity.HasIndex(e => e.WebsiteClientID, "IX_SiteReports_WebsiteClientID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Status }, "IX_SiteReports_WebsiteID_Status");
+
+            entity.Property(e => e.ReporterName).HasMaxLength(64);
+            entity.Property(e => e.EmailAddress).HasMaxLength(64).IsUnicode(false);
+            entity.Property(e => e.Subject).HasMaxLength(200);
+            entity.Property(e => e.MessageBody).HasMaxLength(4000);
+            entity.Property(e => e.PageUrl).HasMaxLength(500);
+            entity.Property(e => e.SenderIPAddress).HasMaxLength(45).IsUnicode(false);
+            entity.Property(e => e.AdminNote).HasMaxLength(2000);
+            entity.Property(e => e.Status).HasDefaultValue((byte)0);
+            entity.Property(e => e.LogTime).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.SiteReports)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SiteReports_Websites");
+
+            entity.HasOne(d => d.WebsiteClient).WithMany(p => p.SiteReports)
+                .HasForeignKey(d => d.WebsiteClientID)
+                .HasConstraintName("FK_SiteReports_WebsiteClients");
         });
 
         modelBuilder.Entity<Country>(entity =>
@@ -2627,6 +2660,7 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Post>(entity =>
         {
             entity.Property(e => e.LikeCount).HasDefaultValue(0);
+            entity.Property(e => e.HasLocation).HasDefaultValue(false);
 
             entity.HasIndex(e => e.AuthorMemberID, "IX_Posts_AuthorMemberID");
 
@@ -2720,6 +2754,41 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PostID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PostTranslations_Posts");
+        });
+
+        modelBuilder.Entity<PostLocation>(entity =>
+        {
+            entity.HasKey(e => e.PostID);
+
+            entity.HasIndex(e => e.CityID, "IX_PostLocations_CityID");
+
+            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.Kind).HasDefaultValue((byte)PostLocationKind.Unspecified);
+
+            entity.HasOne(d => d.Post).WithOne(p => p.PostLocation)
+                .HasForeignKey<PostLocation>(d => d.PostID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PostLocations_Posts");
+
+            entity.HasOne(d => d.City).WithMany(p => p.PostLocations)
+                .HasForeignKey(d => d.CityID)
+                .HasConstraintName("FK_PostLocations_Cities");
+        });
+
+        modelBuilder.Entity<PostLocationTranslation>(entity =>
+        {
+            entity.HasIndex(e => new { e.PostID, e.LanguageCode }, "IX_PostLocationTranslations_PostID_LanguageCode").IsUnique();
+
+            entity.Property(e => e.LanguageCode)
+                .HasMaxLength(2)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Address).HasMaxLength(500);
+
+            entity.HasOne(d => d.PostLocation).WithMany(p => p.PostLocationTranslations)
+                .HasForeignKey(d => d.PostID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PostLocationTranslations_PostLocations");
         });
 
         modelBuilder.Entity<PostType>(entity =>
