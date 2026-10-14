@@ -1,0 +1,392 @@
+@* Digital visiting card of one content author. Hosted under the author profile editor. *@
+@using Dotnetable.Application.VisitCards
+@inject IAuthorVisitCardService Cards
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mt-4">
+    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+        <MudIcon Icon="@Icons.Material.Filled.ContactMail" Size="Size.Small" Class="me-1" />
+        @L["authors.card", "Digital visiting card"]
+    </MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        @L["authors.card_hint", "A short public link that shows this person's name, contact details, banks and social networks. Visitors can save the contact file and, if you allow it, leave their own number."]
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (!_state.MemberFound)
+    {
+        <MudAlert Severity="Severity.Warning">@L["authors.member_not_found", "Member not found."]</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSwitch T="bool" @bind-Value="_card.Enabled" Color="Color.Success"
+                           Label="@L["authors.card_enabled", "Publish this visiting card"]" />
+                @if (_card.Enabled && PublicUrl is string url)
+                {
+                    <MudLink Href="@url" Target="_blank" Typo="Typo.body2" Class="d-block ms-1">
+                        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Class="me-1" />@url
+                    </MudLink>
+                }
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_card.Slug" Label="@L["authors.card_slug", "Short link"]"
+                              Variant="Variant.Outlined" MaxLength="32"
+                              HelperText="@L["authors.card_slug_hint", "Address: /c/{slug}. Example: aliu. Letters, digits and hyphens, 2–32 characters."]" />
+            </MudItem>
+            <MudItem xs="12" sm="6" Class="d-flex align-center">
+                <MudSwitch T="bool" @bind-Value="_card.PhoneBookEnabled" Color="Color.Primary"
+                           Label="@L["authors.card_phonebook", "Let visitors leave their number"]" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Contacts"
+                           Href="@PhoneBookHref">@L["authors.card_phonebook_open", "Open phone book"]</MudButton>
+            </MudItem>
+
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.FullName" Label="@L["authors.card_name", "Full name"]" Variant="Variant.Outlined" MaxLength="70" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.BrandName" Label="@L["authors.card_brand", "Brand / company"]" Variant="Variant.Outlined" MaxLength="70" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.JobTitle" Label="@L["authors.headline", "Headline / job title"]" Variant="Variant.Outlined" MaxLength="60" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Slogan" Label="@L["authors.card_slogan", "Slogan"]" Variant="Variant.Outlined" MaxLength="160" /></MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_card.Description" Label="@L["authors.card_about", "About (back of the card)"]"
+                              Variant="Variant.Outlined" Lines="4" AutoGrow="true" MaxLength="4000" Counter="4000" />
+            </MudItem>
+
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.Mobile" Label="@L["authors.card_mobile", "Mobile"]" Variant="Variant.Outlined" MaxLength="20" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.Phone" Label="@L["authors.card_phone", "Phone"]" Variant="Variant.Outlined" MaxLength="20" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.WhatsApp" Label="@L["authors.card_whatsapp", "WhatsApp number"]" Variant="Variant.Outlined" MaxLength="20" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.Email" Label="@L["email", "Email"]" Variant="Variant.Outlined" MaxLength="120" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.Website" Label="@L["authors.website_url", "Personal website"]" Variant="Variant.Outlined" MaxLength="200" Placeholder="https://" /></MudItem>
+            <MudItem xs="12" sm="4"><MudTextField @bind-Value="_card.Address" Label="@L["authors.card_address", "Address"]" Variant="Variant.Outlined" MaxLength="250" /></MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudSelect T="byte" @bind-Value="_card.CardLayout" Label="@L["authors.card_layout", "Layout"]" Variant="Variant.Outlined">
+                    <MudSelectItem T="byte" Value="(byte)0">@L["authors.card_layout_flip", "Flip card"]</MudSelectItem>
+                    <MudSelectItem T="byte" Value="(byte)1">@L["authors.card_layout_banner", "Photo banner"]</MudSelectItem>
+                    <MudSelectItem T="byte" Value="(byte)2">@L["authors.card_layout_profile", "Portrait"]</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="byte" @bind-Value="_card.ThemeMode" Label="@L["authors.card_theme", "Default theme"]" Variant="Variant.Outlined">
+                    <MudSelectItem T="byte" Value="(byte)0">@L["authors.card_theme_dark", "Dark"]</MudSelectItem>
+                    <MudSelectItem T="byte" Value="(byte)1">@L["authors.card_theme_light", "Light"]</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-center">
+                <MudSwitch T="bool" @bind-Value="_card.IsPortrait" Color="Color.Primary"
+                           Label="@L["authors.card_portrait", "Portrait orientation"]" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_card.CardColor" Label="@L["authors.card_color", "Card colour"]" Variant="Variant.Outlined" MaxLength="7" Placeholder="#1976d2" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_card.PageColor" Label="@L["authors.card_page_color", "Page colour"]" Variant="Variant.Outlined" MaxLength="7" Placeholder="#0d1b2a" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["authors.card_logo", "Logo"]</MudText>
+                @if (_logoUrl is not null)
+                {
+                    <img src="@_logoUrl" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;" class="d-block mb-2" />
+                }
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickLogoAsync">@L["posts.choose_image", "Choose"]</MudButton>
+                    @if (_card.LogoFileID is not null)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="ClearLogo">@L["clear", "Clear"]</MudButton>
+                    }
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["authors.card_cover", "Cover photo"]</MudText>
+                @if (_coverUrl is not null)
+                {
+                    <img src="@_coverUrl" alt="" style="width:160px;height:72px;object-fit:cover;border-radius:12px;" class="d-block mb-2" />
+                }
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickCoverAsync">@L["posts.choose_image", "Choose"]</MudButton>
+                    @if (_card.CoverFileID is not null)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="ClearCover">@L["clear", "Clear"]</MudButton>
+                    }
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12"><MudText Typo="Typo.subtitle2">@L["authors.card_fields", "Custom fields"]</MudText></MudItem>
+            @for (var i = 0; i < 5; i++)
+            {
+                var n = i;
+                <MudItem xs="12" sm="4"><MudTextField T="string" Value="@FieldTitle(n)" ValueChanged="@(v => SetFieldTitle(n, v))" Label="@string.Format(L["authors.card_field_title", "Field {0} title"], n + 1)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="50" /></MudItem>
+                <MudItem xs="12" sm="8"><MudTextField T="string" Value="@FieldValue(n)" ValueChanged="@(v => SetFieldValue(n, v))" Label="@string.Format(L["authors.card_field_value", "Field {0} value"], n + 1)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="250" /></MudItem>
+            }
+
+            <MudItem xs="12"><MudText Typo="Typo.subtitle2" Class="mt-2">@L["authors.card_banks", "Bank accounts"]</MudText></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank1HolderName" Label="@L["authors.card_holder", "Account holder"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="70" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank1Details" Label="@L["authors.card_bank_details", "Bank details"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="120" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank1Sheba" Label="@L["authors.card_sheba", "IBAN (Sheba)"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="32" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank1CardNumber" Label="@L["authors.card_pan", "Card number"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="19" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank2HolderName" Label="@L["authors.card_holder2", "Second account holder"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="70" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank2Details" Label="@L["authors.card_bank_details2", "Second bank details"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="120" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank2Sheba" Label="@L["authors.card_sheba2", "Second IBAN"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="32" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.Bank2CardNumber" Label="@L["authors.card_pan2", "Second card number"]" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="19" /></MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">@L["authors.social_links", "Social links"]</MudText>
+                @foreach (var link in _card.SocialLinks)
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudSelect T="string" @bind-Value="link.Network" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:170px;">
+                            @foreach (var n in VisitCardRules.SocialNetworks)
+                            {
+                                <MudSelectItem T="string" Value="@n">@n</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudTextField @bind-Value="link.Url" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="https://" Class="flex-grow-1" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => _card.SocialLinks.Remove(link))" />
+                    </MudStack>
+                }
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => _card.SocialLinks.Add(new AuthorSocialLink()))">@L["authors.add_link", "Add link"]</MudButton>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">@L["authors.card_map", "Map pins"]</MudText>
+                @foreach (var pin in _card.Locations)
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudTextField @bind-Value="pin.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:160px;" />
+                        <MudNumericField T="double" @bind-Value="pin.Lat" Label="@L["authors.card_lat", "Latitude"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudNumericField T="double" @bind-Value="pin.Lng" Label="@L["authors.card_lng", "Longitude"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => _card.Locations.Remove(pin))" />
+                    </MudStack>
+                }
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => _card.Locations.Add(new VisitCardLocation()))">@L["authors.card_add_pin", "Add pin"]</MudButton>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudExpansionPanels Elevation="0" Class="mt-2">
+                    <MudExpansionPanel Text="@L["authors.card_languages", "Other languages on the card"]">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                            @L["authors.card_languages_hint", "The fields above are the primary text (Persian). A blank translation falls back to it. A language with no text is not shown."]
+                        </MudText>
+                        @foreach (var lang in VisitCardRules.Languages)
+                        {
+                            var t = Translation(lang.Key);
+                            <MudPaper Elevation="0" Class="pa-3 mb-2" Style="border:1px solid var(--mud-palette-lines-default); border-radius:8px;">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">@lang.Value.Name</MudText>
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.FullName" ValueChanged="@(v => t.FullName = v)" Label="@L["authors.card_name", "Full name"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.BrandName" ValueChanged="@(v => t.BrandName = v)" Label="@L["authors.card_brand", "Brand / company"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.JobTitle" ValueChanged="@(v => t.JobTitle = v)" Label="@L["authors.headline", "Headline / job title"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12" sm="6"><MudTextField T="string" Value="@t.Slogan" ValueChanged="@(v => t.Slogan = v)" Label="@L["authors.card_slogan", "Slogan"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.Address" ValueChanged="@(v => t.Address = v)" Label="@L["authors.card_address", "Address"]" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                                    <MudItem xs="12"><MudTextField T="string" Value="@t.Description" ValueChanged="@(v => t.Description = v)" Label="@L["authors.card_about", "About (back of the card)"]" Variant="Variant.Outlined" Lines="3" Margin="Margin.Dense" /></MudItem>
+                                    @for (var i = 0; i < 5; i++)
+                                    {
+                                        var n = i;
+                                        <MudItem xs="12" sm="4"><MudTextField T="string" Value="@TrFieldTitle(t, n)" ValueChanged="@(v => SetTrFieldTitle(t, n, v))" Label="@string.Format(L["authors.card_field_title", "Field {0} title"], n + 1)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="50" /></MudItem>
+                                        <MudItem xs="12" sm="8"><MudTextField T="string" Value="@TrFieldValue(t, n)" ValueChanged="@(v => SetTrFieldValue(t, n, v))" Label="@string.Format(L["authors.card_field_value", "Field {0} value"], n + 1)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="250" /></MudItem>
+                                    }
+                                </MudGrid>
+                            </MudPaper>
+                        }
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_saving">
+                    @L["authors.card_save", "Save visiting card"]
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public int MemberId { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private AuthorVisitCardEditorState _state = new();
+    private AuthorVisitCardEdit _card = new();
+    private string? _logoUrl;
+    private string? _coverUrl;
+    private readonly Dictionary<string, VisitCardTranslation> _translations = new(StringComparer.OrdinalIgnoreCase);
+
+    private string PhoneBookHref =>
+        Nav.Uri.Contains("/my/author-profile", StringComparison.OrdinalIgnoreCase)
+            ? "/my/author-phonebook"
+            : $"/content/authors/{MemberId}/phonebook";
+
+    private string? PublicUrl
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_card.Slug) || string.IsNullOrWhiteSpace(_state.WebsiteAddress)) return null;
+            var host = _state.WebsiteAddress.Trim().TrimEnd('/');
+            if (!host.StartsWith("http", StringComparison.OrdinalIgnoreCase)) host = "https://" + host;
+            return $"{host}/c/{Uri.EscapeDataString(_card.Slug.Trim())}";
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        _state = await Cards.GetEditorAsync(MemberId);
+        _card = _state.Card;
+        _logoUrl = _state.LogoUrl;
+        _coverUrl = _state.CoverUrl;
+        _translations.Clear();
+        foreach (var t in _card.Translations)
+            if (!string.IsNullOrWhiteSpace(t.Lang))
+                _translations[t.Lang] = t;
+        _loading = false;
+    }
+
+    private VisitCardTranslation Translation(string code)
+    {
+        if (!_translations.TryGetValue(code, out var t))
+        {
+            t = new VisitCardTranslation { Lang = code };
+            _translations[code] = t;
+        }
+        return t;
+    }
+
+    private string? FieldTitle(int n) => n switch
+    {
+        0 => _card.Field1Title, 1 => _card.Field2Title, 2 => _card.Field3Title, 3 => _card.Field4Title, _ => _card.Field5Title,
+    };
+
+    private string? FieldValue(int n) => n switch
+    {
+        0 => _card.Field1Value, 1 => _card.Field2Value, 2 => _card.Field3Value, 3 => _card.Field4Value, _ => _card.Field5Value,
+    };
+
+    private static string? TrFieldTitle(VisitCardTranslation t, int n) => n switch
+    {
+        0 => t.Field1Title, 1 => t.Field2Title, 2 => t.Field3Title, 3 => t.Field4Title, _ => t.Field5Title,
+    };
+
+    private static string? TrFieldValue(VisitCardTranslation t, int n) => n switch
+    {
+        0 => t.Field1Value, 1 => t.Field2Value, 2 => t.Field3Value, 3 => t.Field4Value, _ => t.Field5Value,
+    };
+
+    private static void SetTrFieldTitle(VisitCardTranslation t, int n, string? value)
+    {
+        switch (n)
+        {
+            case 0: t.Field1Title = value; break;
+            case 1: t.Field2Title = value; break;
+            case 2: t.Field3Title = value; break;
+            case 3: t.Field4Title = value; break;
+            default: t.Field5Title = value; break;
+        }
+    }
+
+    private static void SetTrFieldValue(VisitCardTranslation t, int n, string? value)
+    {
+        switch (n)
+        {
+            case 0: t.Field1Value = value; break;
+            case 1: t.Field2Value = value; break;
+            case 2: t.Field3Value = value; break;
+            case 3: t.Field4Value = value; break;
+            default: t.Field5Value = value; break;
+        }
+    }
+
+    private void SetFieldTitle(int n, string? value)
+    {
+        switch (n)
+        {
+            case 0: _card.Field1Title = value; break;
+            case 1: _card.Field2Title = value; break;
+            case 2: _card.Field3Title = value; break;
+            case 3: _card.Field4Title = value; break;
+            default: _card.Field5Title = value; break;
+        }
+    }
+
+    private void SetFieldValue(int n, string? value)
+    {
+        switch (n)
+        {
+            case 0: _card.Field1Value = value; break;
+            case 1: _card.Field2Value = value; break;
+            case 2: _card.Field3Value = value; break;
+            case 3: _card.Field4Value = value; break;
+            default: _card.Field5Value = value; break;
+        }
+    }
+
+    private async Task PickLogoAsync()
+    {
+        if (await PickImageAsync() is FileRecord file)
+        {
+            _card.LogoFileID = file.FileRecordID;
+            _logoUrl = file.ThumbnailCDN ?? file.CNDUrl;
+        }
+    }
+
+    private async Task PickCoverAsync()
+    {
+        if (await PickImageAsync() is FileRecord file)
+        {
+            _card.CoverFileID = file.FileRecordID;
+            _coverUrl = file.CNDUrl ?? file.ThumbnailCDN;
+        }
+    }
+
+    private void ClearLogo() { _card.LogoFileID = null; _logoUrl = null; }
+    private void ClearCover() { _card.CoverFileID = null; _coverUrl = null; }
+
+    private async Task<FileRecord?> PickImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _state.WebsiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: FileRecord file } ? file : null;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            _card.Translations = _translations.Values.ToList();
+            var error = await Cards.SaveAsync(MemberId, _card);
+            if (error is not null)
+            {
+                Snackbar.Add(error, Severity.Warning);
+                return;
+            }
+            _state = await Cards.GetEditorAsync(MemberId);
+            _card = _state.Card;
+            _logoUrl = _state.LogoUrl;
+            _coverUrl = _state.CoverUrl;
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+}

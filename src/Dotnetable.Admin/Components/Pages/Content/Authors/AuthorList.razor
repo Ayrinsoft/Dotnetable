@@ -47,13 +47,14 @@
                 <th>@L["authors.resume_page", "Résumé page"]</th>
                 <th>@L["authors.items_count", "Résumé items"]</th>
                 <th>@L["posts", "Posts"]</th>
+                <th>@L["authors.card", "Digital visiting card"]</th>
             </tr>
         </thead>
         <tbody>
             @if (Filtered.Count == 0)
             {
                 <tr>
-                    <td colspan="7" style="text-align:center; padding:32px;">
+                    <td colspan="8" style="text-align:center; padding:32px;">
                         <MudText Color="Color.Secondary">@L["authors.empty", "No members found."]</MudText>
                     </td>
                 </tr>
@@ -86,6 +87,16 @@
                     </td>
                     <td>@a.ResumeItemCount</td>
                     <td>@a.PostCount</td>
+                    <td>
+                        @if (a.VisitCardEnabled && !string.IsNullOrWhiteSpace(a.VisitCardSlug))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">/c/@a.VisitCardSlug</MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">–</MudText>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>

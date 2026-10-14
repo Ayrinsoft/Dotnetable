@@ -208,6 +208,13 @@ public class ApiClient
             catch (NotSupportedException) { return Array.Empty<PostSummaryDto>(); }
         }) ?? Array.Empty<PostSummaryDto>();
 
+    /// <summary>A published digital visiting card, or null when the short link is unknown or the API is unreachable.</summary>
+    public Task<VisitCardPageDto?> GetVisitCardAsync(string slug, CancellationToken ct = default) =>
+        GetOrNullAsync<VisitCardPageDto>($"api/visit-cards/{Uri.EscapeDataString(slug)}", ct);
+
+    public Task<AuthApiResult> SubmitVisitCardContactAsync(string slug, VisitCardContactRequest request, CancellationToken ct = default) =>
+        PostAsync($"api/visit-cards/{Uri.EscapeDataString(slug)}/contacts", request, ct);
+
     /// <summary>An author's public page (bio, résumé, timeline), or null when the author is unknown,
     /// has not published their page, or the API is unreachable.</summary>
     public Task<AuthorPageDto?> GetAuthorAsync(string slug, string? lang = null, CancellationToken ct = default) =>

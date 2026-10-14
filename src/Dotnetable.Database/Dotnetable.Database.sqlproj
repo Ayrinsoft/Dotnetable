@@ -166,6 +166,8 @@
     <Build Include="AuthorProfileTranslations.sql" />
     <Build Include="AuthorResumeItems.sql" />
     <Build Include="AuthorResumeItemTranslations.sql" />
+    <Build Include="AuthorVisitCards.sql" />
+    <Build Include="AuthorVisitCardContacts.sql" />
     <Build Include="AttributeDefinitionTranslations.sql" />
     <Build Include="AttributeDefinitions.sql" />
     <Build Include="Categories.sql" />

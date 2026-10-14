@@ -35,6 +35,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AuthorResumeItemTranslation> AuthorResumeItemTranslations { get; set; }
 
+    public virtual DbSet<AuthorVisitCard> AuthorVisitCards { get; set; }
+
+    public virtual DbSet<AuthorVisitCardContact> AuthorVisitCardContacts { get; set; }
+
     public virtual DbSet<Bank> Banks { get; set; }
 
     public virtual DbSet<BankAccount> BankAccounts { get; set; }
@@ -1285,6 +1289,99 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.AuthorResumeItemID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_AuthorResumeItemTranslations_AuthorResumeItems");
+        });
+
+        modelBuilder.Entity<AuthorVisitCard>(entity =>
+        {
+            entity.HasIndex(e => e.MemberID, "IX_AuthorVisitCards_MemberID").IsUnique();
+
+            entity.HasIndex(e => new { e.WebsiteID, e.Slug }, "IX_AuthorVisitCards_WebsiteID_Slug")
+                .IsUnique()
+                .HasFilter("[Slug] IS NOT NULL");
+
+            entity.HasIndex(e => e.LogoFileID, "IX_AuthorVisitCards_LogoFileID");
+            entity.HasIndex(e => e.CoverFileID, "IX_AuthorVisitCards_CoverFileID");
+
+            entity.Property(e => e.Slug).HasMaxLength(32).IsUnicode(false);
+            entity.Property(e => e.FullName).HasMaxLength(70);
+            entity.Property(e => e.BrandName).HasMaxLength(70);
+            entity.Property(e => e.JobTitle).HasMaxLength(60);
+            entity.Property(e => e.Slogan).HasMaxLength(160);
+            entity.Property(e => e.Mobile).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Phone).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.WhatsApp).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Address).HasMaxLength(250);
+            entity.Property(e => e.WebsiteUrl).HasMaxLength(200);
+            entity.Property(e => e.Email).HasMaxLength(120);
+            entity.Property(e => e.CardColor).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.PageColor).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Field1Title).HasMaxLength(50);
+            entity.Property(e => e.Field1Value).HasMaxLength(250);
+            entity.Property(e => e.Field2Title).HasMaxLength(50);
+            entity.Property(e => e.Field2Value).HasMaxLength(250);
+            entity.Property(e => e.Field3Title).HasMaxLength(50);
+            entity.Property(e => e.Field3Value).HasMaxLength(250);
+            entity.Property(e => e.Field4Title).HasMaxLength(50);
+            entity.Property(e => e.Field4Value).HasMaxLength(250);
+            entity.Property(e => e.Field5Title).HasMaxLength(50);
+            entity.Property(e => e.Field5Value).HasMaxLength(250);
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.Bank1HolderName).HasMaxLength(70);
+            entity.Property(e => e.Bank1Details).HasMaxLength(120);
+            entity.Property(e => e.Bank1Sheba).HasMaxLength(26).IsUnicode(false);
+            entity.Property(e => e.Bank1CardNumber).HasMaxLength(16).IsUnicode(false);
+            entity.Property(e => e.Bank2HolderName).HasMaxLength(70);
+            entity.Property(e => e.Bank2Details).HasMaxLength(120);
+            entity.Property(e => e.Bank2Sheba).HasMaxLength(26).IsUnicode(false);
+            entity.Property(e => e.Bank2CardNumber).HasMaxLength(16).IsUnicode(false);
+            entity.Property(e => e.Enabled).HasDefaultValue(false);
+            entity.Property(e => e.IsPortrait).HasDefaultValue(true);
+            entity.Property(e => e.CardLayout).HasDefaultValue((byte)0);
+            entity.Property(e => e.ThemeMode).HasDefaultValue((byte)0);
+            entity.Property(e => e.PhoneBookEnabled).HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+
+            entity.HasOne(d => d.Member).WithOne(p => p.VisitCard)
+                .HasForeignKey<AuthorVisitCard>(d => d.MemberID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorVisitCards_Members");
+
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorVisitCards_Websites");
+
+            entity.HasOne(d => d.LogoFile).WithMany()
+                .HasForeignKey(d => d.LogoFileID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorVisitCards_FileRecords_Logo");
+
+            entity.HasOne(d => d.CoverFile).WithMany()
+                .HasForeignKey(d => d.CoverFileID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AuthorVisitCards_FileRecords_Cover");
+        });
+
+        modelBuilder.Entity<AuthorVisitCardContact>(entity =>
+        {
+            entity.HasKey(e => e.ContactID);
+            entity.HasIndex(e => e.AuthorVisitCardID, "IX_AuthorVisitCardContacts_AuthorVisitCardID");
+
+            entity.Property(e => e.Name).HasMaxLength(70);
+            entity.Property(e => e.Mobile).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Email).HasMaxLength(120);
+            entity.Property(e => e.Reason).HasMaxLength(2000);
+            entity.Property(e => e.DisplayName).HasMaxLength(70);
+            entity.Property(e => e.Note).HasMaxLength(200);
+            entity.Property(e => e.VisitorKey).HasMaxLength(32).IsUnicode(false).IsFixedLength();
+            entity.Property(e => e.LogTime).HasPrecision(0);
+            entity.Property(e => e.SavedContact).HasDefaultValue(false);
+
+            entity.HasOne(d => d.AuthorVisitCard).WithMany(p => p.Contacts)
+                .HasForeignKey(d => d.AuthorVisitCardID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AuthorVisitCardContacts_AuthorVisitCards");
         });
 
         modelBuilder.Entity<ContentComment>(entity =>

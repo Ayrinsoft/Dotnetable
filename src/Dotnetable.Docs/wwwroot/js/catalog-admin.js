@@ -867,6 +867,10 @@ window.DOCS_ADMIN = {
               en: "Site owners with `authors.manage` see every member under Content → **Authors** and can edit anyone's profile on their website.",
               fa: "مدیر سایت با دسترسی `authors.manage` همه کاربران را در محتوا ← **Authors** می‌بیند و می‌تواند پروفایل هر کاربر سایت خود را ویرایش کند.",
             },
+            {
+              en: "Under **Digital visiting card**, turn on **Publish this visiting card** and set a short link such as `aliu`. The public page is `/c/aliu`. Fill name, job, phones, WhatsApp, email, website, address, logo, cover, colours, layout (flip card, photo banner or portrait), theme, up to five custom fields, two Iranian bank accounts, social links, map pins and extra languages (English, Arabic, Turkish, German, French, Russian). **Let visitors leave their number** shows the form where a visitor saves their phone or email and why they should be called. Open **Visiting card phone book** to read, rename, note, download a contact file, or delete those rows.",
+              fa: "در بخش **Digital visiting card** گزینه **Publish this visiting card** را روشن کنید و یک لینک کوتاه مثل `aliu` بگذارید. صفحه عمومی `/c/aliu` است. نام، شغل، تلفن‌ها، واتساپ، ایمیل، وب‌سایت، آدرس، لوگو، عکس کاور، رنگ‌ها، چیدمان (کارت چرخان، بنر عکس یا پرتره)، پوسته، تا پنج فیلد دلخواه، دو حساب بانکی، شبکه‌های اجتماعی، نقاط نقشه و زبان‌های اضافه (انگلیسی، عربی، ترکی، آلمانی، فرانسه، روسی) را پر کنید. **Let visitors leave their number** فرم ثبت شماره یا ایمیل بازدیدکننده و دلیل تماس را نشان می‌دهد. **Visiting card phone book** همان دفتر تلفن است: دیدن، تغییر نام، یادداشت، دانلود فایل مخاطب یا حذف.",
+            },
           ],
           tips: [
             {

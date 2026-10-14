@@ -64,6 +64,9 @@ public partial class Member
     /// <summary>Public author bio / online résumé, when the member has set one up.</summary>
     public virtual AuthorProfile? AuthorProfile { get; set; }
 
+    /// <summary>Digital visiting card, when the member has one.</summary>
+    public virtual AuthorVisitCard? VisitCard { get; set; }
+
     public virtual ICollection<BankAccount> BankAccounts { get; set; } = new List<BankAccount>();
 
     public virtual ICollection<ClientWalletTransaction> ClientWalletTransactions { get; set; } = new List<ClientWalletTransaction>();

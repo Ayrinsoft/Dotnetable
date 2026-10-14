@@ -1,0 +1,156 @@
+@using Dotnetable.Application.VisitCards
+@inject IAuthorVisitCardService Cards
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject IPageLocalizer L
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!_page.HasCard)
+{
+    <MudAlert Severity="Severity.Info">@L["authors.card_phonebook_empty_card", "Save a visiting card for this person first. The phone book appears after the card exists."]</MudAlert>
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (!_page.PhoneBookEnabled)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">@L["authors.card_phonebook_off", "Visitors cannot leave a number while that option is off. Rows already stored stay here."]</MudAlert>
+        }
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudTextField @bind-Value="_search" Placeholder="@L["search", "Search"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                          Style="max-width:280px;" />
+            <MudCheckBox T="bool" @bind-Value="_onlySaved" Label="@L["authors.card_only_saved", "Only people who saved the contact"]" Color="Color.Primary" />
+            <MudButton Variant="Variant.Outlined" OnClick="ReloadAsync">@L["search", "Search"]</MudButton>
+        </MudStack>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">@_page.TotalCount</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["name", "Name"]</th>
+                    <th>@L["authors.card_mobile", "Mobile"]</th>
+                    <th>@L["email", "Email"]</th>
+                    <th>@L["authors.card_reason", "Why to call"]</th>
+                    <th>@L["authors.card_note", "Note"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_page.Items.Count == 0)
+                {
+                    <tr><td colspan="7" style="text-align:center;padding:28px;">@L["authors.card_phonebook_none", "No contacts yet."]</td></tr>
+                }
+                @foreach (var c in _page.Items)
+                {
+                    <tr>
+                        <td>
+                            @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.Name : c.DisplayName)
+                            @if (c.SavedContact)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ms-1">@L["authors.card_saved", "Saved card"]</MudChip>
+                            }
+                        </td>
+                        <td>@(c.Mobile ?? "—")</td>
+                        <td>@(c.Email ?? "—")</td>
+                        <td style="max-width:280px;white-space:pre-line;">@c.Reason</td>
+                        <td>@(c.Note ?? "—")</td>
+                        <td>@c.LogTime.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenEdit(c))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" Color="Color.Success" OnClick="@(() => DownloadAsync(c))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(c))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        <MudStack Row="true" Spacing="2" Class="mt-3">
+            <MudButton Disabled="@(_page.Page <= 1)" OnClick="@(() => GoAsync(_page.Page - 1))">@L["previous", "Previous"]</MudButton>
+            <MudButton Disabled="@(_page.Page * _page.PageSize >= _page.TotalCount)" OnClick="@(() => GoAsync(_page.Page + 1))">@L["next", "Next"]</MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudDialog @bind-Visible="_editOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true })">
+        <TitleContent>@L["authors.card_edit_contact", "Edit contact"]</TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_editName" Label="@L["authors.card_display_name", "Name you want to see"]" Variant="Variant.Outlined" MaxLength="70" Class="mb-3" />
+            <MudTextField @bind-Value="_editNote" Label="@L["authors.card_note", "Note"]" Variant="Variant.Outlined" Lines="3" MaxLength="200" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _editOpen = false)">@L["cancel", "Cancel"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEditAsync">@L["save", "Save"]</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    [Parameter, EditorRequired] public int MemberId { get; set; }
+
+    private bool _loading = true;
+    private string? _search;
+    private bool _onlySaved;
+    private VisitCardPhoneBookPage _page = new();
+    private bool _editOpen;
+    private int _editId;
+    private string? _editName;
+    private string? _editNote;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        _page = await Cards.ListContactsAsync(MemberId, _search, _onlySaved, _page.Page < 1 ? 1 : _page.Page, 50);
+        _loading = false;
+    }
+
+    private async Task GoAsync(int page)
+    {
+        _page = await Cards.ListContactsAsync(MemberId, _search, _onlySaved, page, 50);
+    }
+
+    private void OpenEdit(VisitCardContactItem item)
+    {
+        _editId = item.ContactID;
+        _editName = item.DisplayName ?? item.Name;
+        _editNote = item.Note;
+        _editOpen = true;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        var ok = await Cards.UpdateContactAsync(MemberId, _editId, _editName, _editNote);
+        if (!ok) { Snackbar.Add(L["save_failed", "Save failed"], Severity.Error); return; }
+        _editOpen = false;
+        await ReloadAsync();
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+    }
+
+    private async Task DeleteAsync(VisitCardContactItem item)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["delete", "Delete"],
+            string.Format(L["authors.card_delete_confirm", "Remove {0} from the phone book?"], item.DisplayName ?? item.Name),
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await Cards.DeleteContactAsync(MemberId, item.ContactID);
+        await ReloadAsync();
+    }
+
+    private async Task DownloadAsync(VisitCardContactItem item)
+    {
+        var vcf = VisitCardRules.BuildVcf(item.DisplayName ?? item.Name, null, null, item.Mobile, null, item.Email, null, null, item.Reason);
+        var file = (item.DisplayName ?? item.Name).Replace('\\', ' ').Replace('/', ' ').Trim();
+        if (file.Length == 0) file = "contact";
+        await JS.InvokeVoidAsync("dnSaveTextFile", file + ".vcf", "text/vcard;charset=utf-8", vcf);
+    }
+}

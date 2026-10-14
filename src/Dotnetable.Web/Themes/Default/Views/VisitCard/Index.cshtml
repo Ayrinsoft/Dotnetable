@@ -1,0 +1,479 @@
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using Dotnetable.Application.DTOs
+@using Dotnetable.Application.VisitCards
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@model VisitCardPageDto
+@{
+    Layout = null;
+    var tokens = Antiforgery.GetAndStoreTokens(Context);
+    var card = Model;
+    var cardColor = card.CardColor;
+    var pageColor = card.PageColor;
+    var ink = VisitCardRules.ContrastInk(cardColor);
+    var layout = card.CardLayout switch { 1 => "banner", 2 => "profile", _ => "classic" };
+    var theme = card.ThemeMode == 1 ? "light" : "dark";
+    var name = string.IsNullOrWhiteSpace(card.FullName) ? card.BrandName : card.FullName;
+    var wa = string.IsNullOrWhiteSpace(card.WhatsApp) ? null : Regex.Replace(card.WhatsApp, "[^0-9]", "");
+    string? Group4(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+        var parts = new List<string>();
+        for (var i = 0; i < value.Length; i += 4)
+            parts.Add(value.Substring(i, Math.Min(4, value.Length - i)));
+        return string.Join(' ', parts);
+    }
+    bool BankOn(string? sheba, string? pan) => !string.IsNullOrWhiteSpace(sheba) || !string.IsNullOrWhiteSpace(pan);
+    var fields = new (string? Title, string? Value, string Key)[]
+    {
+        (card.Field1Title, card.Field1Value, "Field1"),
+        (card.Field2Title, card.Field2Value, "Field2"),
+        (card.Field3Title, card.Field3Value, "Field3"),
+        (card.Field4Title, card.Field4Value, "Field4"),
+        (card.Field5Title, card.Field5Value, "Field5"),
+    };
+    string Icon(string network) => network switch
+    {
+        "instagram" => "bi-instagram",
+        "telegram" => "bi-telegram",
+        "youtube" => "bi-youtube",
+        "whatsapp" => "bi-whatsapp",
+        "linkedin" => "bi-linkedin",
+        "facebook" => "bi-facebook",
+        "github" => "bi-github",
+        "x" => "bi-twitter-x",
+        "aparat" => "bi-play-btn",
+        "bale" or "rubika" or "eitaa" => "bi-chat-dots",
+        _ => "bi-link-45deg",
+    };
+    var payload = JsonSerializer.Serialize(new
+    {
+        slug = card.Slug,
+        fullName = name ?? "",
+        brand = card.BrandName ?? "",
+        job = card.JobTitle ?? "",
+        mobile = card.Mobile ?? "",
+        phone = card.Phone ?? "",
+        email = card.Email ?? "",
+        website = card.Website ?? "",
+        address = card.Address ?? "",
+        slogan = card.Slogan ?? "",
+        description = card.Description ?? "",
+        fields = fields.Select(f => new { key = f.Key, title = f.Title ?? "", value = f.Value ?? "" }),
+        translations = card.Translations.Select(t => new
+        {
+            t.Lang, t.FullName, t.BrandName, t.JobTitle, t.Slogan, t.Address, t.Description,
+            t.Field1Title, t.Field1Value, t.Field2Title, t.Field2Value, t.Field3Title, t.Field3Value,
+            t.Field4Title, t.Field4Value, t.Field5Title, t.Field5Value,
+        }),
+    }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(name ?? card.Slug)</title>
+    <link rel="stylesheet" href="/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <style>
+        :root { color-scheme: dark; }
+        body { margin: 0; }
+        .vc {
+            --card: @cardColor; --page: @pageColor; --ink: @ink;
+            --text: #f4f7fb; --dim: rgba(255,255,255,.68); --line: rgba(255,255,255,.14);
+            --sheet: color-mix(in srgb, var(--page) 22%, #12151c);
+            min-height: 100vh; color: var(--text);
+            background:
+                radial-gradient(60vw 40vh at 10% -8%, color-mix(in srgb, var(--card) 46%, transparent), transparent 62%),
+                linear-gradient(180deg, color-mix(in srgb, var(--page) 55%, #05070c), #05070c);
+            font-family: Tahoma, "Segoe UI", sans-serif;
+            padding: 0 16px 72px; display: flex; flex-direction: column; align-items: center;
+        }
+        .vc[data-theme="light"] {
+            --text: #162033; --dim: rgba(22,32,51,.62); --line: rgba(22,32,51,.12);
+            --sheet: #fff; color-scheme: light;
+            background: linear-gradient(180deg, color-mix(in srgb, var(--page) 18%, #f6f8fb), #f6f8fb);
+        }
+        .vc * { box-sizing: border-box; }
+        .vc-bar { width: min(440px, 100%); display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+        .vc-bar button, .vc-langs button {
+            border: 1px solid var(--line); background: transparent; color: var(--text);
+            border-radius: 999px; padding: 6px 12px; font: inherit; cursor: pointer;
+        }
+        .vc-langs { display: flex; flex-wrap: wrap; gap: 6px; }
+        .vc-langs button[aria-pressed="true"] { background: var(--card); color: var(--ink); border-color: transparent; }
+        .vc-hero { width: calc(100% + 32px); margin: 18px -16px 0; height: clamp(160px, 34vw, 280px);
+            background-size: cover; background-position: center; border-radius: 0 0 28px 28px; }
+        .vc-stage { width: min(440px, 100%); margin-top: 22px; }
+        .vc-flip { perspective: 1200px; cursor: pointer; }
+        .vc-flip.land { }
+        .vc-inner { position: relative; transform-style: preserve-3d; transition: transform .6s; min-height: 220px; }
+        .vc-flip.flipped .vc-inner { transform: rotateY(180deg); }
+        .vc-face {
+            border-radius: 22px; padding: 22px; backface-visibility: hidden;
+            background: linear-gradient(160deg, var(--card), color-mix(in srgb, var(--card) 55%, #000));
+            color: var(--ink); min-height: 220px;
+            box-shadow: 0 18px 40px -22px rgba(0,0,0,.7);
+        }
+        .vc-back { position: absolute; inset: 0; transform: rotateY(180deg); background: var(--sheet); color: var(--text); }
+        .vc-logo { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; background: rgba(255,255,255,.2); }
+        .vc-logo.round { border-radius: 50%; width: 96px; height: 96px; }
+        .vc h1 { margin: 10px 0 0; font-size: 1.45rem; }
+        .vc .job { opacity: .9; margin-top: 4px; }
+        .vc .brand { font-weight: 700; }
+        .vc .slogan { margin-top: 10px; border-inline-start: 2px solid currentColor; padding-inline-start: 10px; opacity: .9; }
+        .vc .hint { margin-top: 14px; font-size: .8rem; opacity: .75; }
+        .vc-actions { width: min(440px, 100%); display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+        .vc-actions a, .vc-actions button {
+            flex: 1 1 30%; text-decoration: none; color: var(--text); background: var(--sheet);
+            border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px; text-align: center;
+            font: inherit; cursor: pointer;
+        }
+        .vc-section { width: min(440px, 100%); margin-top: 14px; background: var(--sheet); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; }
+        .vc-section h2 { margin: 0 0 10px; font-size: .95rem; }
+        .vc-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); color: inherit; text-decoration: none; }
+        .vc-row span { color: var(--dim); }
+        .vc-socials { display: flex; flex-wrap: wrap; gap: 8px; }
+        .vc-socials a { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--text); background: color-mix(in srgb, var(--card) 18%, transparent); text-decoration: none; font-size: 1.15rem; }
+        .vc-about { white-space: pre-line; line-height: 1.7; }
+        .vc input, .vc textarea {
+            width: 100%; margin-top: 8px; border-radius: 12px; border: 1px solid var(--line);
+            background: transparent; color: inherit; font: inherit; padding: 10px 12px;
+        }
+        .vc .send { width: 100%; margin-top: 10px; border: 0; border-radius: 12px; padding: 12px; font: inherit; font-weight: 700; background: var(--card); color: var(--ink); cursor: pointer; }
+        .vc .msg { min-height: 1.2em; font-size: .85rem; }
+        .hp { position: absolute; left: -9999px; }
+        .vc-credit { margin-top: 22px; color: var(--dim); font-size: .8rem; }
+        .vc[dir="ltr"] { font-family: system-ui, "Segoe UI", sans-serif; }
+        .vc-layout-banner .vc-flip, .vc-layout-profile .vc-flip { display: none; }
+        .vc-layout-classic .vc-static, .vc-layout-classic .vc-static-about { display: none; }
+        .vc-layout-classic .vc-hero, .vc-layout-profile .vc-hero { display: none; }
+        .vc-copy { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+        .vc-head { text-align: center; margin-top: 8px; }
+        @@media (min-width: 720px) {
+            .vc-flip.land .vc-face { min-height: 180px; }
+            .vc-stage.wide { width: min(680px, 100%); }
+        }
+    </style>
+</head>
+<body>
+<div class="vc vc-layout-@layout" id="vc" dir="rtl" data-theme="@theme">
+    <div class="vc-bar">
+        <div class="vc-langs" id="vcLangs">
+            <button type="button" data-lang="fa" aria-pressed="true">فارسی</button>
+            @foreach (var t in card.Translations.Where(t => t.Lang is not null && VisitCardRules.Languages.ContainsKey(t.Lang)))
+            {
+                <button type="button" data-lang="@t.Lang">@VisitCardRules.Languages[t.Lang!].Name</button>
+            }
+        </div>
+        <button type="button" id="vcTheme" aria-label="theme"><i class="bi bi-circle-half"></i></button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(card.CoverUrl))
+    {
+        <div class="vc-hero" style="background-image:url('@card.CoverUrl')"></div>
+    }
+
+    <div class="vc-stage @(card.IsPortrait ? "" : "wide")">
+        <div class="vc-head vc-static">
+            @if (!string.IsNullOrEmpty(card.LogoUrl))
+            {
+                <img class="vc-logo round" src="@card.LogoUrl" alt="" />
+            }
+            <h1 data-k="fullName">@name</h1>
+            @if (!string.IsNullOrWhiteSpace(card.JobTitle)) { <div class="job" data-k="job">@card.JobTitle</div> }
+            @if (!string.IsNullOrWhiteSpace(card.BrandName)) { <div class="brand" data-k="brand">@card.BrandName</div> }
+            @if (!string.IsNullOrWhiteSpace(card.Slogan)) { <div class="slogan" data-k="slogan">@card.Slogan</div> }
+        </div>
+        <div class="vc-flip @(card.IsPortrait ? "" : "land")" id="vcFlip">
+            <div class="vc-inner">
+                <div class="vc-face">
+                    @if (!string.IsNullOrEmpty(card.LogoUrl))
+                    {
+                        <img class="vc-logo" src="@card.LogoUrl" alt="" />
+                    }
+                    <h1 data-k="fullName">@name</h1>
+                    @if (!string.IsNullOrWhiteSpace(card.JobTitle)) { <div class="job" data-k="job">@card.JobTitle</div> }
+                    @if (!string.IsNullOrWhiteSpace(card.BrandName)) { <div class="brand" data-k="brand">@card.BrandName</div> }
+                    @if (!string.IsNullOrWhiteSpace(card.Slogan)) { <div class="slogan" data-k="slogan">@card.Slogan</div> }
+                    <div class="hint" data-ui="flip">برای دیدن توضیحات ضربه بزنید</div>
+                </div>
+                <div class="vc-face vc-back">
+                    <div class="vc-about" data-k="description">@card.Description</div>
+                    <div class="hint" data-ui="back">برای بازگشت ضربه بزنید</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vc-actions">
+        @if (!string.IsNullOrWhiteSpace(card.Mobile))
+        {
+            <a href="tel:@card.Mobile"><i class="bi bi-telephone"></i> <span data-ui="call">تماس</span></a>
+        }
+        @if (wa is not null)
+        {
+            <a href="https://wa.me/@wa" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i> <span data-ui="whatsapp">واتساپ</span></a>
+        }
+        @if (!string.IsNullOrWhiteSpace(card.Email))
+        {
+            <a href="mailto:@card.Email"><i class="bi bi-envelope"></i> <span data-ui="email">ایمیل</span></a>
+        }
+        @if (!string.IsNullOrWhiteSpace(card.Website))
+        {
+            <a href="@card.Website" target="_blank" rel="noopener"><i class="bi bi-globe2"></i> <span data-ui="website">وب‌سایت</span></a>
+        }
+        @if (card.Locations.Count > 0)
+        {
+            <a href="https://www.google.com/maps?q=@card.Locations[0].Lat.ToString(System.Globalization.CultureInfo.InvariantCulture),@card.Locations[0].Lng.ToString(System.Globalization.CultureInfo.InvariantCulture)" target="_blank" rel="noopener"><i class="bi bi-geo-alt"></i> <span data-ui="map">مسیر</span></a>
+        }
+        <button type="button" id="vcSave"><i class="bi bi-person-plus"></i> <span data-ui="save">ذخیره مخاطب</span></button>
+        @if (card.PhoneBookEnabled)
+        {
+            <button type="button" id="vcLeave"><i class="bi bi-journal-text"></i> <span data-ui="leave">شماره من</span></button>
+        }
+    </div>
+
+    <section class="vc-section">
+        <h2 data-ui="contact">اطلاعات تماس</h2>
+        @if (!string.IsNullOrWhiteSpace(card.Mobile)) { <div class="vc-row"><span data-ui="mobile">موبایل</span><b>@card.Mobile</b></div> }
+        @if (!string.IsNullOrWhiteSpace(card.Phone)) { <div class="vc-row"><span data-ui="phone">تلفن</span><b>@card.Phone</b></div> }
+        @if (!string.IsNullOrWhiteSpace(card.Email)) { <div class="vc-row"><span data-ui="email">ایمیل</span><b>@card.Email</b></div> }
+        @if (!string.IsNullOrWhiteSpace(card.Address)) { <div class="vc-row"><span data-ui="address">آدرس</span><b data-k="address">@card.Address</b></div> }
+        @foreach (var pin in card.Locations)
+        {
+            var lat = pin.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var lng = pin.Lng.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var pinTitle = string.IsNullOrWhiteSpace(pin.Title) ? "موقعیت روی نقشه" : pin.Title;
+            <a class="vc-row" href="https://www.google.com/maps/search/?api=1&query=@lat,@lng" target="_blank" rel="noopener">
+                <span data-ui="map">مسیر</span><b>@pinTitle</b>
+            </a>
+        }
+        @foreach (var f in fields.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
+        {
+            <div class="vc-row" data-field="@f.Key">
+                <span data-fk="@f.Key">@(string.IsNullOrWhiteSpace(f.Title) ? "اطلاعات" : f.Title)</span>
+                <b data-fv="@f.Key">@f.Value</b>
+            </div>
+        }
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(card.Description))
+    {
+        <section class="vc-section vc-static-about">
+            <h2 data-ui="about">درباره</h2>
+            <div class="vc-about" data-k="description">@card.Description</div>
+        </section>
+    }
+
+    @if (BankOn(card.Bank1Sheba, card.Bank1CardNumber) || BankOn(card.Bank2Sheba, card.Bank2CardNumber))
+    {
+        <section class="vc-section">
+            <h2 data-ui="bank">اطلاعات بانکی</h2>
+            @foreach (var b in new[]
+            {
+                (card.Bank1HolderName, card.Bank1Details, card.Bank1Sheba, card.Bank1CardNumber),
+                (card.Bank2HolderName, card.Bank2Details, card.Bank2Sheba, card.Bank2CardNumber),
+            })
+            {
+                if (!BankOn(b.Item3, b.Item4)) { continue; }
+                <div class="vc-row"><span data-ui="holder">دارنده حساب</span><b>@b.Item1</b></div>
+                @if (!string.IsNullOrWhiteSpace(b.Item2)) { <div class="vc-row"><span></span><b>@b.Item2</b></div> }
+                @if (!string.IsNullOrWhiteSpace(b.Item3))
+                {
+                    <div class="vc-row"><span data-ui="sheba">شبا</span><b><button type="button" class="vc-copy" data-copy="@b.Item3">@b.Item3</button></b></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(b.Item4))
+                {
+                    <div class="vc-row"><span data-ui="pan">کارت</span><b><button type="button" class="vc-copy" data-copy="@b.Item4">@Group4(b.Item4)</button></b></div>
+                }
+            }
+        </section>
+    }
+
+    @if (card.SocialLinks.Count > 0)
+    {
+        <section class="vc-section">
+            <h2 data-ui="socials">شبکه‌های اجتماعی</h2>
+            <div class="vc-socials">
+                @foreach (var s in card.SocialLinks)
+                {
+                    <a href="@s.Url" target="_blank" rel="noopener" title="@s.Network"><i class="bi @Icon(s.Network)"></i></a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (card.PhoneBookEnabled)
+    {
+        <section class="vc-section" id="vcBook">
+            <h2 data-ui="leaveTitle">شماره من را ثبت کن</h2>
+            <p class="vc-about" data-ui="leaveHint" style="color:var(--dim);margin-top:0;">نام، شماره یا ایمیل، و بابت چه کاری با شما تماس گرفته شود.</p>
+            <form id="vcForm">
+                <input class="hp" name="company" tabindex="-1" autocomplete="off" />
+                <input name="name" maxlength="70" required placeholder="نام" data-ph="name" />
+                <input name="mobile" maxlength="20" inputmode="tel" placeholder="شماره تماس" data-ph="mobile" />
+                <input name="email" maxlength="120" inputmode="email" placeholder="ایمیل" data-ph="email" />
+                <textarea name="reason" maxlength="300" required rows="3" placeholder="بابت چه کاری؟" data-ph="reason"></textarea>
+                <button class="send" type="submit" data-ui="send">ثبت</button>
+                <div class="msg" id="vcMsg"></div>
+            </form>
+        </section>
+    }
+
+    @if (!string.IsNullOrEmpty(card.ResumeSlug))
+    {
+        <a class="vc-credit" href="/author/@card.ResumeSlug" data-ui="resume">صفحه نویسنده</a>
+    }
+    <div class="vc-credit" data-ui="credit">@(card.WebsiteName)</div>
+</div>
+<script type="application/json" id="vc-data">@Html.Raw(payload)</script>
+<script>
+(function () {
+    var root = document.getElementById('vc');
+    var data = JSON.parse(document.getElementById('vc-data').textContent);
+    var ui = {
+        fa: { flip: 'برای دیدن توضیحات ضربه بزنید', back: 'برای بازگشت ضربه بزنید', call: 'تماس', whatsapp: 'واتساپ', email: 'ایمیل', website: 'وب‌سایت', map: 'مسیر', save: 'ذخیره مخاطب', leave: 'شماره من', contact: 'اطلاعات تماس', mobile: 'موبایل', phone: 'تلفن', address: 'آدرس', about: 'درباره', bank: 'اطلاعات بانکی', holder: 'دارنده حساب', sheba: 'شبا', pan: 'کارت', socials: 'شبکه‌های اجتماعی', leaveTitle: 'شماره من را ثبت کن', leaveHint: 'نام، شماره یا ایمیل، و بابت چه کاری با شما تماس گرفته شود.', send: 'ثبت', resume: 'صفحه نویسنده', copied: 'کپی شد', ok: 'ثبت شد. ممنون.', fail: 'ثبت انجام نشد.', namePh: 'نام', mobilePh: 'شماره تماس', emailPh: 'ایمیل', reasonPh: 'بابت چه کاری؟' },
+        en: { flip: 'Tap to read more', back: 'Tap to flip back', call: 'Call', whatsapp: 'WhatsApp', email: 'Email', website: 'Website', map: 'Directions', save: 'Save contact', leave: 'My number', contact: 'Contact', mobile: 'Mobile', phone: 'Phone', address: 'Address', about: 'About', bank: 'Bank details', holder: 'Account holder', sheba: 'IBAN', pan: 'Card', socials: 'Social networks', leaveTitle: 'Leave my number', leaveHint: 'Your name, a phone or email, and why you should be contacted.', send: 'Send', resume: 'Author page', copied: 'Copied', ok: 'Saved. Thank you.', fail: 'Could not save that.', namePh: 'Name', mobilePh: 'Phone', emailPh: 'Email', reasonPh: 'Why should we call?' },
+        ar: { flip: 'اضغط للمزيد', back: 'اضغط للرجوع', call: 'اتصال', whatsapp: 'واتساب', email: 'البريد', website: 'الموقع', map: 'الاتجاهات', save: 'حفظ جهة الاتصال', leave: 'رقمي', contact: 'التواصل', mobile: 'الجوال', phone: 'الهاتف', address: 'العنوان', about: 'نبذة', bank: 'البنك', holder: 'صاحب الحساب', sheba: 'آيبان', pan: 'البطاقة', socials: 'التواصل الاجتماعي', leaveTitle: 'سجّل رقمي', leaveHint: 'الاسم ورقم أو بريد وسبب التواصل.', send: 'إرسال', resume: 'صفحة الكاتب', copied: 'تم النسخ', ok: 'تم الحفظ.', fail: 'تعذر الحفظ.', namePh: 'الاسم', mobilePh: 'الهاتف', emailPh: 'البريد', reasonPh: 'سبب التواصل' },
+        tr: { flip: 'Daha fazlası için dokunun', back: 'Geri dönmek için dokunun', call: 'Ara', whatsapp: 'WhatsApp', email: 'E-posta', website: 'Web sitesi', map: 'Yol tarifi', save: 'Kişiyi kaydet', leave: 'Numaram', contact: 'İletişim', mobile: 'Cep', phone: 'Telefon', address: 'Adres', about: 'Hakkında', bank: 'Banka', holder: 'Hesap sahibi', sheba: 'IBAN', pan: 'Kart', socials: 'Sosyal ağlar', leaveTitle: 'Numaramı bırak', leaveHint: 'Adınız, telefon veya e-posta ve neden aranmalısınız.', send: 'Gönder', resume: 'Yazar sayfası', copied: 'Kopyalandı', ok: 'Kaydedildi. Teşekkürler.', fail: 'Kaydedilemedi.', namePh: 'Ad', mobilePh: 'Telefon', emailPh: 'E-posta', reasonPh: 'Neden arayalım?' },
+        de: { flip: 'Tippen für mehr', back: 'Tippen zum Zurückdrehen', call: 'Anrufen', whatsapp: 'WhatsApp', email: 'E-Mail', website: 'Website', map: 'Route', save: 'Kontakt speichern', leave: 'Meine Nummer', contact: 'Kontakt', mobile: 'Mobil', phone: 'Telefon', address: 'Adresse', about: 'Über', bank: 'Bankdaten', holder: 'Kontoinhaber', sheba: 'IBAN', pan: 'Karte', socials: 'Soziale Netze', leaveTitle: 'Meine Nummer hinterlassen', leaveHint: 'Name, Telefon oder E-Mail und warum wir uns melden sollen.', send: 'Senden', resume: 'Autorenseite', copied: 'Kopiert', ok: 'Gespeichert. Danke.', fail: 'Speichern fehlgeschlagen.', namePh: 'Name', mobilePh: 'Telefon', emailPh: 'E-Mail', reasonPh: 'Worum geht es?' },
+        fr: { flip: 'Touchez pour la suite', back: 'Touchez pour revenir', call: 'Appeler', whatsapp: 'WhatsApp', email: 'E-mail', website: 'Site web', map: 'Itinéraire', save: 'Enregistrer le contact', leave: 'Mon numéro', contact: 'Contact', mobile: 'Mobile', phone: 'Téléphone', address: 'Adresse', about: 'À propos', bank: 'Banque', holder: 'Titulaire', sheba: 'IBAN', pan: 'Carte', socials: 'Réseaux sociaux', leaveTitle: 'Laisser mon numéro', leaveHint: 'Votre nom, un téléphone ou un e-mail, et pourquoi vous contacter.', send: 'Envoyer', resume: 'Page auteur', copied: 'Copié', ok: 'Enregistré. Merci.', fail: 'Enregistrement impossible.', namePh: 'Nom', mobilePh: 'Téléphone', emailPh: 'E-mail', reasonPh: 'Pourquoi vous appeler ?' },
+        ru: { flip: 'Нажмите, чтобы читать', back: 'Нажмите, чтобы вернуть', call: 'Позвонить', whatsapp: 'WhatsApp', email: 'Почта', website: 'Сайт', map: 'Маршрут', save: 'Сохранить контакт', leave: 'Мой номер', contact: 'Контакты', mobile: 'Мобильный', phone: 'Телефон', address: 'Адрес', about: 'О себе', bank: 'Банк', holder: 'Владелец счёта', sheba: 'IBAN', pan: 'Карта', socials: 'Соцсети', leaveTitle: 'Оставить мой номер', leaveHint: 'Имя, телефон или почта и по какому поводу связаться.', send: 'Отправить', resume: 'Страница автора', copied: 'Скопировано', ok: 'Сохранено. Спасибо.', fail: 'Не удалось сохранить.', namePh: 'Имя', mobilePh: 'Телефон', emailPh: 'Почта', reasonPh: 'По какому поводу?' }
+    };
+    var rtl = { fa: true, ar: true, en: false, tr: false, de: false, fr: false, ru: false };
+    function text(lang, key) { return (ui[lang] || ui.en)[key] || ui.fa[key] || ''; }
+    function applyUi(lang) {
+        document.querySelectorAll('[data-ui]').forEach(function (el) {
+            var v = text(lang, el.getAttribute('data-ui'));
+            if (v) el.textContent = v;
+        });
+        document.querySelectorAll('[data-ph]').forEach(function (el) {
+            el.placeholder = text(lang, el.getAttribute('data-ph') + 'Ph');
+        });
+    }
+    function pick(tr, key, fallback) {
+        if (!tr) return fallback;
+        var v = tr[key];
+        return v && String(v).trim() ? v : fallback;
+    }
+    function applyLang(lang) {
+        var tr = (data.translations || []).filter(function (t) { return t.lang === lang; })[0];
+        var map = {
+            fullName: pick(tr, 'fullName', data.fullName),
+            brand: pick(tr, 'brandName', data.brand),
+            job: pick(tr, 'jobTitle', data.job),
+            slogan: pick(tr, 'slogan', data.slogan),
+            address: pick(tr, 'address', data.address),
+            description: pick(tr, 'description', data.description)
+        };
+        document.querySelectorAll('[data-k]').forEach(function (el) {
+            var v = map[el.getAttribute('data-k')];
+            if (v !== undefined) el.textContent = v || '';
+        });
+        (data.fields || []).forEach(function (f) {
+            var title = document.querySelector('[data-fk="' + f.key + '"]');
+            var value = document.querySelector('[data-fv="' + f.key + '"]');
+            if (title) title.textContent = pick(tr, f.key.charAt(0).toLowerCase() + f.key.slice(1) + 'Title', f.title) || f.title;
+            if (value) value.textContent = pick(tr, f.key.charAt(0).toLowerCase() + f.key.slice(1) + 'Value', f.value) || f.value;
+        });
+        root.dir = rtl[lang] === false ? 'ltr' : 'rtl';
+        applyUi(ui[lang] ? lang : 'en');
+        document.querySelectorAll('#vcLangs button').forEach(function (b) {
+            b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang ? 'true' : 'false');
+        });
+        root.dataset.lang = lang;
+    }
+    document.getElementById('vcLangs').addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (b) applyLang(b.getAttribute('data-lang'));
+    });
+    var flip = document.getElementById('vcFlip');
+    if (flip) flip.addEventListener('click', function () { flip.classList.toggle('flipped'); });
+    document.getElementById('vcTheme').addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('vc-theme-' + data.slug, next); } catch (e) {}
+    });
+    try {
+        var savedTheme = localStorage.getItem('vc-theme-' + data.slug);
+        if (savedTheme) root.setAttribute('data-theme', savedTheme);
+    } catch (e) {}
+    function visitor() {
+        var key = 'vc-visitor';
+        try {
+            var cur = localStorage.getItem(key);
+            if (cur && cur.length === 32) return cur;
+            var bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            cur = Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+            localStorage.setItem(key, cur);
+            return cur;
+        } catch (e) { return ''; }
+    }
+    function vcfEscape(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;'); }
+    document.getElementById('vcSave').addEventListener('click', function () {
+        var lang = root.dataset.lang || 'fa';
+        var tr = (data.translations || []).filter(function (t) { return t.lang === lang; })[0];
+        var fn = pick(tr, 'fullName', data.fullName) || data.brand || 'contact';
+        var lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' + vcfEscape(fn), 'N:' + vcfEscape(fn) + ';;;;'];
+        if (data.brand) lines.push('ORG:' + vcfEscape(pick(tr, 'brandName', data.brand)));
+        if (data.job) lines.push('TITLE:' + vcfEscape(pick(tr, 'jobTitle', data.job)));
+        if (data.mobile) lines.push('TEL;TYPE=CELL:' + vcfEscape(data.mobile));
+        if (data.phone) lines.push('TEL;TYPE=WORK:' + vcfEscape(data.phone));
+        if (data.email) lines.push('EMAIL:' + vcfEscape(data.email));
+        if (data.website) lines.push('URL:' + vcfEscape(data.website));
+        if (data.address) lines.push('ADR;TYPE=WORK:;;' + vcfEscape(pick(tr, 'address', data.address)) + ';;;;');
+        lines.push('END:VCARD');
+        var blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (fn || 'contact').replace(/[\\/:*?"<>|]/g, '').trim() + '.vcf';
+        a.click();
+        try { localStorage.setItem('vc-saved-' + data.slug, '1'); } catch (e) {}
+    });
+    var leave = document.getElementById('vcLeave');
+    if (leave) leave.addEventListener('click', function () {
+        var box = document.getElementById('vcBook');
+        if (box) box.scrollIntoView({ behavior: 'smooth' });
+    });
+    document.querySelectorAll('.vc-copy').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var value = btn.getAttribute('data-copy') || '';
+            if (navigator.clipboard) navigator.clipboard.writeText(value);
+            var lang = root.dataset.lang || 'fa';
+            btn.dataset.prev = btn.dataset.prev || btn.textContent;
+            btn.textContent = text(lang, 'copied');
+            setTimeout(function () { btn.textContent = btn.dataset.prev; }, 1200);
+        });
+    });
+    var form = document.getElementById('vcForm');
+    if (form) form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var msg = document.getElementById('vcMsg');
+        var lang = root.dataset.lang || 'fa';
+        var body = {
+            name: form.name.value,
+            mobile: form.mobile.value,
+            email: form.email.value,
+            reason: form.reason.value,
+            company: form.company.value,
+            visitorKey: visitor(),
+            savedContact: false
+        };
+        try { body.savedContact = localStorage.getItem('vc-saved-' + data.slug) === '1'; } catch (e) {}
+        fetch('/c/' + encodeURIComponent(data.slug) + '/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': '@tokens.RequestToken' },
+            body: JSON.stringify(body)
+        }).then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }); })
+          .then(function (res) {
+              msg.textContent = res.ok ? text(lang, 'ok') : (res.body && res.body.message ? res.body.message : text(lang, 'fail'));
+              if (res.ok) form.reset();
+          }).catch(function () { msg.textContent = text(lang, 'fail'); });
+    });
+    applyLang('fa');
+})();
+</script>
+</body>
+</html>

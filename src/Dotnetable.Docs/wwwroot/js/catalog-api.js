@@ -1777,12 +1777,55 @@ window.DOCS_API = {
               },
               notes: [
                 {
-                  en: "`404` when the slug is unknown, the member is inactive, or the author has not published the page. `about` is HTML written in the admin editor — sanitise it before rendering.",
-                  fa: "اگر اسلاگ ناشناخته، کاربر غیرفعال یا صفحه منتشر نشده باشد `404` برمی‌گردد. `about` HTML نوشته‌شده در ویرایشگر ادمین است — قبل از نمایش آن را sanitize کنید.",
+                  en: "`404` when the slug is unknown, the member is inactive, or the author has not published the page. `about` is HTML written in the admin editor — sanitise it before rendering. `visitCardSlug` is set when that author has a published digital card at `/c/{visitCardSlug}`.",
+                  fa: "اگر اسلاگ ناشناخته، کاربر غیرفعال یا صفحه منتشر نشده باشد `404` برمی‌گردد. `about` HTML نوشته‌شده در ویرایشگر ادمین است — قبل از نمایش آن را sanitize کنید. `visitCardSlug` وقتی پر است که کارت ویزیت دیجیتال نویسنده در `/c/{visitCardSlug}` منتشر شده باشد.",
                 },
                 {
                   en: "`sections` follow a fixed order: experience, education, project, certification, award, publication, volunteering, other. `timeline` holds only items marked for it, ongoing ones first, then newest first.",
                   fa: "ترتیب `sections` ثابت است: experience، education، project، certification، award، publication، volunteering، other. `timeline` فقط آیتم‌های علامت‌خورده برای تایملاین را دارد؛ اول موارد جاری و بعد جدیدترها.",
+                },
+              ],
+            },
+            {
+              title: { en: "Digital visiting card", fa: "کارت ویزیت دیجیتال" },
+              method: "GET",
+              path: "/api/visit-cards/{slug}",
+              auth: "website",
+              request: { body: "GET /api/visit-cards/aliu" },
+              response: {
+                status: 200,
+                body: {
+                  slug: "aliu", websiteName: "Example", resumeSlug: "ali", phoneBookEnabled: true,
+                  isPortrait: true, cardLayout: 0, themeMode: 0, cardColor: "#1976d2", pageColor: "#0d1b2a",
+                  fullName: "Ali", jobTitle: "Developer", mobile: "09120000000", email: "ali@example.com",
+                  socialLinks: [{ network: "telegram", url: "https://t.me/ali" }],
+                  locations: [{ title: "Office", lat: 35.7, lng: 51.4 }],
+                  translations: [{ lang: "en", fullName: "Ali", jobTitle: "Developer" }],
+                },
+              },
+              notes: [
+                {
+                  en: "`404` when the short link is unknown, the card is not published, or the member is inactive. `cardLayout` is 0 flip card, 1 photo banner, 2 portrait. `themeMode` is 0 dark, 1 light. The storefront page is `/c/{slug}`. `GET /api/visit-cards/{slug}/vcard` returns a vCard 3.0 file of the card owner.",
+                  fa: "اگر لینک کوتاه ناشناخته باشد، کارت منتشر نشده باشد یا کاربر غیرفعال باشد `404` برمی‌گردد. `cardLayout` برابر ۰ کارت چرخان، ۱ بنر عکس و ۲ پرتره است. `themeMode` برابر ۰ تیره و ۱ روشن است. صفحه سایت `/c/{slug}` است. `GET /api/visit-cards/{slug}/vcard` فایل vCard صاحب کارت را برمی‌گرداند.",
+                },
+              ],
+            },
+            {
+              title: { en: "Leave a number on a visiting card", fa: "ثبت شماره روی کارت ویزیت" },
+              method: "POST",
+              path: "/api/visit-cards/{slug}/contacts",
+              auth: "website",
+              request: {
+                body: {
+                  name: "Sara", mobile: "09120000000", email: "sara@example.com",
+                  reason: "About the article", visitorKey: "0123456789abcdef0123456789abcdef", savedContact: false,
+                },
+              },
+              response: { status: 200, body: { ok: true } },
+              notes: [
+                {
+                  en: "Rate limited per IP. Name is 2–70 characters. At least one of `mobile` or `email` is required. `reason` is 2–300 characters. A repeat of the same mobile (or the same email when there is no mobile) updates that row instead of adding another. `400` body has `code`: `name`, `contact`, `mobile`, `email`, `reason`, `disabled`, `full` or `missing`. The card owner reads the list in Admin → Visiting card phone book.",
+                  fa: "برای هر IP محدودیت نرخ دارد. نام ۲ تا ۷۰ نویسه است. حداقل یکی از `mobile` یا `email` لازم است. `reason` بین ۲ تا ۳۰۰ نویسه است. تکرار همان موبایل (یا همان ایمیل وقتی موبایل نیست) ردیف را به‌روز می‌کند و ردیف تازه نمی‌سازد. بدنه `400` فیلد `code` دارد: `name`، `contact`، `mobile`، `email`، `reason`، `disabled`، `full` یا `missing`. صاحب کارت لیست را در ادمین، دفتر تلفن کارت ویزیت می‌بیند.",
                 },
               ],
             },

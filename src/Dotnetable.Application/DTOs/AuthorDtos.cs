@@ -41,6 +41,9 @@ public sealed class AuthorPageDto
     public IReadOnlyList<ResumeItemDto> Timeline { get; init; } = Array.Empty<ResumeItemDto>();
     /// <summary>Published posts written by this author.</summary>
     public int PostCount { get; init; }
+
+    /// <summary>Short link of the author's digital visiting card (<c>/c/{slug}</c>), when it is published.</summary>
+    public string? VisitCardSlug { get; init; }
 }
 
 /// <summary>One résumé section (all items of one <c>ResumeItemType</c>).</summary>
@@ -132,4 +135,6 @@ public sealed class AuthorListRow
     public bool HasBio { get; init; }
     public int ResumeItemCount { get; init; }
     public int PostCount { get; init; }
+    public bool VisitCardEnabled { get; init; }
+    public string? VisitCardSlug { get; init; }
 }

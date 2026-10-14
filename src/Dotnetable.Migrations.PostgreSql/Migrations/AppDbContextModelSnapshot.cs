@@ -540,6 +540,282 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("AuthorResumeItemTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.Property<int>("AuthorVisitCardID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AuthorVisitCardID"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Bank1CardNumber")
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Bank1Details")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Bank1HolderName")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("Bank1Sheba")
+                        .HasMaxLength(26)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(26)");
+
+                    b.Property<string>("Bank2CardNumber")
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Bank2Details")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Bank2HolderName")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("Bank2Sheba")
+                        .HasMaxLength(26)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(26)");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("CardColor")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<byte>("CardLayout")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int?>("CoverFileID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Field1Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Field1Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Field2Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Field2Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Field3Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Field3Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Field4Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Field4Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Field5Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Field5Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<bool>("IsPortrait")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("LocationsJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LogoFileID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PageColor")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("PhoneBookEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Slogan")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("SocialLinksJson")
+                        .HasColumnType("text");
+
+                    b.Property<byte>("ThemeMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("TranslationsJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("WhatsApp")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("AuthorVisitCardID");
+
+                    b.HasIndex(new[] { "CoverFileID" }, "IX_AuthorVisitCards_CoverFileID");
+
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_AuthorVisitCards_LogoFileID");
+
+                    b.HasIndex(new[] { "MemberID" }, "IX_AuthorVisitCards_MemberID")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_AuthorVisitCards_WebsiteID_Slug")
+                        .IsUnique()
+                        .HasFilter("[Slug] IS NOT NULL");
+
+                    b.ToTable("AuthorVisitCards");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCardContact", b =>
+                {
+                    b.Property<int>("ContactID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ContactID"));
+
+                    b.Property<int>("AuthorVisitCardID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("LogTime")
+                        .HasPrecision(0)
+                        .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("SavedContact")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("VisitorKey")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("character(32)")
+                        .IsFixedLength();
+
+                    b.HasKey("ContactID");
+
+                    b.HasIndex(new[] { "AuthorVisitCardID" }, "IX_AuthorVisitCardContacts_AuthorVisitCardID");
+
+                    b.ToTable("AuthorVisitCardContacts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Property<int>("BankID")
@@ -9290,6 +9566,52 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("AuthorResumeItem");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "CoverFile")
+                        .WithMany()
+                        .HasForeignKey("CoverFileID")
+                        .HasConstraintName("FK_AuthorVisitCards_FileRecords_Cover");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
+                        .WithMany()
+                        .HasForeignKey("LogoFileID")
+                        .HasConstraintName("FK_AuthorVisitCards_FileRecords_Logo");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithOne("VisitCard")
+                        .HasForeignKey("Dotnetable.Domain.Entities.AuthorVisitCard", "MemberID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCards_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCards_Websites");
+
+                    b.Navigation("CoverFile");
+
+                    b.Navigation("LogoFile");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCardContact", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AuthorVisitCard", "AuthorVisitCard")
+                        .WithMany("Contacts")
+                        .HasForeignKey("AuthorVisitCardID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCardContacts_AuthorVisitCards");
+
+                    b.Navigation("AuthorVisitCard");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
@@ -12842,6 +13164,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("AuthorResumeItemTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.Navigation("Contacts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Navigation("BankAccounts");
@@ -13177,6 +13504,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Vendor");
 
                     b.Navigation("VendorCreditTransactions");
+
+                    b.Navigation("VisitCard");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Menu", b =>

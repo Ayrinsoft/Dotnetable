@@ -254,6 +254,8 @@ else
         </MudGrid>
     </MudForm>
 
+    <AuthorVisitCardEditor MemberId="MemberId" />
+
     @* ── Résumé item dialog ───────────────────────────────────────────── *@
     <MudDialog @bind-Visible="_itemDialogOpen" Options="@(new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true })">
         <TitleContent>

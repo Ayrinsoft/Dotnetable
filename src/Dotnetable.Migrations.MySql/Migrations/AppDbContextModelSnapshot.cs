@@ -515,6 +515,278 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.ToTable("AuthorResumeItemTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.Property<int>("AuthorVisitCardID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Bank1CardNumber")
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Bank1Details")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("Bank1HolderName")
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<string>("Bank1Sheba")
+                        .HasMaxLength(26)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(26)");
+
+                    b.Property<string>("Bank2CardNumber")
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Bank2Details")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("Bank2HolderName")
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<string>("Bank2Sheba")
+                        .HasMaxLength(26)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(26)");
+
+                    b.Property<string>("BrandName")
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<string>("CardColor")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<byte>("CardLayout")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int?>("CoverFileID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<bool>("Enabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Field1Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Field1Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Field2Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Field2Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Field3Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Field3Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Field4Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Field4Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("Field5Title")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Field5Value")
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<bool>("IsPortrait")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<string>("LocationsJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("LogoFileID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MemberID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("PageColor")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("PhoneBookEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Slogan")
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("SocialLinksJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<byte>("ThemeMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint unsigned")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<string>("TranslationsJson")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("WhatsApp")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("AuthorVisitCardID");
+
+                    b.HasIndex(new[] { "CoverFileID" }, "IX_AuthorVisitCards_CoverFileID");
+
+                    b.HasIndex(new[] { "LogoFileID" }, "IX_AuthorVisitCards_LogoFileID");
+
+                    b.HasIndex(new[] { "MemberID" }, "IX_AuthorVisitCards_MemberID")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "IX_AuthorVisitCards_WebsiteID_Slug")
+                        .IsUnique()
+                        .HasFilter("[Slug] IS NOT NULL");
+
+                    b.ToTable("AuthorVisitCards");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCardContact", b =>
+                {
+                    b.Property<int>("ContactID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("AuthorVisitCardID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<DateTime>("LogTime")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime(0)");
+
+                    b.Property<string>("Mobile")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(70)
+                        .HasColumnType("varchar(70)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<bool>("SavedContact")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("VisitorKey")
+                        .HasMaxLength(32)
+                        .IsUnicode(false)
+                        .HasColumnType("char(32)")
+                        .IsFixedLength();
+
+                    b.HasKey("ContactID");
+
+                    b.HasIndex(new[] { "AuthorVisitCardID" }, "IX_AuthorVisitCardContacts_AuthorVisitCardID");
+
+                    b.ToTable("AuthorVisitCardContacts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Property<int>("BankID")
@@ -8949,6 +9221,52 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("AuthorResumeItem");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "CoverFile")
+                        .WithMany()
+                        .HasForeignKey("CoverFileID")
+                        .HasConstraintName("FK_AuthorVisitCards_FileRecords_Cover");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
+                        .WithMany()
+                        .HasForeignKey("LogoFileID")
+                        .HasConstraintName("FK_AuthorVisitCards_FileRecords_Logo");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "Member")
+                        .WithOne("VisitCard")
+                        .HasForeignKey("Dotnetable.Domain.Entities.AuthorVisitCard", "MemberID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCards_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCards_Websites");
+
+                    b.Navigation("CoverFile");
+
+                    b.Navigation("LogoFile");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCardContact", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.AuthorVisitCard", "AuthorVisitCard")
+                        .WithMany("Contacts")
+                        .HasForeignKey("AuthorVisitCardID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AuthorVisitCardContacts_AuthorVisitCards");
+
+                    b.Navigation("AuthorVisitCard");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.FileRecord", "LogoFile")
@@ -12501,6 +12819,11 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("AuthorResumeItemTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.AuthorVisitCard", b =>
+                {
+                    b.Navigation("Contacts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Bank", b =>
                 {
                     b.Navigation("BankAccounts");
@@ -12836,6 +13159,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Vendor");
 
                     b.Navigation("VendorCreditTransactions");
+
+                    b.Navigation("VisitCard");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Menu", b =>

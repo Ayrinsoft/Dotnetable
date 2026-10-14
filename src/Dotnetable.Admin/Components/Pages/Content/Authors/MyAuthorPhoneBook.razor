@@ -1,0 +1,29 @@
+@page "/my/author-phonebook"
+@attribute [Authorize(Policy = RoleKeys.AuthorsProfile)]
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["authors.card_phonebook_title", "Visiting card phone book"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["authors.card_phonebook_title", "Visiting card phone book"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["authors.card_phonebook_subtitle", "People who left a number or email on your digital visiting card"]
+    </MudText>
+</MudStack>
+
+@if (_memberId > 0)
+{
+    <AuthorPhoneBookPanel MemberId="_memberId" />
+}
+
+@code {
+    private int _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+    }
+}

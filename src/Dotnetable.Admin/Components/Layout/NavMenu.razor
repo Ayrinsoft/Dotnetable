@@ -228,6 +228,9 @@
                         <MudNavLink Href="/my/author-profile" Icon="@Icons.Material.Filled.Badge">
                             @L["authors.my_profile", "My author profile"]
                         </MudNavLink>
+                        <MudNavLink Href="/my/author-phonebook" Icon="@Icons.Material.Filled.Contacts">
+                            @L["authors.card_phonebook_title", "Visiting card phone book"]
+                        </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.AuthorsManage" Context="am">
                         <MudNavLink Href="/content/authors" Icon="@Icons.Material.Filled.RecentActors">

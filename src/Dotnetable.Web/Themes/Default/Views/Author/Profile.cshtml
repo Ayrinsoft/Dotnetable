@@ -114,6 +114,12 @@
                             <i class="bi bi-download me-1"></i>Download CV
                         </a>
                     }
+                    @if (!string.IsNullOrEmpty(a.VisitCardSlug))
+                    {
+                        <a class="btn btn-outline-primary w-100 mt-2" href="@Url.RouteUrl("visit-card", new { slug = a.VisitCardSlug })">
+                            <i class="bi bi-person-vcard me-1"></i>Digital card
+                        </a>
+                    }
 
                     <div class="d-flex justify-content-around mt-4 pt-3 border-top">
                         <div>

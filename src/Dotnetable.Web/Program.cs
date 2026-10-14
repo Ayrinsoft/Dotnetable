@@ -137,6 +137,17 @@ app.MapControllerRoute(
     pattern: "author/{slug}",
     defaults: new { controller = "Author", action = "Profile" });
 
+// Digital visiting card: /c/{slug}  and the phone-book form at /c/{slug}/contact
+app.MapControllerRoute(
+    name: "visit-card-contact",
+    pattern: "c/{slug}/contact",
+    defaults: new { controller = "VisitCard", action = "Contact" });
+
+app.MapControllerRoute(
+    name: "visit-card",
+    pattern: "c/{slug}",
+    defaults: new { controller = "VisitCard", action = "Index" });
+
 app.MapControllerRoute(
     name: "price-lists",
     pattern: "price-lists",

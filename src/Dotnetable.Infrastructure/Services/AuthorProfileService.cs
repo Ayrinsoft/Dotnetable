@@ -42,6 +42,8 @@ public class AuthorProfileService : IAuthorProfileService
                 HasBio = m.AuthorProfile != null && m.AuthorProfile.Bio != null && m.AuthorProfile.Bio != "",
                 ResumeItemCount = m.AuthorProfile != null ? m.AuthorProfile.AuthorResumeItems.Count : 0,
                 PostCount = m.Posts.Count,
+                VisitCardEnabled = m.VisitCard != null && m.VisitCard.Enabled,
+                VisitCardSlug = m.VisitCard != null ? m.VisitCard.Slug : null,
             })
             .ToListAsync(ct);
     }
@@ -270,6 +272,10 @@ public class AuthorProfileService : IAuthorProfileService
             Sections = sections,
             Timeline = timeline,
             PostCount = postCount,
+            VisitCardSlug = await _context.AuthorVisitCards.AsNoTracking()
+                .Where(c => c.MemberID == profile.MemberID && c.Enabled && c.Slug != null)
+                .Select(c => c.Slug)
+                .FirstOrDefaultAsync(ct),
         };
     }
 
