@@ -1,0 +1,145 @@
+@* Email signature builder. The HTML is produced in the browser from the saved visiting card. *@
+@using Dotnetable.Application.VisitCards
+@inject IAuthorVisitCardService Cards
+@inject IJSRuntime JS
+@inject IPageLocalizer L
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (!_found)
+{
+    <MudAlert Severity="Severity.Warning">@L["authors.member_not_found", "Member not found."]</MudAlert>
+}
+else
+{
+    <HeadContent>
+        <link rel="stylesheet" href="css/email-signature.css?v=1" />
+    </HeadContent>
+    <div class="esig-page" @key="MemberId">
+        @if (string.IsNullOrWhiteSpace(_card.Slug))
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                @L["authors.signature_need_slug", "Set a short link on the visiting card so the signature can include a button to the public page."]
+            </MudAlert>
+        }
+        <div id="esigApp" data-id="@MemberId">
+            <div class="esig-panel">
+                <div class="esig-kicker">انتخاب نمونه</div>
+                <div class="esig-tpls" id="esigTemplates">
+                    <button type="button" class="esig-tpl" data-template="classic"><span class="esig-art art-classic"></span><span class="esig-tpl-name">کلاسیک</span></button>
+                    <button type="button" class="esig-tpl" data-template="modern"><span class="esig-art art-modern"></span><span class="esig-tpl-name">مدرن</span></button>
+                    <button type="button" class="esig-tpl" data-template="bold"><span class="esig-art art-bold"></span><span class="esig-tpl-name">برجسته</span></button>
+                    <button type="button" class="esig-tpl" data-template="elegant"><span class="esig-art art-elegant"></span><span class="esig-tpl-name">شیک</span></button>
+                    <button type="button" class="esig-tpl" data-template="compact"><span class="esig-art art-compact"></span><span class="esig-tpl-name">فشرده</span></button>
+                    <button type="button" class="esig-tpl" data-template="minimal"><span class="esig-art art-minimal"></span><span class="esig-tpl-name">مینیمال</span></button>
+                    <button type="button" class="esig-tpl" data-template="professional"><span class="esig-art art-professional"></span><span class="esig-tpl-name">حرفه‌ای</span></button>
+                    <button type="button" class="esig-tpl" data-template="social"><span class="esig-art art-social"></span><span class="esig-tpl-name">نوار اجتماعی</span></button>
+                    <button type="button" class="esig-tpl" data-template="executive"><span class="esig-art art-executive"></span><span class="esig-tpl-name">مدیریتی</span></button>
+                    <button type="button" class="esig-tpl" data-template="stacked"><span class="esig-art art-stacked"></span><span class="esig-tpl-name">وسط‌چین</span></button>
+                    <button type="button" class="esig-tpl" data-template="headline"><span class="esig-art art-headline"></span><span class="esig-tpl-name">تیتر</span></button>
+                    <button type="button" class="esig-tpl" data-template="sidebar"><span class="esig-art art-sidebar"></span><span class="esig-tpl-name">نوار کناری</span></button>
+                </div>
+            </div>
+            <div class="esig-panel">
+                <div class="esig-kicker">اطلاعات داخل امضا</div>
+                <div class="esig-fields" id="esigFields"></div>
+                <p class="esig-empty" id="esigFieldsEmpty" hidden>این کارت هنوز فیلدی برای نمایش ندارد.</p>
+                <div class="esig-kicker" style="margin-top:14px;">فونت</div>
+                <select id="esigFont"></select>
+                <p style="color:#6b7280;font-size:13px;margin:8px 0 0;">فونت‌های گوگل در همین پیش‌نمایش و در اپل میل بار می‌شوند. جیمیل معمولاً فونت آنلاین را نمی‌آورد و Tahoma یا Arial را نشان می‌دهد.</p>
+            </div>
+            <div class="esig-panel">
+                <div class="esig-kicker">رنگ امضا</div>
+                <div id="esigSwatches" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+                    رنگ دلخواه
+                    <input type="color" id="esigColor" value="#5F41FB" />
+                </label>
+                <div class="esig-mail" id="esigMail" style="margin-top:14px;">
+                    <div class="esig-mail-top" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <span style="color:#6b7280;font-size:13px;">پیش‌نمایش انتهای ایمیل</span>
+                        <div class="esig-modes">
+                            <button type="button" class="active" id="esigDesk">رایانه</button>
+                            <button type="button" id="esigMobile">موبایل</button>
+                        </div>
+                    </div>
+                    <div class="esig-fake">
+                        <div>موضوع: سلام</div>
+                        <p>متن ایمیل اینجاست. امضا زیر همین متن قرار می‌گیرد.</p>
+                    </div>
+                    <div class="esig-preview" id="esigPreview"></div>
+                </div>
+                <button type="button" class="esig-get" id="esigGetHtml" style="width:100%;margin-top:12px;">دریافت کد HTML</button>
+                <p style="color:#6b7280;font-size:13px;margin:8px 0 0;">کد را در جیمیل، اوت‌لوک یا اپل میل جای‌گذاری کنید. راهنما داخل همین پنجره است.</p>
+            </div>
+        </div>
+        <div class="esig-dialog" id="esigHtmlModal" hidden>
+            <div class="esig-dialog-card" role="dialog" aria-modal="true">
+                <div class="esig-dialog-head">
+                    <h3 style="margin:0;font-size:1.1rem;">کد HTML امضا</h3>
+                    <button type="button" id="esigHtmlClose">بستن</button>
+                </div>
+                <div class="esig-dialog-actions">
+                    <button type="button" class="esig-get" id="esigCopyRich">کپی برای جای‌گذاری در جیمیل</button>
+                    <button type="button" id="esigCopyCode">کپی کد HTML</button>
+                    <button type="button" id="esigDownload">دانلود فایل</button>
+                </div>
+                <p id="esigCopyMsg" style="min-height:1.2em;font-size:13px;"></p>
+                <label style="font-size:13px;">کد HTML</label>
+                <textarea id="esigHtmlCode" class="esig-html" readonly></textarea>
+                <h4 style="margin:14px 0 8px;">گذاشتن در جیمیل</h4>
+                <ol class="esig-steps">
+                    <li>جیمیل را باز کنید. چرخ‌دنده، سپس «دیدن همه تنظیمات».</li>
+                    <li>در زبانه عمومی تا بخش «امضا» بروید و «ایجاد جدید» را بزنید.</li>
+                    <li>دکمه «کپی برای جای‌گذاری در جیمیل» را بزنید و در کادر امضا Paste کنید. اگر کد خام دیدید، همان دکمه را دوباره بزنید؛ کد را به‌صورت متن ساده نچسبانید.</li>
+                    <li>پایین صفحه «ذخیره تغییرات» را بزنید. برای اپ موبایل جیمیل، امضا را جداگانه در تنظیمات همان حساب بگذارید.</li>
+                </ol>
+                <p style="color:#6b7280;font-size:13px;">اوت‌لوک: فایل، گزینه‌ها، نامه، امضاها. اپل میل: تنظیمات، امضاها. در هر دو، همان جای‌گذاری را در کادر امضا انجام دهید.</p>
+            </div>
+        </div>
+        <pre id="esigSeed" hidden>@_seedJson</pre>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public int MemberId { get; set; }
+
+    private bool _loading = true;
+    private bool _found;
+    private AuthorVisitCardEdit _card = new();
+    private string _seedJson = "{}";
+    private int _bootedFor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        await L.EnsureLoadedAsync();
+        var state = await Cards.GetEditorAsync(MemberId);
+        _found = state.MemberFound;
+        _card = state.Card;
+        _seedJson = _found
+            ? EmailSignatureSeed.ToJson(state.Card, state.LogoUrl, state.WebsiteAddress)
+            : "{}";
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_found || _loading || _bootedFor == MemberId) return;
+        _bootedFor = MemberId;
+        try
+        {
+            await JS.InvokeVoidAsync("dnBootEmailSignature");
+        }
+        catch (JSException)
+        {
+            _bootedFor = 0;
+        }
+        catch (InvalidOperationException)
+        {
+            _bootedFor = 0;
+        }
+    }
+}

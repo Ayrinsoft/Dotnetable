@@ -1,0 +1,29 @@
+@page "/my/author-signature"
+@attribute [Authorize(Policy = RoleKeys.AuthorsProfile)]
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["authors.signature_title", "Email signature"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["authors.signature_title", "Email signature"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["authors.signature_subtitle", "Built from your digital visiting card. Pick a layout, the fields, a font and a colour, then paste it into Gmail, Outlook or Apple Mail."]
+    </MudText>
+</MudStack>
+
+@if (_memberId > 0)
+{
+    <EmailSignaturePanel MemberId="_memberId" />
+}
+
+@code {
+    private int _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+    }
+}

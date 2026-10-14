@@ -105,4 +105,25 @@ public class VisitCardRulesTests
         VisitCardRules.AppendReason("call me", "call me").Should().Be("call me");
         VisitCardRules.AppendReason("call me", "about the site").Should().Be("call me\nabout the site");
     }
+
+    [Fact]
+    public void Email_signature_seed_points_at_the_card_and_whatsapp()
+    {
+        var json = EmailSignatureSeed.ToJson(new AuthorVisitCardEdit
+        {
+            Slug = "aliu",
+            FullName = "Ali",
+            WhatsApp = "09120000000",
+            Website = "https://example.com",
+            CardColor = "not-a-color",
+            SocialLinks = [new AuthorSocialLink { Network = "instagram", Url = "https://instagram.com/ali" }],
+        }, "https://cdn.example/logo.png", "example.com");
+
+        json.Should().Contain("https://example.com/c/aliu");
+        json.Should().Contain("https://wa.me/989120000000");
+        json.Should().Contain("https://instagram.com/ali");
+        json.Should().Contain("https://cdn.example/logo.png");
+        json.Should().Contain("#5F41FB");
+        json.Should().NotContain("<");
+    }
 }

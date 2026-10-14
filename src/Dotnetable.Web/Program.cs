@@ -137,7 +137,12 @@ app.MapControllerRoute(
     pattern: "author/{slug}",
     defaults: new { controller = "Author", action = "Profile" });
 
-// Digital visiting card: /c/{slug}  and the phone-book form at /c/{slug}/contact
+// Digital visiting card: /c/{slug}, its QR image, and the phone-book form at /c/{slug}/contact
+app.MapControllerRoute(
+    name: "visit-card-qr",
+    pattern: "c/{slug}/qr",
+    defaults: new { controller = "VisitCard", action = "Qr" });
+
 app.MapControllerRoute(
     name: "visit-card-contact",
     pattern: "c/{slug}/contact",

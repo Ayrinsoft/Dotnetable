@@ -48,6 +48,8 @@
             <MudItem xs="12">
                 <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Contacts"
                            Href="@PhoneBookHref">@L["authors.card_phonebook_open", "Open phone book"]</MudButton>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.AlternateEmail" Class="ms-2"
+                           Href="@SignatureHref">@L["authors.signature_open", "Email signature"]</MudButton>
             </MudItem>
 
             <MudItem xs="12" sm="6"><MudTextField @bind-Value="_card.FullName" Label="@L["authors.card_name", "Full name"]" Variant="Variant.Outlined" MaxLength="70" /></MudItem>
@@ -226,6 +228,11 @@
         Nav.Uri.Contains("/my/author-profile", StringComparison.OrdinalIgnoreCase)
             ? "/my/author-phonebook"
             : $"/content/authors/{MemberId}/phonebook";
+
+    private string SignatureHref =>
+        Nav.Uri.Contains("/my/author-profile", StringComparison.OrdinalIgnoreCase)
+            ? "/my/author-signature"
+            : $"/content/authors/{MemberId}/signature";
 
     private string? PublicUrl
     {

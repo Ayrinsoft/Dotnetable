@@ -149,6 +149,20 @@
         .vc-layout-classic .vc-static, .vc-layout-classic .vc-static-about { display: none; }
         .vc-layout-classic .vc-hero, .vc-layout-profile .vc-hero { display: none; }
         .vc-copy { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+        .vc-qr-sheet { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .vc-qr-sheet[hidden] { display: none; }
+        .vc-qr-panel { width: min(360px, 100%); background: var(--sheet); color: var(--text); border-radius: 22px; overflow: hidden; position: relative; text-align: center; }
+        .vc-qr-hero { height: 92px; background-size: cover; background-position: center; }
+        .vc-qr-body { padding: 18px 18px 22px; }
+        .vc-qr-close { position: absolute; top: 10px; inset-inline-end: 10px; border: 0; background: rgba(0,0,0,.35); color: #fff; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; }
+        .vc-qr-kicker { margin: 0; letter-spacing: .12em; font-size: .75rem; color: var(--dim); }
+        .vc-qr-title { margin: 4px 0 12px; font-size: 1.25rem; }
+        .vc-qr-frame { position: relative; width: 240px; height: 240px; margin: 0 auto; background: #fff; border-radius: 16px; display: grid; place-items: center; }
+        .vc-qr-img { width: 220px; height: 220px; }
+        .vc-qr-mark { position: absolute; width: 46px; height: 46px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 4px #fff; display: grid; place-items: center; font-weight: 800; color: #1a1d24; overflow: hidden; }
+        .vc-qr-mark img { width: 100%; height: 100%; object-fit: cover; }
+        .vc-qr-hint { color: var(--dim); font-size: .9rem; }
+        .vc-qr-share { border: 0; border-radius: 12px; padding: 10px 16px; font: inherit; font-weight: 700; background: var(--card); color: var(--ink); cursor: pointer; }
         .vc-head { text-align: center; margin-top: 8px; }
         @@media (min-width: 720px) {
             .vc-flip.land .vc-face { min-height: 180px; }
@@ -228,6 +242,7 @@
             <a href="https://www.google.com/maps?q=@card.Locations[0].Lat.ToString(System.Globalization.CultureInfo.InvariantCulture),@card.Locations[0].Lng.ToString(System.Globalization.CultureInfo.InvariantCulture)" target="_blank" rel="noopener"><i class="bi bi-geo-alt"></i> <span data-ui="map">مسیر</span></a>
         }
         <button type="button" id="vcSave"><i class="bi bi-person-plus"></i> <span data-ui="save">ذخیره مخاطب</span></button>
+        <button type="button" id="vcQr"><i class="bi bi-qr-code"></i> <span data-ui="showQr">کد QR</span></button>
         @if (card.PhoneBookEnabled)
         {
             <button type="button" id="vcLeave"><i class="bi bi-journal-text"></i> <span data-ui="leave">شماره من</span></button>
@@ -326,6 +341,32 @@
         <a class="vc-credit" href="/author/@card.ResumeSlug" data-ui="resume">صفحه نویسنده</a>
     }
     <div class="vc-credit" data-ui="credit">@(card.WebsiteName)</div>
+
+    <div id="vcQrSheet" class="vc-qr-sheet" hidden>
+        <div class="vc-qr-panel" role="dialog" aria-modal="true" aria-labelledby="vcQrTitle">
+            @if (!string.IsNullOrEmpty(card.CoverUrl))
+            {
+                <div class="vc-qr-hero" style="background-image:url('@card.CoverUrl')"></div>
+            }
+            <div class="vc-qr-body">
+                <button type="button" class="vc-qr-close" id="vcQrClose" aria-label="بستن"><i class="bi bi-x-lg"></i></button>
+                <p class="vc-qr-kicker" data-ui="qrKicker">اشتراک</p>
+                <h2 id="vcQrTitle" class="vc-qr-title" data-ui="qrTitle">کارت ویزیت</h2>
+                <div class="vc-qr-frame">
+                    <img class="vc-qr-img" src="@Url.RouteUrl("visit-card-qr", new { slug = card.Slug })" alt="@name" width="220" height="220" />
+                    <span class="vc-qr-mark" aria-hidden="true">
+                        @(string.IsNullOrWhiteSpace(name) ? "؟" : name.Trim()[0].ToString())
+                        @if (!string.IsNullOrWhiteSpace(card.LogoUrl))
+                        {
+                            <img src="@card.LogoUrl" alt="" onerror="this.remove()" />
+                        }
+                    </span>
+                </div>
+                <p class="vc-qr-hint" data-ui="qrHint">دوربین را روی کد بگیرید</p>
+                <button type="button" class="vc-qr-share" id="vcQrShare"><i class="bi bi-share"></i> <span data-ui="qrShare">اشتراک</span></button>
+            </div>
+        </div>
+    </div>
 </div>
 <script type="application/json" id="vc-data">@Html.Raw(payload)</script>
 <script>
@@ -341,6 +382,16 @@
         fr: { flip: 'Touchez pour la suite', back: 'Touchez pour revenir', call: 'Appeler', whatsapp: 'WhatsApp', email: 'E-mail', website: 'Site web', map: 'Itinéraire', save: 'Enregistrer le contact', leave: 'Mon numéro', contact: 'Contact', mobile: 'Mobile', phone: 'Téléphone', address: 'Adresse', about: 'À propos', bank: 'Banque', holder: 'Titulaire', sheba: 'IBAN', pan: 'Carte', socials: 'Réseaux sociaux', leaveTitle: 'Laisser mon numéro', leaveHint: 'Votre nom, un téléphone ou un e-mail, et pourquoi vous contacter.', send: 'Envoyer', resume: 'Page auteur', copied: 'Copié', ok: 'Enregistré. Merci.', fail: 'Enregistrement impossible.', namePh: 'Nom', mobilePh: 'Téléphone', emailPh: 'E-mail', reasonPh: 'Pourquoi vous appeler ?' },
         ru: { flip: 'Нажмите, чтобы читать', back: 'Нажмите, чтобы вернуть', call: 'Позвонить', whatsapp: 'WhatsApp', email: 'Почта', website: 'Сайт', map: 'Маршрут', save: 'Сохранить контакт', leave: 'Мой номер', contact: 'Контакты', mobile: 'Мобильный', phone: 'Телефон', address: 'Адрес', about: 'О себе', bank: 'Банк', holder: 'Владелец счёта', sheba: 'IBAN', pan: 'Карта', socials: 'Соцсети', leaveTitle: 'Оставить мой номер', leaveHint: 'Имя, телефон или почта и по какому поводу связаться.', send: 'Отправить', resume: 'Страница автора', copied: 'Скопировано', ok: 'Сохранено. Спасибо.', fail: 'Не удалось сохранить.', namePh: 'Имя', mobilePh: 'Телефон', emailPh: 'Почта', reasonPh: 'По какому поводу?' }
     };
+    var uiQr = {
+        fa: { showQr: 'کد QR', qrKicker: 'اشتراک', qrTitle: 'کارت ویزیت', qrHint: 'دوربین را روی کد بگیرید', qrShare: 'اشتراک', qrCopied: 'لینک کپی شد' },
+        en: { showQr: 'QR code', qrKicker: 'Sharing', qrTitle: 'Visiting card', qrHint: 'Point your camera at the QR code', qrShare: 'Share', qrCopied: 'Link copied' },
+        ar: { showQr: 'رمز QR', qrKicker: 'مشاركة', qrTitle: 'بطاقة العمل', qrHint: 'وجّه الكاميرا نحو الرمز', qrShare: 'مشاركة', qrCopied: 'تم نسخ الرابط' },
+        tr: { showQr: 'QR kod', qrKicker: 'Paylaş', qrTitle: 'Kartvizit', qrHint: 'Kamerayı koda tutun', qrShare: 'Paylaş', qrCopied: 'Bağlantı kopyalandı' },
+        de: { showQr: 'QR-Code', qrKicker: 'Teilen', qrTitle: 'Visitenkarte', qrHint: 'Kamera auf den Code richten', qrShare: 'Teilen', qrCopied: 'Link kopiert' },
+        fr: { showQr: 'Code QR', qrKicker: 'Partage', qrTitle: 'Carte de visite', qrHint: 'Pointez l’appareil vers le code', qrShare: 'Partager', qrCopied: 'Lien copié' },
+        ru: { showQr: 'QR-код', qrKicker: 'Поделиться', qrTitle: 'Визитка', qrHint: 'Наведите камеру на код', qrShare: 'Поделиться', qrCopied: 'Ссылка скопирована' }
+    };
+    Object.keys(uiQr).forEach(function (l) { if (ui[l]) Object.assign(ui[l], uiQr[l]); });
     var rtl = { fa: true, ar: true, en: false, tr: false, de: false, fr: false, ru: false };
     function text(lang, key) { return (ui[lang] || ui.en)[key] || ui.fa[key] || ''; }
     function applyUi(lang) {
@@ -472,6 +523,42 @@
               if (res.ok) form.reset();
           }).catch(function () { msg.textContent = text(lang, 'fail'); });
     });
+    (function () {
+        var sheet = document.getElementById('vcQrSheet');
+        var openBtn = document.getElementById('vcQr');
+        if (!sheet || !openBtn) return;
+        var shareBtn = document.getElementById('vcQrShare');
+        var shareLabel = shareBtn ? shareBtn.querySelector('[data-ui="qrShare"]') : null;
+        function openSheet() {
+            if (shareLabel) shareLabel.textContent = text(root.dataset.lang || 'fa', 'qrShare');
+            sheet.hidden = false;
+            document.body.style.overflow = 'hidden';
+        }
+        function closeSheet() {
+            sheet.hidden = true;
+            document.body.style.overflow = '';
+        }
+        openBtn.addEventListener('click', openSheet);
+        var closeBtn = document.getElementById('vcQrClose');
+        if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+        sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !sheet.hidden) closeSheet();
+        });
+        if (shareBtn) shareBtn.addEventListener('click', function () {
+            var url = location.href.split('#')[0];
+            var title = (document.querySelector('[data-k="fullName"]') || {}).textContent || text(root.dataset.lang || 'fa', 'qrTitle');
+            var copied = function () { if (shareLabel) shareLabel.textContent = text(root.dataset.lang || 'fa', 'qrCopied'); };
+            if (navigator.share) {
+                navigator.share({ title: title, url: url }).catch(function (err) {
+                    if (err && err.name === 'AbortError') return;
+                    if (navigator.clipboard) navigator.clipboard.writeText(url).then(copied);
+                });
+                return;
+            }
+            if (navigator.clipboard) navigator.clipboard.writeText(url).then(copied);
+        });
+    })();
     applyLang('fa');
 })();
 </script>

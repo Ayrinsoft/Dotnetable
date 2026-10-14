@@ -3,6 +3,7 @@ using Dotnetable.Hosting;
 using Dotnetable.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using QRCoder;
 
 namespace Dotnetable.Web.Controllers;
 
@@ -18,6 +19,20 @@ public class VisitCardController : Controller
         if (string.IsNullOrWhiteSpace(slug)) return NotFound();
         var card = await _api.GetVisitCardAsync(slug, ct);
         return card is null ? NotFound() : View("Index", card);
+    }
+
+    /// <summary>PNG of the public card address, so a camera opens <c>/c/{slug}</c>.</summary>
+    public async Task<IActionResult> Qr(string slug, CancellationToken ct = default)
+    {
+        var card = await _api.GetVisitCardAsync(slug, ct);
+        if (card is null) return NotFound();
+
+        var url = $"{Request.Scheme}://{Request.Host}/c/{Uri.EscapeDataString(card.Slug)}";
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(url, QRCodeGenerator.ECCLevel.Q);
+        var png = new PngByteQRCode(data).GetGraphic(12);
+        Response.Headers.CacheControl = "public,max-age=3600";
+        return File(png, "image/png");
     }
 
     [HttpPost]
