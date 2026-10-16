@@ -5,6 +5,7 @@
 @inject IShippingService ShippingService
 @inject IFileService FileService
 @inject ICurrencyService CurrencyService
+@inject ILocationService LocationService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -252,10 +253,12 @@ else if (_website is not null)
                                           Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudNumericField T="int?" @bind-Value="_website.TaxCountryID"
-                                             Label="@L["website.tax_country_id", "Default tax country ID"]"
-                                             Variant="Variant.Outlined" Min="1"
-                                             HelperText="@L["website.tax_country_hint", "Optional CountryID for seller jurisdiction / fallback matching"]" />
+                            <CountrySelector Value="_website.TaxCountryID"
+                                             ValueChanged="id => _website.TaxCountryID = id"
+                                             Countries="_countries"
+                                             Label="@L["website.tax_country", "Default tax country"]"
+                                             HelperText="@L["website.tax_country_hint", "Seller jurisdiction used when matching tax rates. Search by name or country code."]"
+                                             Clearable="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField @bind-Value="_website.SellerTaxId" Label="@L["website.seller_tax_id", "Seller tax ID / national ID"]"
@@ -419,6 +422,7 @@ else if (_website is not null)
     private FileRecord? _logoFile;
     private FileRecord? _faveFile;
     private List<Currency> _currencies = new();
+    private List<Country> _countries = new();
     private List<ShippingMethod> _shippingMethods = new();
     private bool _loading = true;
     private bool _saving;
@@ -436,6 +440,7 @@ else if (_website is not null)
     {
         await L.EnsureLoadedAsync();
         _currencies = await CurrencyService.GetAllAsync();
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
 
         if (_isNew)
         {
