@@ -24,6 +24,23 @@ public static class WebsiteTypeExtensions
 
     public static WebsiteCategory GetCategory(this byte type) => ((WebsiteType)type).GetCategory();
 
+    /// <summary>
+    /// Types that take orders or paid bookings by default, so the website form asks for tax,
+    /// seller registration, shipping and product codes. Brochure and showcase sites stay out
+    /// of that; the form can still opt in when a site will sell later.
+    /// </summary>
+    public static bool TakesOrders(this WebsiteType type) => type switch
+    {
+        WebsiteType.ECommerce or WebsiteType.Auction or WebsiteType.Crowdfunding or WebsiteType.Restaurant
+            => true,
+        WebsiteType.ELearning or WebsiteType.Membership
+            or WebsiteType.Booking or WebsiteType.MedicalBooking or WebsiteType.BeautyBooking
+            => true,
+        _ => false,
+    };
+
+    public static bool TakesOrders(this byte type) => ((WebsiteType)type).TakesOrders();
+
     /// <summary>Localization key (under "website.type.*") and English fallback label for display, e.g. in type pickers and list chips.</summary>
     public static (string Key, string Fallback) GetDisplayText(this WebsiteType type) => type switch
     {

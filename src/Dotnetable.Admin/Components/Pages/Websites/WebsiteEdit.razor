@@ -63,14 +63,18 @@ else if (_website is not null)
                             <MudTextField @bind-Value="_website.DefaultLanguageCode" Label="@L["default_language_code", "Default Language Code"]"
                                           Variant="Variant.Outlined" MaxLength="2" Placeholder="en" />
                         </MudItem>
+                        @if (_includeSales)
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_website.ProductCodePrefix"
+                                              Label="@L["website.product_code_prefix", "Product code prefix"]"
+                                              Variant="Variant.Outlined" MaxLength="3" Placeholder="DN"
+                                              HelperText="@L["website.product_code_prefix_help", "1–3 letters. Product codes become PREFIX-ProductID (e.g. DN-42). Used on invoices and /product/DN-42 URLs."]" />
+                            </MudItem>
+                        }
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="_website.ProductCodePrefix"
-                                          Label="@L["website.product_code_prefix", "Product code prefix"]"
-                                          Variant="Variant.Outlined" MaxLength="3" Placeholder="DN"
-                                          HelperText="@L["website.product_code_prefix_help", "1–3 letters. Product codes become PREFIX-ProductID (e.g. DN-42). Used on invoices and /product/DN-42 URLs."]" />
-                        </MudItem>
-                        <MudItem xs="12" sm="6">
-                            <MudSelect T="byte" @bind-Value="_website.WebsiteType" Label="@L["website_type", "Website Type"]"
+                            <MudSelect T="byte" Value="_website.WebsiteType" ValueChanged="OnWebsiteTypeChanged"
+                                       Label="@L["website_type", "Website Type"]"
                                        Variant="Variant.Outlined"
                                        HelperText="@L["website.type_hint", "Sets default feature modules and the Basic/General admin menu for members of this site (Advanced shows everything they have roles for). Always changeable later."]">
                                 <MudListSubheader>@L["website.category.informational", "Informational / Brochure"]</MudListSubheader>
@@ -100,6 +104,13 @@ else if (_website is not null)
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.MedicalBooking)">@L["website.type.medical_booking", "Medical Appointment Booking"]</MudSelectItem>
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.BeautyBooking)">@L["website.type.beauty_booking", "Beauty / Salon Appointment Booking"]</MudSelectItem>
                             </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudSwitch T="bool" Value="_includeSales" ValueChanged="OnIncludeSalesChanged" Color="Color.Primary"
+                                       Label="@L["website.sells", "This site sells, or will sell"]" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                @L["website.sells_hint", "Tax, seller registration, shipping and product codes are asked only when the site takes orders now or you plan to sell later. A portfolio or brochure site can leave this off."]
+                            </MudText>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudAutocomplete T="Currency" Value="@GetSelectedCurrency()" ValueChanged="OnCurrencySelected"
@@ -218,6 +229,8 @@ else if (_website is not null)
                 </MudPaper>
             </MudItem>
 
+            @if (_includeSales)
+            {
             @* ── Tax & seller identity ─────────────────────── *@
             <MudItem xs="12">
                 <MudPaper Elevation="0" Class="border rounded-lg pa-6">
@@ -377,6 +390,7 @@ else if (_website is not null)
                     </MudGrid>
                 </MudPaper>
             </MudItem>
+            }
 
             @* ── Status ───────────────────────────────────── *@
             <MudItem xs="12">
@@ -426,6 +440,8 @@ else if (_website is not null)
     private List<ShippingMethod> _shippingMethods = new();
     private bool _loading = true;
     private bool _saving;
+    private bool _includeSales;
+    private bool _salesTouched;
     private string[]? _formErrors;
     private bool _isNew => Id == 0;
 
@@ -447,7 +463,7 @@ else if (_website is not null)
             _website = new Website
             {
                 Active = true,
-                TaxEnabled = true,
+                TaxEnabled = false,
                 AllowCashOnDelivery = true,
                 ReturnsEnabled = true,
                 ReturnWindowDays = 7,
@@ -467,7 +483,57 @@ else if (_website is not null)
                 _shippingMethods = await ShippingService.GetAllAsync(Id);
             }
         }
+
+        ApplySalesDefault();
         _loading = false;
+    }
+
+    private void OnWebsiteTypeChanged(byte type)
+    {
+        var wasSelling = _website!.WebsiteType.TakesOrders();
+        _website.WebsiteType = type;
+        if (_salesTouched) return;
+
+        var nowSelling = type.TakesOrders();
+        _includeSales = nowSelling || HasEnteredSalesSettings();
+        if (!_isNew) return;
+        if (!wasSelling && nowSelling)
+            _website.TaxEnabled = true;
+        else if (wasSelling && !nowSelling)
+            _website.TaxEnabled = false;
+    }
+
+    private void OnIncludeSalesChanged(bool value)
+    {
+        _salesTouched = true;
+        _includeSales = value;
+        if (!value)
+            _website!.TaxEnabled = false;
+        else if (!_website!.TaxEnabled && !HasEnteredSalesSettings())
+            _website.TaxEnabled = true;
+    }
+
+    /// <summary>
+    /// Selling types ask for tax and shipping. A non-selling site still shows them when
+    /// seller or shipping data is already stored, so an edit does not hide filled fields.
+    /// </summary>
+    private void ApplySalesDefault()
+    {
+        if (_website is null) return;
+        _includeSales = _website.WebsiteType.TakesOrders() || HasEnteredSalesSettings();
+    }
+
+    private bool HasEnteredSalesSettings()
+    {
+        if (_website is null) return false;
+        if (_shippingMethods.Count > 0) return true;
+        if (_website.TaxCountryID is not null) return true;
+        if (_website.FreeShippingMinOrderAmount > 0) return true;
+        return !string.IsNullOrWhiteSpace(_website.SellerLegalName)
+            || !string.IsNullOrWhiteSpace(_website.SellerTaxId)
+            || !string.IsNullOrWhiteSpace(_website.SellerEconomicCode)
+            || !string.IsNullOrWhiteSpace(_website.SellerVatNumber)
+            || !string.IsNullOrWhiteSpace(_website.SellerRegistrationNumber);
     }
 
     private async Task PickLogoAsync()
@@ -531,6 +597,9 @@ else if (_website is not null)
         _saving = true;
         try
         {
+            if (!_includeSales)
+                _website!.TaxEnabled = false;
+
             if (_website!.FreeShippingMinOrderAmount <= 0)
             {
                 _website.FreeShippingMinOrderAmount = 0;
