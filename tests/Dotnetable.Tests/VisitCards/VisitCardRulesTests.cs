@@ -100,6 +100,33 @@ public class VisitCardRulesTests
     }
 
     [Fact]
+    public void Extra_phone_is_kept_only_when_the_number_is_valid()
+    {
+        VisitCardRules.PrepareExtraPhone("first extra number", "شرکت", "۰۲۱۸۸۷۷۶۶۵۵", out var title, out var number)
+            .Should().BeNull();
+        title.Should().Be("شرکت");
+        number.Should().Be("02188776655");
+
+        VisitCardRules.PrepareExtraPhone("first extra number", "شرکت", "   ", out var blankTitle, out var blankNumber)
+            .Should().BeNull();
+        blankTitle.Should().BeNull();
+        blankNumber.Should().BeNull();
+
+        VisitCardRules.PrepareExtraPhone("first extra number", "شرکت", "12", out _, out _)
+            .Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Vcf_labels_an_extra_phone_and_skips_a_blank_one()
+    {
+        var vcf = VisitCardRules.BuildVcf("Ali", null, null, null, null, null, null, null, null,
+            "02188776655", "شرکت", " ", "ignored");
+        vcf.Should().Contain("TEL;TYPE=VOICE:02188776655");
+        vcf.Should().Contain("X-ABLabel:شرکت");
+        vcf.Should().NotContain("ignored");
+    }
+
+    [Fact]
     public void Repeated_reason_is_not_doubled()
     {
         VisitCardRules.AppendReason("call me", "call me").Should().Be("call me");
@@ -114,6 +141,8 @@ public class VisitCardRulesTests
             Slug = "aliu",
             FullName = "Ali",
             WhatsApp = "09120000000",
+            Phone2Title = "شرکت",
+            Phone2 = "02188776655",
             Website = "https://example.com",
             CardColor = "not-a-color",
             SocialLinks = [new AuthorSocialLink { Network = "instagram", Url = "https://instagram.com/ali" }],
@@ -124,6 +153,8 @@ public class VisitCardRulesTests
         json.Should().Contain("https://instagram.com/ali");
         json.Should().Contain("https://cdn.example/logo.png");
         json.Should().Contain("#5F41FB");
+        json.Should().Contain("02188776655");
+        json.Should().Contain("\\u0634\\u0631\\u06A9\\u062A");
         json.Should().NotContain("<");
     }
 }

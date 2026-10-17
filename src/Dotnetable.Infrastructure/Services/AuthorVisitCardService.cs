@@ -147,6 +147,14 @@ public class AuthorVisitCardService : IAuthorVisitCardService
         row.Slogan = VisitCardRules.TrimTo(card.Slogan, 160);
         row.Mobile = EmptyToNull(VisitCardRules.NormalizePhone(card.Mobile), 20);
         row.Phone = EmptyToNull(VisitCardRules.NormalizePhone(card.Phone), 20);
+        var phone2Error = VisitCardRules.PrepareExtraPhone("first extra number", card.Phone2Title, card.Phone2, out var phone2Title, out var phone2);
+        if (phone2Error is not null) return phone2Error;
+        var phone3Error = VisitCardRules.PrepareExtraPhone("second extra number", card.Phone3Title, card.Phone3, out var phone3Title, out var phone3);
+        if (phone3Error is not null) return phone3Error;
+        row.Phone2Title = phone2Title;
+        row.Phone2 = phone2;
+        row.Phone3Title = phone3Title;
+        row.Phone3 = phone3;
         row.WhatsApp = EmptyToNull(VisitCardRules.NormalizePhone(card.WhatsApp), 20);
         row.Address = VisitCardRules.TrimTo(card.Address, 250);
         row.WebsiteUrl = VisitCardRules.NormalizeWebsite(card.Website);
@@ -199,7 +207,8 @@ public class AuthorVisitCardService : IAuthorVisitCardService
         var page = await GetPublicAsync(websiteId, slug, ct);
         if (page is null) return null;
         return VisitCardRules.BuildVcf(page.FullName, page.BrandName, page.JobTitle, page.Mobile, page.Phone,
-            page.Email, page.Website, page.Address, page.Slogan);
+            page.Email, page.Website, page.Address, page.Slogan,
+            page.Phone2, page.Phone2Title, page.Phone3, page.Phone3Title);
     }
 
     public async Task<string?> InsertContactAsync(int websiteId, string slug, VisitCardContactRequest request, CancellationToken ct = default)
@@ -393,6 +402,10 @@ public class AuthorVisitCardService : IAuthorVisitCardService
             Slogan = row.Slogan,
             Mobile = row.Mobile,
             Phone = row.Phone,
+            Phone2Title = row.Phone2Title,
+            Phone2 = row.Phone2,
+            Phone3Title = row.Phone3Title,
+            Phone3 = row.Phone3,
             WhatsApp = row.WhatsApp,
             Address = row.Address,
             Website = row.WebsiteUrl,
@@ -426,6 +439,10 @@ public class AuthorVisitCardService : IAuthorVisitCardService
         Slogan = row.Slogan,
         Mobile = row.Mobile,
         Phone = row.Phone,
+        Phone2Title = row.Phone2Title,
+        Phone2 = row.Phone2,
+        Phone3Title = row.Phone3Title,
+        Phone3 = row.Phone3,
         WhatsApp = row.WhatsApp,
         Address = row.Address,
         Website = row.WebsiteUrl,

@@ -51,6 +51,10 @@ public sealed class AuthorVisitCardEdit
     public string? Slogan { get; set; }
     public string? Mobile { get; set; }
     public string? Phone { get; set; }
+    public string? Phone2Title { get; set; }
+    public string? Phone2 { get; set; }
+    public string? Phone3Title { get; set; }
+    public string? Phone3 { get; set; }
     public string? WhatsApp { get; set; }
     public string? Address { get; set; }
     public string? Website { get; set; }
@@ -115,6 +119,10 @@ public sealed class VisitCardPageDto
     public string? Slogan { get; init; }
     public string? Mobile { get; init; }
     public string? Phone { get; init; }
+    public string? Phone2Title { get; init; }
+    public string? Phone2 { get; init; }
+    public string? Phone3Title { get; init; }
+    public string? Phone3 { get; init; }
     public string? WhatsApp { get; init; }
     public string? Address { get; init; }
     public string? Website { get; init; }

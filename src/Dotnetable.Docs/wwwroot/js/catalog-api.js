@@ -1797,7 +1797,8 @@ window.DOCS_API = {
                 body: {
                   slug: "aliu", websiteName: "Example", resumeSlug: "ali", phoneBookEnabled: true,
                   isPortrait: true, cardLayout: 0, themeMode: 0, cardColor: "#1976d2", pageColor: "#0d1b2a",
-                  fullName: "Ali", jobTitle: "Developer", mobile: "09120000000", email: "ali@example.com",
+                  fullName: "Ali", jobTitle: "Developer", mobile: "09120000000",
+                  phone2Title: "شرکت", phone2: "02100000000", email: "ali@example.com",
                   socialLinks: [{ network: "telegram", url: "https://t.me/ali" }],
                   locations: [{ title: "Office", lat: 35.7, lng: 51.4 }],
                   translations: [{ lang: "en", fullName: "Ali", jobTitle: "Developer" }],
@@ -1805,8 +1806,8 @@ window.DOCS_API = {
               },
               notes: [
                 {
-                  en: "`404` when the short link is unknown, the card is not published, or the member is inactive. `cardLayout` is 0 flip card, 1 photo banner, 2 portrait. `themeMode` is 0 dark, 1 light. The storefront page is `/c/{slug}`. That page has a QR code of the same link; the PNG is `GET /c/{slug}/qr` on the website, not this API. `GET /api/visit-cards/{slug}/vcard` returns a vCard 3.0 file of the card owner.",
-                  fa: "اگر لینک کوتاه ناشناخته باشد، کارت منتشر نشده باشد یا کاربر غیرفعال باشد `404` برمی‌گردد. `cardLayout` برابر ۰ کارت چرخان، ۱ بنر عکس و ۲ پرتره است. `themeMode` برابر ۰ تیره و ۱ روشن است. صفحه سایت `/c/{slug}` است و همان صفحه کد QR لینک را نشان می‌دهد. فایل PNG از `GET /c/{slug}/qr` روی خود سایت است، نه این API. `GET /api/visit-cards/{slug}/vcard` فایل vCard صاحب کارت را برمی‌گرداند.",
+                  en: "`404` when the short link is unknown, the card is not published, or the member is inactive. `cardLayout` is 0 flip card, 1 photo banner, 2 portrait. `themeMode` is 0 dark, 1 light. `phone2` and `phone3` are extra numbers; each is shown only when the number is set, with `phone2Title` or `phone3Title` (or «شماره» when the title is blank). The storefront page is `/c/{slug}`. That page has a QR code of the same link; the PNG is `GET /c/{slug}/qr` on the website, not this API. `GET /api/visit-cards/{slug}/vcard` returns a vCard 3.0 file of the card owner.",
+                  fa: "اگر لینک کوتاه ناشناخته باشد، کارت منتشر نشده باشد یا کاربر غیرفعال باشد `404` برمی‌گردد. `cardLayout` برابر ۰ کارت چرخان، ۱ بنر عکس و ۲ پرتره است. `themeMode` برابر ۰ تیره و ۱ روشن است. `phone2` و `phone3` شماره‌های اضافه هستند و فقط وقتی شماره پر باشد دیده می‌شوند؛ عنوان همان `phone2Title` یا `phone3Title` است و اگر عنوان خالی باشد «شماره» نشان داده می‌شود. صفحه سایت `/c/{slug}` است و همان صفحه کد QR لینک را نشان می‌دهد. فایل PNG از `GET /c/{slug}/qr` روی خود سایت است، نه این API. `GET /api/visit-cards/{slug}/vcard` فایل vCard صاحب کارت را برمی‌گرداند.",
                 },
               ],
             },

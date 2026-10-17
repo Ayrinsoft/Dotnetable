@@ -33,6 +33,16 @@ public partial class AuthorVisitCard
 
     public string? Phone { get; set; }
 
+    /// <summary>Label the owner writes for the first extra number, for example company phone.</summary>
+    public string? Phone2Title { get; set; }
+
+    public string? Phone2 { get; set; }
+
+    /// <summary>Label the owner writes for the second extra number.</summary>
+    public string? Phone3Title { get; set; }
+
+    public string? Phone3 { get; set; }
+
     public string? WhatsApp { get; set; }
 
     public string? Address { get; set; }

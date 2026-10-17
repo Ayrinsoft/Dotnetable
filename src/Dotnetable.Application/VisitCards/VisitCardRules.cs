@@ -120,6 +120,28 @@ public static class VisitCardRules
 
     public static bool IsPhone(string phone) => Regex.IsMatch(phone, @"^\+?[0-9]{8,18}$");
 
+    /// <summary>Keeps a titled extra number only when the number itself is present and valid.</summary>
+    public static string? PrepareExtraPhone(string which, string? title, string? number, out string? titleOut, out string? numberOut)
+    {
+        titleOut = null;
+        numberOut = NormalizePhone(number);
+        if (numberOut.Length == 0)
+        {
+            numberOut = null;
+            return null;
+        }
+
+        if (!IsPhone(numberOut))
+            return $"The {which} is not a valid phone number.";
+
+        if (numberOut.Length > 20) numberOut = numberOut[..20];
+        titleOut = TrimTo(title, 50);
+        return null;
+    }
+
+    public static string ExtraPhoneTitle(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? "شماره" : title.Trim();
+
     /// <summary>Same Iranian mobile written as 0912…, 912… or +98912… shares one key.</summary>
     public static string MobileKey(string? mobile)
     {
@@ -307,7 +329,8 @@ public static class VisitCardRules
     }
 
     public static string BuildVcf(string? fullName, string? brand, string? jobTitle, string? mobile, string? phone,
-        string? email, string? website, string? address, string? note)
+        string? email, string? website, string? address, string? note,
+        string? phone2 = null, string? phone2Title = null, string? phone3 = null, string? phone3Title = null)
     {
         var lines = new List<string> { "BEGIN:VCARD", "VERSION:3.0" };
         var name = string.IsNullOrWhiteSpace(fullName) ? brand : fullName;
@@ -318,12 +341,22 @@ public static class VisitCardRules
         if (!string.IsNullOrWhiteSpace(jobTitle)) lines.Add("TITLE:" + VcfEscape(jobTitle));
         if (!string.IsNullOrWhiteSpace(mobile)) lines.Add("TEL;TYPE=CELL:" + VcfEscape(mobile));
         if (!string.IsNullOrWhiteSpace(phone)) lines.Add("TEL;TYPE=WORK:" + VcfEscape(phone));
+        AddLabeledTel(lines, phone2, phone2Title);
+        AddLabeledTel(lines, phone3, phone3Title);
         if (!string.IsNullOrWhiteSpace(email)) lines.Add("EMAIL:" + VcfEscape(email));
         if (!string.IsNullOrWhiteSpace(website)) lines.Add("URL:" + VcfEscape(website));
         if (!string.IsNullOrWhiteSpace(address)) lines.Add("ADR;TYPE=WORK:;;" + VcfEscape(address) + ";;;;");
         if (!string.IsNullOrWhiteSpace(note)) lines.Add("NOTE:" + VcfEscape(note));
         lines.Add("END:VCARD");
         return string.Join("\r\n", lines);
+    }
+
+    private static void AddLabeledTel(List<string> lines, string? number, string? title)
+    {
+        if (string.IsNullOrWhiteSpace(number)) return;
+        var id = "item" + lines.Count;
+        lines.Add(id + ".TEL;TYPE=VOICE:" + VcfEscape(number));
+        lines.Add(id + ".X-ABLabel:" + VcfEscape(ExtraPhoneTitle(title)));
     }
 
     public static string VcfEscape(string value) =>

@@ -1309,6 +1309,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Slogan).HasMaxLength(160);
             entity.Property(e => e.Mobile).HasMaxLength(20).IsUnicode(false);
             entity.Property(e => e.Phone).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Phone2Title).HasMaxLength(50);
+            entity.Property(e => e.Phone2).HasMaxLength(20).IsUnicode(false);
+            entity.Property(e => e.Phone3Title).HasMaxLength(50);
+            entity.Property(e => e.Phone3).HasMaxLength(20).IsUnicode(false);
             entity.Property(e => e.WhatsApp).HasMaxLength(20).IsUnicode(false);
             entity.Property(e => e.Address).HasMaxLength(250);
             entity.Property(e => e.WebsiteUrl).HasMaxLength(200);

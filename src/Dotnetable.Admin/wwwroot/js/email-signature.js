@@ -151,6 +151,10 @@
             slogan: fieldOn(show, "slogan") ? String(src.slogan || "").trim() : "",
             mobile: fieldOn(show, "mobile") ? String(src.mobile || "").trim() : "",
             phone: fieldOn(show, "phone") ? String(src.phone || "").trim() : "",
+            phone2: fieldOn(show, "phone2") ? String(src.phone2 || "").trim() : "",
+            phone2Title: String(src.phone2Title || "").trim() || "شماره",
+            phone3: fieldOn(show, "phone3") ? String(src.phone3 || "").trim() : "",
+            phone3Title: String(src.phone3Title || "").trim() || "شماره",
             email: fieldOn(show, "email") ? String(src.email || "").trim() : "",
             website: fieldOn(show, "website") ? String(src.website || "").trim() : "",
             address: fieldOn(show, "address") ? String(src.address || "").trim() : "",
@@ -170,6 +174,8 @@
         var items = [];
         if (s.mobile) items.push({ label: "موبایل", text: s.mobile, href: telHref(s.mobile) });
         if (s.phone) items.push({ label: "تلفن", text: s.phone, href: telHref(s.phone) });
+        if (s.phone2) items.push({ label: s.phone2Title || "شماره", text: s.phone2, href: telHref(s.phone2) });
+        if (s.phone3) items.push({ label: s.phone3Title || "شماره", text: s.phone3, href: telHref(s.phone3) });
         if (s.email && s.email.indexOf("\n") < 0) items.push({ label: "ایمیل", text: s.email, href: "mailto:" + s.email });
         if (s.website) {
             var href = webHref(s.website);
@@ -428,7 +434,7 @@
     }
 
     function hasContent(s) {
-        return !!(s.fullName || s.jobTitle || s.brand || s.slogan || s.mobile || s.phone || s.email || s.website || s.address || shownPhoto(s) || socialItems(s).length || (s.showCta && s.ctaLabel && webHref(s.ctaUrl)) || (s.showDisclaimer && s.disclaimer));
+        return !!(s.fullName || s.jobTitle || s.brand || s.slogan || s.mobile || s.phone || s.phone2 || s.phone3 || s.email || s.website || s.address || shownPhoto(s) || socialItems(s).length || (s.showCta && s.ctaLabel && webHref(s.ctaUrl)) || (s.showDisclaimer && s.disclaimer));
     }
 
     function buildSignature(state) {
@@ -671,6 +677,10 @@
             slogan: seed.slogan || "",
             mobile: seed.mobile || "",
             phone: seed.phone || "",
+            phone2: seed.phone2 || "",
+            phone2Title: seed.phone2Title || "شماره",
+            phone3: seed.phone3 || "",
+            phone3Title: seed.phone3Title || "شماره",
             email: seed.email || "",
             website: seed.website || "",
             address: seed.address || "",
@@ -700,6 +710,8 @@
         add("slogan", "شعار", seed.slogan);
         add("mobile", "موبایل", seed.mobile);
         add("phone", "تلفن", seed.phone);
+        add("phone2", seed.phone2Title || "شماره", seed.phone2);
+        add("phone3", seed.phone3Title || "شماره", seed.phone3);
         add("email", "ایمیل", seed.email);
         add("website", "وب‌سایت", seed.website);
         add("address", "آدرس", seed.address);
