@@ -261,6 +261,7 @@ public static class ServiceCollectionExtensions
 
         // Dynamic form / survey builder with response collection and reporting.
         services.AddScoped<IFormService, FormService>();
+        services.AddScoped<IQuizService, QuizService>();
 
         // WordPress-style website theme packages (zip install / activate / export).
         services.AddScoped<IThemeService, ThemeService>();

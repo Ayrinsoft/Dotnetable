@@ -10,6 +10,8 @@ CREATE TABLE [dbo].[MenuItems] (
     [ProductCategoryID] INT            NULL,
     [BrandID]           INT            NULL,
     [VendorID]          INT            NULL,
+    [QuizID]            INT            NULL,
+    [QuizCategoryID]    INT            NULL,
     [Url]               NVARCHAR (500) NULL,
     [Title]             NVARCHAR (200) NOT NULL,
     [Icon]              NVARCHAR (100) NULL,
@@ -26,7 +28,9 @@ CREATE TABLE [dbo].[MenuItems] (
     CONSTRAINT [FK_MenuItems_Posts] FOREIGN KEY ([PostID]) REFERENCES [dbo].[Posts] ([PostID]),
     CONSTRAINT [FK_MenuItems_ProductCategories] FOREIGN KEY ([ProductCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
     CONSTRAINT [FK_MenuItems_Products] FOREIGN KEY ([ProductID]) REFERENCES [dbo].[Products] ([ProductID]),
-    CONSTRAINT [FK_MenuItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID])
+    CONSTRAINT [FK_MenuItems_Vendors] FOREIGN KEY ([VendorID]) REFERENCES [dbo].[Vendors] ([VendorID]),
+    CONSTRAINT [FK_MenuItems_Quizzes] FOREIGN KEY ([QuizID]) REFERENCES [dbo].[Quizzes] ([QuizID]),
+    CONSTRAINT [FK_MenuItems_QuizCategories] FOREIGN KEY ([QuizCategoryID]) REFERENCES [dbo].[QuizCategories] ([QuizCategoryID])
 );
 GO
 
@@ -64,3 +68,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_MenuItems_VendorID]
     ON [dbo].[MenuItems] ([VendorID] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_QuizID]
+    ON [dbo].[MenuItems] ([QuizID] ASC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_MenuItems_QuizCategoryID]
+    ON [dbo].[MenuItems] ([QuizCategoryID] ASC);

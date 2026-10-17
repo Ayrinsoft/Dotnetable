@@ -1,0 +1,188 @@
+@model Dotnetable.Application.DTOs.QuizAttemptViewDto
+@{
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = Model.Title;
+    var notice = ViewData["Notice"] as string;
+    var error = ViewData["Error"] as string;
+    var result = Model.Result;
+}
+
+<section class="site-section">
+    <div class="container" style="max-width: 760px;">
+        <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white py-2" style="top: 0; z-index: 5;">
+            <h1 class="h4 mb-0">@Model.Title</h1>
+            @if (!Model.Submitted)
+            {
+                <div class="fw-bold" id="quiz-timer" data-expires="@Model.ExpiresAtUtc.ToString("o")">--:--</div>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(notice))
+        {
+            <div class="alert alert-success">@notice</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <div class="alert alert-danger">@error</div>
+        }
+
+        @if (!Model.Submitted)
+        {
+            <form id="quiz-form" method="post" action="/quiz/attempt/@Model.Token">
+                @for (var i = 0; i < Model.Questions.Count; i++)
+                {
+                    var question = Model.Questions[i];
+                    <article class="card mb-3">
+                        <div class="card-body">
+                            <h2 class="h6">@(i + 1). @question.Prompt</h2>
+                            @if (question.ImageUrls.Count == 1)
+                            {
+                                <img src="@question.ImageUrls[0]" alt="" class="img-fluid rounded mb-3" />
+                            }
+                            else if (question.ImageUrls.Count > 1)
+                            {
+                                <div class="quiz-slides mb-3" data-slides>
+                                    @for (var image = 0; image < question.ImageUrls.Count; image++)
+                                    {
+                                        <img src="@question.ImageUrls[image]" alt="" class="img-fluid rounded @(image == 0 ? "" : "d-none")" data-slide />
+                                    }
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-prev>Previous</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-next>Next</button>
+                                        <span class="small text-muted ms-2" data-count>1 / @question.ImageUrls.Count</span>
+                                    </div>
+                                </div>
+                            }
+                            @foreach (var option in question.Options)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="@(question.AllowMultiple ? "checkbox" : "radio")"
+                                           name="q_@question.QuizQuestionID" value="@option.QuizOptionID" id="o-@option.QuizOptionID" />
+                                    <label class="form-check-label" for="o-@option.QuizOptionID">@option.Text</label>
+                                </div>
+                            }
+                            @if (question.AllowText)
+                            {
+                                <textarea class="form-control mt-2" name="t_@question.QuizQuestionID" rows="3" placeholder="Your notes"></textarea>
+                            }
+                        </div>
+                    </article>
+                }
+                <button class="btn btn-primary" type="submit">Submit</button>
+            </form>
+        }
+        else if (result is not null)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <p class="mb-1">Score: @result.Score / @result.MaxScore (@result.Percent%)</p>
+                    @if (!string.IsNullOrWhiteSpace(result.BandTitle))
+                    {
+                        <h2 class="h5">@result.BandTitle</h2>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(result.BandBody))
+                    {
+                        <p class="mb-0" style="white-space: pre-wrap;">@result.BandBody</p>
+                    }
+                </div>
+            </div>
+
+            @if (result.OfferPrivateReview && result.PrivateReviewStatus == 0)
+            {
+                <form method="post" action="/quiz/attempt/@Model.Token/review" class="card">
+                    <div class="card-body">
+                        <h2 class="h6">Private answer from a specialist</h2>
+                        @if (result.PrivateReviewFee > 0)
+                        {
+                            <p>Fee: @result.PrivateReviewFee.ToString("0.##") @result.CurrencyCode</p>
+                        }
+                        <p class="small text-muted">Your name, phone and email are required so the answer can be sent to you.</p>
+                        <input class="form-control mb-2" name="fullName" placeholder="Name" required />
+                        <input class="form-control mb-2" name="phone" placeholder="Phone" required />
+                        <input class="form-control mb-2" name="email" type="email" placeholder="Email" required />
+                        @if (result.PrivateReviewFee > 0)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="payOnline" value="1" id="pay-online" checked />
+                                <label class="form-check-label" for="pay-online">Pay online now</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="payOnline" value="0" id="pay-manual" />
+                                <label class="form-check-label" for="pay-manual">I will pay in person / ask them to register it</label>
+                            </div>
+                            @if (result.Gateways.Count > 0)
+                            {
+                                <select class="form-select mb-2" name="gatewayId">
+                                    @foreach (var gateway in result.Gateways)
+                                    {
+                                        <option value="@gateway.PaymentGatewayID">@gateway.Name</option>
+                                    }
+                                </select>
+                            }
+                        }
+                        else
+                        {
+                            <input type="hidden" name="payOnline" value="0" />
+                        }
+                        <button class="btn btn-primary" type="submit">Request the private answer</button>
+                    </div>
+                </form>
+            }
+            else if (result.PrivateReviewStatus == 1)
+            {
+                <div class="alert alert-warning">Waiting for the online payment to be confirmed.</div>
+            }
+            else if (result.PrivateReviewStatus == 3)
+            {
+                <div class="alert alert-info">Your request was recorded. The private answer is sent after the payment is registered.</div>
+            }
+            else if (result.PrivateReviewStatus == 2)
+            {
+                <div class="alert alert-info">Payment is registered. The specialist will email the private answer to you.</div>
+            }
+            else if (result.PrivateReviewStatus == 4 && !string.IsNullOrWhiteSpace(result.PrivateAnswer))
+            {
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="h6">Private answer</h2>
+                        <p class="mb-0" style="white-space: pre-wrap;">@result.PrivateAnswer</p>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>
+
+<script>
+    document.querySelectorAll("[data-slides]").forEach(function (box) {
+        var slides = Array.from(box.querySelectorAll("[data-slide]"));
+        var index = 0;
+        var count = box.querySelector("[data-count]");
+        function show(next) {
+            index = (next + slides.length) % slides.length;
+            slides.forEach(function (slide, i) { slide.classList.toggle("d-none", i !== index); });
+            if (count) count.textContent = (index + 1) + " / " + slides.length;
+        }
+        box.querySelector("[data-prev]")?.addEventListener("click", function () { show(index - 1); });
+        box.querySelector("[data-next]")?.addEventListener("click", function () { show(index + 1); });
+    });
+
+    var timer = document.getElementById("quiz-timer");
+    var form = document.getElementById("quiz-form");
+    if (timer && form) {
+        var ends = new Date(timer.getAttribute("data-expires")).getTime();
+        var sent = false;
+        function tick() {
+            var left = Math.max(0, Math.floor((ends - Date.now()) / 1000));
+            var minutes = String(Math.floor(left / 60)).padStart(2, "0");
+            var seconds = String(left % 60).padStart(2, "0");
+            timer.textContent = minutes + ":" + seconds;
+            if (left === 0 && !sent) {
+                sent = true;
+                form.submit();
+            }
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
+</script>

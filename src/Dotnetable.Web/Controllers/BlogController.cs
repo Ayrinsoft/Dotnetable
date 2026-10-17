@@ -22,7 +22,8 @@ public class BlogController : Controller
         string? Category,
         string? Tag,
         string? Heading,
-        string? Summary = null)
+        string? Summary = null,
+        IReadOnlyList<QuizPublicCategoryDto>? TestCategories = null)
     {
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     }
@@ -34,13 +35,16 @@ public class BlogController : Controller
 
         // The category itself carries the heading and the summary shown above the list — reading them
         // from the posts would leave an empty (or filtered-out) page with no heading at all.
+        var testCategories = string.IsNullOrWhiteSpace(category) && string.IsNullOrWhiteSpace(tag)
+            ? await _api.GetQuizCategoriesAsync(postsOnly: true, lang, ct)
+            : null;
         var categoryDto = string.IsNullOrWhiteSpace(category) ? null : await _api.GetCategoryAsync(category, lang, ct);
         var heading = categoryDto?.Name
             ?? (!string.IsNullOrWhiteSpace(tag)
                 ? result.Items.SelectMany(p => p.Tags).FirstOrDefault(t => t.Slug == tag)?.Name
                 : null);
 
-        return View("Index", new BlogListView(result.Items, page, result.TotalCount, PageSize, category, tag, heading, categoryDto?.Summary));
+        return View("Index", new BlogListView(result.Items, page, result.TotalCount, PageSize, category, tag, heading, categoryDto?.Summary, testCategories));
     }
 
     public Task<IActionResult> Category(string slug, int page = 1, CancellationToken ct = default) =>

@@ -1622,7 +1622,7 @@ window.DOCS_API = {
       id: "content",
       title: { en: "Content & site shell", fa: "محتوا و پوسته سایت" },
       summary: {
-        en: "Pages, posts, menus, slideshows, advertisements, theme, site info, forms, contact, site reports, redirects, files.",
+        en: "Pages, posts, menus, slideshows, advertisements, theme, site info, forms, tests, contact, site reports, redirects, files.",
         fa: "صفحه، پست، منو، اسلایدشو، تبلیغات، تم، اطلاعات سایت، فرم، تماس، گزارش سایت، ریدایرکت، فایل.",
       },
       pages: [
@@ -2048,6 +2048,27 @@ window.DOCS_API = {
                 body: { values: { email: "a@b.com", message: "Hello" } },
               },
               response: { status: 200, body: { success: true } },
+            },
+          ],
+        },
+        {
+          id: "quizzes",
+          title: { en: "Tests", fa: "تست‌ها" },
+          summary: {
+            en: "List test categories, start a timed sitting, submit answers, and pay for an optional private answer.",
+            fa: "فهرست دسته‌های تست، شروع نشست زمان‌دار، ارسال پاسخ، و پرداخت برای پاسخ خصوصی اختیاری.",
+          },
+          relatedAdmin: ["quizzes"],
+          endpoints: [
+            {
+              title: { en: "Category, test, start, submit, private answer", fa: "دسته، تست، شروع، ارسال، پاسخ خصوصی" },
+              method: "GET",
+              path: "/api/Quizzes/categories  ·  GET /api/Quizzes/{id}  ·  POST /api/Quizzes/{id}/start  ·  POST /api/Quizzes/attempts/{token}/submit  ·  POST /api/Quizzes/attempts/{token}/review",
+              auth: "website",
+              request: {
+                body: { fullName: "Ada", phone: "09120000000", email: "a@b.com", payOnline: false },
+              },
+              response: { status: 200, body: { score: 12, maxScore: 20, percent: 60, bandTitle: "Mid" } },
             },
           ],
         },

@@ -1106,6 +1106,38 @@ window.DOCS_ADMIN = {
           related: ["contact-messages", "email-templates"],
         },
         {
+          id: "quizzes",
+          title: { en: "Tests", fa: "تست‌ها" },
+          adminPath: "/content/quizzes",
+          summary: {
+            en: "Timed tests with categories, an answer key, a score result, and an optional paid private answer.",
+            fa: "آزمون زمان‌دار با دسته‌بندی، کلید جواب، نتیجه بر اساس امتیاز، و پاسخ خصوصی اختیاری بعد از پرداخت.",
+          },
+          purpose: {
+            en: "Let a visitor take a category of tests from a menu or from the blog, see a countdown, and receive a result from their score.",
+            fa: "بازدیدکننده از منو یا از وبلاگ وارد دسته تست می‌شود، زمان را می‌بیند و نتیجه را از روی امتیاز می‌گیرد.",
+          },
+          howTo: [
+            {
+              en: "Create a category (for example personality). Turn on “list on the blog” if it should appear with posts. Add a menu item of type QuizCategory with that id for a separate menu entry.",
+              fa: "یک دسته بسازید (مثلاً شخصیت). اگر باید کنار پست‌ها دیده شود، نمایش در وبلاگ را روشن کنید. برای منوی جدا، آیتم منو از نوع QuizCategory با شناسه همان دسته بگذارید.",
+            },
+            {
+              en: "Create a test in that category. Set the time limit, choose all questions or a random count, and add score bands (the general result).",
+              fa: "تست را در همان دسته بسازید. زمان کل، نمایش همه سؤال‌ها یا تعداد تصادفی، و بازه‌های نتیجه کلی را مشخص کنید.",
+            },
+            {
+              en: "Each question needs its answer key when you save it. A question can have several images (shown as slides), one or many correct options, and a written answer at the same time.",
+              fa: "کلید هر سؤال همان موقع ذخیره گذاشته می‌شود. سؤال می‌تواند چند عکس (اسلاید)، یک یا چند گزینه درست، و پاسخ تشریحی را با هم داشته باشد.",
+            },
+            {
+              en: "Turn on the private answer if you want it, and set the fee. After the test the visitor can ask for it and must leave name, phone and email. They pay online or you register the payment by hand, then you email the answer from Sittings.",
+              fa: "پاسخ خصوصی را اگر لازم است روشن کنید و هزینه را بگذارید. بعد از آزمون بازدیدکننده نام، تلفن و ایمیل می‌دهد. پرداخت آنلاین یا ثبت دستی را انتخاب می‌کند و شما از صفحه نشست‌ها پاسخ را ایمیل می‌کنید.",
+            },
+          ],
+          related: ["menus", "posts", "forms"],
+        },
+        {
           id: "themes",
           title: { en: "Themes", fa: "تم‌ها" },
           adminPath: "/themes",

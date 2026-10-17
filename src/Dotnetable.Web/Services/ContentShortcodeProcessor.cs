@@ -6,7 +6,7 @@ namespace Dotnetable.Web.Services;
 
 /// <summary>
 /// Expands WordPress-style shortcodes typed directly into Post/Page HTML content. Content authors
-/// write <c>[slideshow:ID]</c>, <c>[form:ID]</c> (alias <c>[survey:ID]</c>), or <c>[ads:Header]</c>
+/// write <c>[slideshow:ID]</c>, <c>[form:ID]</c> (alias <c>[survey:ID]</c>), <c>[quiz:ID]</c>, or <c>[ads:Header]</c>
 /// (any <see cref="Dotnetable.Domain.Enums.AdvertisementLocation"/> name) anywhere inside the
 /// body; this replaces every occurrence with the actual rendered widget before the view outputs
 /// the content with <c>@Html.Raw</c>.
@@ -22,7 +22,7 @@ public partial class ContentShortcodeProcessor
         _httpContext = httpContext;
     }
 
-    [GeneratedRegex(@"\[(slideshow|form|survey):(\d+)\]")]
+    [GeneratedRegex(@"\[(slideshow|form|survey|quiz):(\d+)\]")]
     private static partial Regex ShortcodePattern();
 
     [GeneratedRegex(@"\[ads:([A-Za-z]+)\]", RegexOptions.IgnoreCase)]
@@ -61,6 +61,13 @@ public partial class ContentShortcodeProcessor
             {
                 var slideshow = await _api.GetSlideshowByIdAsync(id, ct);
                 replacements[match.Value] = SlideshowHtmlRenderer.Render(slideshow);
+            }
+            else if (kind == "quiz")
+            {
+                var quiz = await _api.GetQuizAsync(id, ct: ct);
+                replacements[match.Value] = quiz is null
+                    ? string.Empty
+                    : $"<p class=\"quiz-embed\"><a class=\"btn btn-outline-primary\" href=\"/quiz/{quiz.QuizID}\">{System.Net.WebUtility.HtmlEncode(quiz.Title)}</a></p>";
             }
             else // form / survey
             {

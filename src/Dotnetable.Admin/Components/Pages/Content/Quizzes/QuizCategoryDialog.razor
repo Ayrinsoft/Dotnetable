@@ -1,0 +1,82 @@
+@inject ILanguageService LanguageService
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="Model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined"
+                          Required="true" RequiredError="@L["title_required", "Title is required."]" Class="mb-3" />
+            <MudTextField @bind-Value="Model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Class="mb-3"
+                          HelperText="@L["quizzes.slug_hint", "Leave blank to build it from the title."]" />
+            <MudTextField @bind-Value="Model.Description" Label="@L["description", "Description"]" Variant="Variant.Outlined"
+                          Lines="3" Class="mb-3" />
+            <MudNumericField T="int" @bind-Value="Model.SortOrder" Label="@L["sort", "Sort"]" Variant="Variant.Outlined" Class="mb-3" />
+            <MudSelect T="int?" @bind-Value="Model.ParentCategoryID" Label="@L["quizzes.parent", "Parent category"]"
+                       Variant="Variant.Outlined" Clearable="true" Class="mb-3">
+                @foreach (var parent in Parents.Where(p => p.QuizCategoryID != Model.QuizCategoryID))
+                {
+                    <MudSelectItem T="int?" Value="@parent.QuizCategoryID">@parent.Title</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+            <MudSwitch T="bool" @bind-Value="Model.ShowInPosts" Color="Color.Primary"
+                       Label="@L["quizzes.show_in_posts", "Also list this category on the blog"]" />
+            @if (_languages.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@L["other_languages", "Other languages"]</MudText>
+                @foreach (var lang in _languages)
+                {
+                    var code = lang.LanguageCode;
+                    <MudTextField T="string" Value="@TitleOf(code)" ValueChanged="@(v => SetTitle(code, v))"
+                                  Label="@($"{lang.Name} — {L["title", "Title"]}")" Variant="Variant.Outlined" Class="mb-2" />
+                    <MudTextField T="string" Value="@BodyOf(code)" ValueChanged="@(v => SetBody(code, v))"
+                                  Label="@($"{lang.Name} — {L["description", "Description"]}")" Variant="Variant.Outlined" Lines="2" Class="mb-3" />
+                }
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">@L["save", "Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public QuizCategoryEditorDto Model { get; set; } = new();
+    [Parameter] public List<QuizCategoryListItemDto> Parents { get; set; } = new();
+    [Inject] private IPageLocalizer L { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private List<Language> _languages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        if (Model.WebsiteID > 0)
+            _languages = await LanguageService.GetOtherActiveForWebsiteAsync(Model.WebsiteID);
+    }
+
+    private QuizTextDto Text(string code) =>
+        Model.Translations.FirstOrDefault(t => t.LanguageCode == code)
+        ?? Add(code);
+
+    private QuizTextDto Add(string code)
+    {
+        var row = new QuizTextDto { LanguageCode = code };
+        Model.Translations.Add(row);
+        return row;
+    }
+
+    private string? TitleOf(string code) => Text(code).Title;
+    private string? BodyOf(string code) => Text(code).Body;
+    private void SetTitle(string code, string? value) => Text(code).Title = value;
+    private void SetBody(string code, string? value) => Text(code).Body = value;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (_form.IsValid) MudDialog.Close(DialogResult.Ok(Model));
+    }
+}

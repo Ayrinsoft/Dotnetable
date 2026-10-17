@@ -91,6 +91,12 @@ public static class RoleCatalog
         new(RoleKeys.FormsDelete, "Delete forms & surveys", RoleCategory.Admin),
         new(RoleKeys.FormsReport, "View form reports & responses", RoleCategory.Admin),
 
+        new(RoleKeys.QuizzesView, "View tests and test categories", RoleCategory.Admin),
+        new(RoleKeys.QuizzesInsert, "Create tests and test categories", RoleCategory.Admin),
+        new(RoleKeys.QuizzesEdit, "Edit tests, questions and answer keys", RoleCategory.Admin),
+        new(RoleKeys.QuizzesDelete, "Delete tests and test categories", RoleCategory.Admin),
+        new(RoleKeys.QuizzesReview, "Confirm manual test payments and send private answers", RoleCategory.Admin),
+
         // Themes
         new(RoleKeys.ThemesView, "View website theme packages", RoleCategory.Admin),
         new(RoleKeys.ThemesEdit, "Install/activate/delete website themes", RoleCategory.Admin),

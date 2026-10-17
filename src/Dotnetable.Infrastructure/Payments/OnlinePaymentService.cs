@@ -153,7 +153,7 @@ public sealed class OnlinePaymentService : IOnlinePaymentService
             .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.GatewayAuthority == callback.Authority, ct);
 
         if (payment is null)
-            return GatewayVerifyResult.Fail("No pending payment matches this gateway response.");
+            return await CompleteQuizAttemptAsync(context, websiteId, callback, ct);
 
         // Callbacks are retried by PSPs and re-opened by users pressing back. Answering from the
         // stored state rather than re-verifying is what stops a second callback from crediting the
@@ -206,7 +206,72 @@ public sealed class OnlinePaymentService : IOnlinePaymentService
                 note: $"Paid online via {provider.DisplayName} (ref {result.ReferenceNumber}).", ct);
         }
 
+        var quizAttempt = await context.QuizAttempts.FirstOrDefaultAsync(a => a.PaymentID == payment.PaymentID, ct);
+        if (quizAttempt is not null)
+        {
+            MarkQuizAttemptPaid(quizAttempt, result.ReferenceNumber);
+            await context.SaveChangesAsync(ct);
+        }
+
         return result;
+    }
+
+    /// <summary>
+    /// A test's private-answer fee is not an order. When the gateway sends the payer to the shared
+    /// callback, the sitting is found by the authority stored on it.
+    /// </summary>
+    private async Task<GatewayVerifyResult> CompleteQuizAttemptAsync(
+        AppDbContext context, int websiteId, GatewayCallback callback, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(callback.Authority))
+            return GatewayVerifyResult.Fail("No pending payment matches this gateway response.");
+
+        var attempt = await context.QuizAttempts
+            .Include(a => a.PaymentGateway)
+            .Include(a => a.Payment)
+            .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.GatewayAuthority == callback.Authority, ct);
+        if (attempt is null)
+            return GatewayVerifyResult.Fail("No pending payment matches this gateway response.");
+
+        if (attempt.PrivateReviewStatus is (byte)QuizPrivateReviewStatus.PaidAwaitingAnswer
+            or (byte)QuizPrivateReviewStatus.Delivered)
+            return new GatewayVerifyResult(true, attempt.GatewayRef, null, null, null, AlreadyVerified: true);
+
+        if (attempt.PaymentGateway is null)
+            return GatewayVerifyResult.Fail("The gateway for this payment no longer exists.");
+
+        var provider = _registry.Find(attempt.PaymentGateway.Provider);
+        if (provider is null)
+            return GatewayVerifyResult.Fail($"Unknown payment gateway '{attempt.PaymentGateway.Provider}'.");
+
+        var result = await provider.VerifyAsync(ToContext(attempt.PaymentGateway), callback, ct);
+        if (!result.Paid)
+            return result;
+
+        if (result.PaidAmount is decimal charged && Math.Abs(charged - attempt.PrivateReviewFee) > 0.01m)
+            return GatewayVerifyResult.Fail("The amount confirmed by the gateway does not match this request.");
+
+        MarkQuizAttemptPaid(attempt, result.ReferenceNumber);
+        await context.SaveChangesAsync(ct);
+        return result;
+    }
+
+    private static void MarkQuizAttemptPaid(QuizAttempt attempt, string? reference)
+    {
+        if (attempt.PrivateReviewStatus is (byte)QuizPrivateReviewStatus.PaidAwaitingAnswer
+            or (byte)QuizPrivateReviewStatus.Delivered)
+            return;
+
+        attempt.PrivateReviewStatus = (byte)QuizPrivateReviewStatus.PaidAwaitingAnswer;
+        attempt.PaidAt ??= DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(reference))
+            attempt.GatewayRef = reference.Length <= 100 ? reference : reference[..100];
+        if (attempt.Payment is not null && attempt.Payment.Status != (byte)PaymentStatus.Paid)
+        {
+            attempt.Payment.Status = (byte)PaymentStatus.Paid;
+            attempt.Payment.PaidAt = DateTime.UtcNow;
+            attempt.Payment.GatewayRefNumber = attempt.GatewayRef;
+        }
     }
 
     private static PaymentGatewayContext ToContext(PaymentGateway row) => new()

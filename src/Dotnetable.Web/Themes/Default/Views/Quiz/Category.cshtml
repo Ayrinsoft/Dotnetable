@@ -1,0 +1,38 @@
+@model Dotnetable.Application.DTOs.QuizPublicCategoryDto
+@{
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = Model.Title;
+}
+
+<section class="site-section">
+    <div class="container" style="max-width: 860px;">
+        <h1 class="h3 mb-2">@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <p class="text-muted">@Model.Description</p>
+        }
+        @if (Model.Quizzes.Count == 0)
+        {
+            <p class="text-muted">No tests in this category yet.</p>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var quiz in Model.Quizzes)
+                {
+                    <a class="list-group-item list-group-item-action" href="/quiz/@quiz.QuizID">
+                        <div class="d-flex justify-content-between">
+                            <strong>@quiz.Title</strong>
+                            <span class="text-muted">@quiz.DurationMinutes min</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(quiz.Summary))
+                        {
+                            <div class="text-muted small mt-1">@quiz.Summary</div>
+                        }
+                        <div class="small mt-1">@quiz.QuestionCount questions</div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</section>

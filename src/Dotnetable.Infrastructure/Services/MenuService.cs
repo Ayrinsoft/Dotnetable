@@ -281,6 +281,8 @@ public class MenuService : IMenuService
             MenuItemType.ProductCategory when item.ProductCategoryID is int c => $"/shop/category/{c}",
             MenuItemType.Brand when item.BrandID is int b => $"/brand/{b}",
             MenuItemType.Vendor when item.VendorID is int v => $"/vendor/{v}",
+            MenuItemType.Quiz when item.QuizID is int q => $"/quiz/{q}",
+            MenuItemType.QuizCategory when item.QuizCategoryID is int c => $"/quiz/category/{c}",
             _ => "#",
         };
     }

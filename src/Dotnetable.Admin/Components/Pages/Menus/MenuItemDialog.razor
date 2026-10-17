@@ -261,6 +261,8 @@
         MenuItemType.ProductCategory => Model.ProductCategoryID,
         MenuItemType.Brand => Model.BrandID,
         MenuItemType.Vendor => Model.VendorID,
+        MenuItemType.Quiz => Model.QuizID,
+        MenuItemType.QuizCategory => Model.QuizCategoryID,
         _ => null,
     };
 
@@ -273,6 +275,8 @@
         Model.ProductCategoryID = _type == MenuItemType.ProductCategory ? _targetId : null;
         Model.BrandID = _type == MenuItemType.Brand ? _targetId : null;
         Model.VendorID = _type == MenuItemType.Vendor ? _targetId : null;
+        Model.QuizID = _type == MenuItemType.Quiz ? _targetId : null;
+        Model.QuizCategoryID = _type == MenuItemType.QuizCategory ? _targetId : null;
     }
 
     private HashSet<int> DescendantIds(int rootId)

@@ -22,4 +22,7 @@ public enum AdminNotificationType : byte
     DirectMessage = 13,
     /// <summary>A visitor reported a bug or a content problem on the public site.</summary>
     SiteReport = 14,
+
+    /// <summary>A test taker asked for the specialist's private write-up.</summary>
+    QuizPrivateReview = 15,
 }

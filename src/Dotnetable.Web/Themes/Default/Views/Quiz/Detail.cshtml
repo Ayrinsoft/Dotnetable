@@ -1,0 +1,27 @@
+@model Dotnetable.Application.DTOs.QuizPublicDetailDto
+@{
+    Layout = "/Themes/Default/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = Model.Title;
+}
+
+<section class="site-section">
+    <div class="container" style="max-width: 760px;">
+        <p class="text-muted mb-1"><a href="/quiz/category/@Model.CategoryId">@Model.CategoryTitle</a></p>
+        <h1 class="h3">@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <p>@Model.Summary</p>
+        }
+        <ul class="text-muted">
+            <li>@Model.QuestionCount questions</li>
+            <li>@Model.DurationMinutes minutes for the whole test</li>
+            @if (Model.OfferPrivateReview)
+            {
+                <li>A specialist can send a private answer afterwards@(Model.PrivateReviewFee > 0 ? $" ({Model.PrivateReviewFee:0.##} {Model.CurrencyCode})" : "").</li>
+            }
+        </ul>
+        <form method="post" action="/quiz/@Model.QuizID/start">
+            <button class="btn btn-primary" type="submit">Start</button>
+        </form>
+    </div>
+</section>

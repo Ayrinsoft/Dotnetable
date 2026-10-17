@@ -82,6 +82,13 @@ public static class RoleKeys
     public const string FormsDelete = "forms.delete";
     public const string FormsReport = "forms.report";
 
+    // ── Content: timed tests (admin) ────────────────────────────────
+    public const string QuizzesView = "quizzes.view";
+    public const string QuizzesInsert = "quizzes.insert";
+    public const string QuizzesEdit = "quizzes.edit";
+    public const string QuizzesDelete = "quizzes.delete";
+    public const string QuizzesReview = "quizzes.review";
+
     // ── Themes (admin) ──────────────────────────────────────────────
     public const string ThemesView = "themes.view";
     public const string ThemesEdit = "themes.edit";

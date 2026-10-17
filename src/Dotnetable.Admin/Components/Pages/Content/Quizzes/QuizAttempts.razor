@@ -1,0 +1,138 @@
+@page "/content/quizzes/{QuizId:int}/attempts"
+@attribute [Authorize(Policy = RoleKeys.QuizzesView)]
+@inject IQuizService QuizService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["quizzes.sittings", "Sittings"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5">@L["quizzes.sittings", "Sittings"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["quizzes.sittings_hint", "Confirm a manual payment, then write the private answer. It is emailed to the address they entered."]
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Outlined" Href="@($"/content/quizzes/{QuizId}")" StartIcon="@Icons.Material.Filled.ArrowBack">
+        @L["back", "Back"]
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else if (_items.Count == 0)
+    {
+        <MudText Color="Color.Secondary">@L["quizzes.sittings_empty", "Nobody has taken this test yet."]</MudText>
+    }
+    else
+    {
+        @foreach (var item in _items)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mb-3">
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.subtitle1">@item.StartedAt.ToLocalTime():g — @item.Score / @item.MaxScore (@item.Percent%)</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@StatusText(item.PrivateReviewStatus)</MudChip>
+                </MudStack>
+                @if (!string.IsNullOrWhiteSpace(item.ContactName))
+                {
+                    <MudText Typo="Typo.body2">@item.ContactName — @item.Phone — @item.Email</MudText>
+                    <MudText Typo="Typo.body2">@item.PrivateReviewFee @item.CurrencyCode</MudText>
+                }
+                @if (!string.IsNullOrWhiteSpace(item.BandTitle))
+                {
+                    <MudText Typo="Typo.body2" Class="mt-1">@item.BandTitle</MudText>
+                }
+                @if (item.Answers.Count > 0)
+                {
+                    <MudExpansionPanels Class="mt-2" Elevation="0">
+                        <MudExpansionPanel Text="@L["quizzes.answers", "Answers"]">
+                            @foreach (var answer in item.Answers)
+                            {
+                                <MudText Typo="Typo.body2" Class="mt-2"><b>@answer.Prompt</b> (@answer.PointsAwarded / @answer.Points)</MudText>
+                                @if (answer.Selected.Count > 0)
+                                {
+                                    <MudText Typo="Typo.caption">@string.Join("، ", answer.Selected)</MudText>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(answer.TextAnswer))
+                                {
+                                    <MudText Typo="Typo.body2">@answer.TextAnswer</MudText>
+                                }
+                            }
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+                @if (_canReview && item.PrivateReviewStatus is (byte)QuizPrivateReviewStatus.ManualRequested or (byte)QuizPrivateReviewStatus.AwaitingPayment)
+                {
+                    <MudButton Class="mt-2" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => MarkPaidAsync(item))">
+                        @L["quizzes.mark_paid", "Register payment by hand"]
+                    </MudButton>
+                }
+                @if (_canReview && item.PrivateReviewStatus == (byte)QuizPrivateReviewStatus.PaidAwaitingAnswer)
+                {
+                    <MudTextField T="string" @bind-Value="item.PrivateAnswer" Lines="4" Variant="Variant.Outlined" Class="mt-2"
+                                  Label="@L["quizzes.private_answer", "Private answer"]" />
+                    <MudButton Class="mt-2" Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => SendAsync(item))">
+                        @L["quizzes.send_answer", "Save and email"]
+                    </MudButton>
+                }
+                @if (item.PrivateReviewStatus == (byte)QuizPrivateReviewStatus.Delivered && !string.IsNullOrWhiteSpace(item.PrivateAnswer))
+                {
+                    <MudAlert Severity="Severity.Success" Class="mt-2" Dense="true">@item.PrivateAnswer</MudAlert>
+                }
+            </MudPaper>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public int QuizId { get; set; }
+
+    private bool _loading = true;
+    private bool _canReview;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<QuizAttemptAdminDto> _items = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canReview = AdminPolicies.Allows(user, RoleKeys.QuizzesReview);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _loading = true;
+        _items = await QuizService.GetAttemptsAsync(QuizId, _isMaster ? null : _websiteId);
+        _loading = false;
+    }
+
+    private string StatusText(byte status) => (QuizPrivateReviewStatus)status switch
+    {
+        QuizPrivateReviewStatus.AwaitingPayment => L["quizzes.status_paying", "Waiting for online payment"],
+        QuizPrivateReviewStatus.PaidAwaitingAnswer => L["quizzes.status_paid", "Paid — write the answer"],
+        QuizPrivateReviewStatus.ManualRequested => L["quizzes.status_manual", "Asked to pay in person"],
+        QuizPrivateReviewStatus.Delivered => L["quizzes.status_sent", "Answer sent"],
+        _ => L["quizzes.status_none", "Score only"],
+    };
+
+    private async Task MarkPaidAsync(QuizAttemptAdminDto item)
+    {
+        var error = await QuizService.MarkManualPaymentAsync(item.QuizAttemptID, _isMaster ? null : _websiteId);
+        if (error is not null) Snackbar.Add(error, Severity.Error);
+        else _items = await QuizService.GetAttemptsAsync(QuizId, _isMaster ? null : _websiteId);
+    }
+
+    private async Task SendAsync(QuizAttemptAdminDto item)
+    {
+        var error = await QuizService.SendPrivateAnswerAsync(item.QuizAttemptID, _isMaster ? null : _websiteId, item.PrivateAnswer ?? "");
+        if (error is not null) Snackbar.Add(error, Severity.Warning);
+        else
+        {
+            Snackbar.Add(L["quizzes.answer_sent", "The private answer was sent."], Severity.Success);
+            _items = await QuizService.GetAttemptsAsync(QuizId, _isMaster ? null : _websiteId);
+        }
+    }
+}

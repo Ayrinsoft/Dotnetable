@@ -4079,6 +4079,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int?>("ProductID")
                         .HasColumnType("int");
 
+                    b.Property<int?>("QuizCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("QuizID")
+                        .HasColumnType("int");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -4111,6 +4117,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "ProductCategoryID" }, "IX_MenuItems_ProductCategoryID");
 
                     b.HasIndex(new[] { "ProductID" }, "IX_MenuItems_ProductID");
+
+                    b.HasIndex(new[] { "QuizCategoryID" }, "IX_MenuItems_QuizCategoryID");
+
+                    b.HasIndex(new[] { "QuizID" }, "IX_MenuItems_QuizID");
 
                     b.HasIndex(new[] { "VendorID" }, "IX_MenuItems_VendorID");
 
@@ -6235,6 +6245,515 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.HasIndex(new[] { "WarrantyID" }, "IX_ProductWarranties_WarrantyID");
 
                     b.ToTable("ProductWarranties");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Quiz", b =>
+                {
+                    b.Property<int>("QuizID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("OfferPrivateReview")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<decimal>("PrivateReviewFee")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<byte>("QuestionMode")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<int>("QuizCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RandomCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizID");
+
+                    b.HasIndex(new[] { "QuizCategoryID" }, "IX_Quizzes_QuizCategoryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "UQ_Quizzes_WebsiteID_Slug")
+                        .IsUnique();
+
+                    b.ToTable("Quizzes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttempt", b =>
+                {
+                    b.Property<int>("QuizAttemptID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("BandBody")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("BandTitle")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("GatewayAuthority")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("GatewayRef")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("MaxScore")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("PaymentGatewayID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PaymentID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Percent")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("PrivateAnswer")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("PrivateAnswerAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<decimal>("PrivateReviewFee")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<byte>("PrivateReviewStatus")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<Guid>("PublicToken")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("QuizID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Score")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint unsigned");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("WantsPrivateReview")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("WebsiteClientID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizAttemptID");
+
+                    b.HasIndex("PaymentGatewayID");
+
+                    b.HasIndex("PaymentID");
+
+                    b.HasIndex("WebsiteClientID");
+
+                    b.HasIndex("WebsiteID");
+
+                    b.HasIndex(new[] { "GatewayAuthority" }, "IX_QuizAttempts_GatewayAuthority");
+
+                    b.HasIndex(new[] { "QuizID" }, "IX_QuizAttempts_QuizID");
+
+                    b.HasIndex(new[] { "PublicToken" }, "UQ_QuizAttempts_PublicToken")
+                        .IsUnique();
+
+                    b.ToTable("QuizAttempts");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptAnswer", b =>
+                {
+                    b.Property<int>("QuizAttemptAnswerID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PointsAwarded")
+                        .HasColumnType("decimal(9, 2)");
+
+                    b.Property<int>("QuizAttemptID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuizQuestionID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TextAnswer")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("QuizAttemptAnswerID");
+
+                    b.HasIndex("QuizQuestionID");
+
+                    b.HasIndex(new[] { "QuizAttemptID" }, "IX_QuizAttemptAnswers_QuizAttemptID");
+
+                    b.ToTable("QuizAttemptAnswers");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptAnswerOption", b =>
+                {
+                    b.Property<int>("QuizAttemptAnswerID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuizOptionID")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizAttemptAnswerID", "QuizOptionID");
+
+                    b.HasIndex("QuizOptionID");
+
+                    b.ToTable("QuizAttemptAnswerOptions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptQuestion", b =>
+                {
+                    b.Property<int>("QuizAttemptID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuizQuestionID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizAttemptID", "QuizQuestionID");
+
+                    b.HasIndex("QuizQuestionID");
+
+                    b.ToTable("QuizAttemptQuestions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizCategory", b =>
+                {
+                    b.Property<int>("QuizCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("ParentCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ShowInPosts")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("varchar(160)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizCategoryID");
+
+                    b.HasIndex(new[] { "ParentCategoryID" }, "IX_QuizCategories_ParentCategoryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Slug" }, "UQ_QuizCategories_WebsiteID_Slug")
+                        .IsUnique();
+
+                    b.ToTable("QuizCategories");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizCategoryTranslation", b =>
+                {
+                    b.Property<int>("QuizCategoryTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<int>("QuizCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("QuizCategoryTranslationID");
+
+                    b.HasIndex(new[] { "QuizCategoryID", "LanguageCode" }, "UQ_QuizCategoryTranslations_Category_Language")
+                        .IsUnique();
+
+                    b.ToTable("QuizCategoryTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizOption", b =>
+                {
+                    b.Property<int>("QuizOptionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("QuizQuestionID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.HasKey("QuizOptionID");
+
+                    b.HasIndex(new[] { "QuizQuestionID" }, "IX_QuizOptions_QuizQuestionID");
+
+                    b.ToTable("QuizOptions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizQuestion", b =>
+                {
+                    b.Property<int>("QuizQuestionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<bool>("AllowMultiple")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("AllowText")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<decimal>("Points")
+                        .HasColumnType("decimal(9, 2)");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("QuizID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizQuestionID");
+
+                    b.HasIndex(new[] { "QuizID" }, "IX_QuizQuestions_QuizID");
+
+                    b.ToTable("QuizQuestions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizQuestionImage", b =>
+                {
+                    b.Property<int>("QuizQuestionImageID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileRecordID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuizQuestionID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuizQuestionImageID");
+
+                    b.HasIndex(new[] { "FileRecordID" }, "IX_QuizQuestionImages_FileRecordID");
+
+                    b.HasIndex(new[] { "QuizQuestionID" }, "IX_QuizQuestionImages_QuizQuestionID");
+
+                    b.ToTable("QuizQuestionImages");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizScoreBand", b =>
+                {
+                    b.Property<int>("QuizScoreBandID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("MaxPercent")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<decimal>("MinPercent")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<int>("QuizID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("QuizScoreBandID");
+
+                    b.HasIndex(new[] { "QuizID" }, "IX_QuizScoreBands_QuizID");
+
+                    b.ToTable("QuizScoreBands");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizScoreBandTranslation", b =>
+                {
+                    b.Property<int>("QuizScoreBandTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<int>("QuizScoreBandID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("QuizScoreBandTranslationID");
+
+                    b.HasIndex(new[] { "QuizScoreBandID", "LanguageCode" }, "UQ_QuizScoreBandTranslations_Band_Language")
+                        .IsUnique();
+
+                    b.ToTable("QuizScoreBandTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizTranslation", b =>
+                {
+                    b.Property<int>("QuizTranslationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<int>("QuizID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("QuizTranslationID");
+
+                    b.HasIndex(new[] { "QuizID", "LanguageCode" }, "UQ_QuizTranslations_Quiz_Language")
+                        .IsUnique();
+
+                    b.ToTable("QuizTranslations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
@@ -10665,6 +11184,16 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasForeignKey("ProductID")
                         .HasConstraintName("FK_MenuItems_Products");
 
+                    b.HasOne("Dotnetable.Domain.Entities.QuizCategory", "QuizCategory")
+                        .WithMany()
+                        .HasForeignKey("QuizCategoryID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Dotnetable.Domain.Entities.Quiz", "Quiz")
+                        .WithMany()
+                        .HasForeignKey("QuizID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Dotnetable.Domain.Entities.Vendor", "Vendor")
                         .WithMany("MenuItems")
                         .HasForeignKey("VendorID")
@@ -10685,6 +11214,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("ProductCategory");
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("QuizCategory");
 
                     b.Navigation("Vendor");
                 });
@@ -11653,6 +12186,223 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Quiz", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizCategory", "QuizCategory")
+                        .WithMany("Quizzes")
+                        .HasForeignKey("QuizCategoryID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("QuizCategory");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttempt", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.PaymentGateway", "PaymentGateway")
+                        .WithMany()
+                        .HasForeignKey("PaymentGatewayID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dotnetable.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dotnetable.Domain.Entities.Quiz", "Quiz")
+                        .WithMany("Attempts")
+                        .HasForeignKey("QuizID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.WebsiteClient", "WebsiteClient")
+                        .WithMany()
+                        .HasForeignKey("WebsiteClientID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", null)
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("PaymentGateway");
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("WebsiteClient");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptAnswer", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizAttempt", "QuizAttempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuizAttemptID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.QuizQuestion", "QuizQuestion")
+                        .WithMany()
+                        .HasForeignKey("QuizQuestionID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("QuizAttempt");
+
+                    b.Navigation("QuizQuestion");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptAnswerOption", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizAttemptAnswer", "QuizAttemptAnswer")
+                        .WithMany("SelectedOptions")
+                        .HasForeignKey("QuizAttemptAnswerID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.QuizOption", "QuizOption")
+                        .WithMany()
+                        .HasForeignKey("QuizOptionID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("QuizAttemptAnswer");
+
+                    b.Navigation("QuizOption");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptQuestion", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizAttempt", "QuizAttempt")
+                        .WithMany("Questions")
+                        .HasForeignKey("QuizAttemptID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.QuizQuestion", "QuizQuestion")
+                        .WithMany()
+                        .HasForeignKey("QuizQuestionID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("QuizAttempt");
+
+                    b.Navigation("QuizQuestion");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizCategory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizCategory", "ParentCategory")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentCategoryID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ParentCategory");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizCategoryTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizCategory", "QuizCategory")
+                        .WithMany("Translations")
+                        .HasForeignKey("QuizCategoryID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QuizCategory");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizOption", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizQuestion", "QuizQuestion")
+                        .WithMany("Options")
+                        .HasForeignKey("QuizQuestionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QuizQuestion");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizQuestion", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Quiz", "Quiz")
+                        .WithMany("Questions")
+                        .HasForeignKey("QuizID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizQuestionImage", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FileRecord")
+                        .WithMany()
+                        .HasForeignKey("FileRecordID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Dotnetable.Domain.Entities.QuizQuestion", "QuizQuestion")
+                        .WithMany("Images")
+                        .HasForeignKey("QuizQuestionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FileRecord");
+
+                    b.Navigation("QuizQuestion");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizScoreBand", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Quiz", "Quiz")
+                        .WithMany("ScoreBands")
+                        .HasForeignKey("QuizID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizScoreBandTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.QuizScoreBand", "QuizScoreBand")
+                        .WithMany("Translations")
+                        .HasForeignKey("QuizScoreBandID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("QuizScoreBand");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizTranslation", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Quiz", "Quiz")
+                        .WithMany("Translations")
+                        .HasForeignKey("QuizID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.RecordAttachment", b =>
@@ -13394,6 +14144,50 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductWarning", b =>
                 {
                     b.Navigation("ProductWarningTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.Quiz", b =>
+                {
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Questions");
+
+                    b.Navigation("ScoreBands");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttempt", b =>
+                {
+                    b.Navigation("Answers");
+
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizAttemptAnswer", b =>
+                {
+                    b.Navigation("SelectedOptions");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizCategory", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Quizzes");
+
+                    b.Navigation("Translations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizQuestion", b =>
+                {
+                    b.Navigation("Images");
+
+                    b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.QuizScoreBand", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Role", b =>

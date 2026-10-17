@@ -72,6 +72,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("slideshows", "Slideshows", "/slideshows", Icons.Material.Filled.ViewCarousel, "content", "Content", RoleKeys.SlideshowsView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
         new AdminSearchPage("ads", "Advertisements", "/advertisements", Icons.Material.Filled.Campaign, "content", "Content", RoleKeys.AdvertisementsView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
         new AdminSearchPage("forms", "Forms & Surveys", "/forms", Icons.Material.Filled.DynamicForm, "content", "Content", RoleKeys.FormsView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
+        new AdminSearchPage("quizzes", "Tests", "/content/quizzes", Icons.Material.Filled.Quiz, "content", "Content", RoleKeys.QuizzesView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
+        new AdminSearchPage("quiz_categories", "Test categories", "/content/quiz-categories", Icons.Material.Filled.Category, "content", "Content", RoleKeys.QuizzesView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
         new AdminSearchPage("themes", "Themes", "/themes", Icons.Material.Filled.Palette, "content", "Content", RoleKeys.ThemesView, NavArea: AdminNavArea.ContentCore, VendorMemberAllowed: false),
         new AdminSearchPage("categories", "Categories", "/content/categories", Icons.Material.Filled.Category, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
         new AdminSearchPage("tags", "Tags", "/content/tags", Icons.Material.Filled.Label, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),

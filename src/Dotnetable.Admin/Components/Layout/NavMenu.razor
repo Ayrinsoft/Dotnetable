@@ -199,7 +199,7 @@
         }
 
         @if (NavSurface.ShowsAny(AdminNavArea.ContentCore, AdminNavArea.ContentBlog, AdminNavArea.ContentExtra)
-             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canThemes || _canModeration || _canComments || _canAuthors))
+             && (_canPosts || _canPages || _canTaxonomy || _canRedirects || _canMenus || _canSlideshows || _canAdvertisements || _canForms || _canQuizzes || _canThemes || _canModeration || _canComments || _canAuthors))
         {
             <span class="app-nav-label">@L["nav.content", "Content"]</span>
             <MudNavGroup Title="@L["content", "Content"]" Icon="@Icons.Material.Filled.Article"
@@ -288,6 +288,11 @@
                     <AuthorizeView Policy="@RoleKeys.FormsView" Context="fm">
                         <MudNavLink Href="/forms" Icon="@Icons.Material.Filled.DynamicForm">
                             @L["forms", "Forms & Surveys"]
+                        </MudNavLink>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@RoleKeys.QuizzesView" Context="qz">
+                        <MudNavLink Href="/content/quizzes" Icon="@Icons.Material.Filled.Quiz">
+                            @L["quizzes", "Tests"]
                         </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.RedirectsView" Context="rd">
@@ -538,6 +543,7 @@
     private bool _canSlideshows;
     private bool _canAdvertisements;
     private bool _canForms;
+    private bool _canQuizzes;
     private bool _canThemes;
     private bool _canModeration;
     private bool _canComments;
@@ -580,6 +586,7 @@
             _canSlideshows = AdminPolicies.Allows(user, RoleKeys.SlideshowsView);
             _canAdvertisements = AdminPolicies.Allows(user, RoleKeys.AdvertisementsView);
             _canForms = AdminPolicies.Allows(user, RoleKeys.FormsView);
+            _canQuizzes = AdminPolicies.Allows(user, RoleKeys.QuizzesView);
             _canThemes = AdminPolicies.Allows(user, RoleKeys.ThemesView);
             _canModeration = AdminPolicies.Allows(user, RoleKeys.ModerationView);
             _canComments = AdminPolicies.Allows(user, RoleKeys.CommentsView);

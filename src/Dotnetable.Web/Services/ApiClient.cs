@@ -314,6 +314,83 @@ public class ApiClient
         catch (NotSupportedException) { return FormSubmissionResult.Fail("Could not submit the form. Please try again."); }
     }
 
+    public Task<QuizPublicDetailDto?> GetQuizAsync(int quizId, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/quizzes/{quizId}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+        return GetOrNullAsync<QuizPublicDetailDto>(path, ct);
+    }
+
+    public Task<QuizPublicCategoryDto?> GetQuizCategoryAsync(int categoryId, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/quizzes/categories/{categoryId}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+        return GetOrNullAsync<QuizPublicCategoryDto>(path, ct);
+    }
+
+    public async Task<IReadOnlyList<QuizPublicCategoryDto>> GetQuizCategoriesAsync(bool postsOnly, string? lang = null, CancellationToken ct = default)
+    {
+        var path = $"api/quizzes/categories?postsOnly={postsOnly.ToString().ToLowerInvariant()}";
+        if (!string.IsNullOrWhiteSpace(lang)) path += $"&lang={Uri.EscapeDataString(lang)}";
+        return await GetOrNullAsync<IReadOnlyList<QuizPublicCategoryDto>>(path, ct) ?? Array.Empty<QuizPublicCategoryDto>();
+    }
+
+    public async Task<QuizAttemptViewDto?> StartQuizAsync(int quizId, string? lang = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var path = $"api/quizzes/{quizId}/start";
+            if (!string.IsNullOrWhiteSpace(lang)) path += $"?lang={Uri.EscapeDataString(lang)}";
+            var response = await _http.PostAsync(path, null, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<QuizAttemptViewDto>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    public Task<QuizAttemptViewDto?> GetQuizAttemptAsync(string token, CancellationToken ct = default) =>
+        GetOrNullAsync<QuizAttemptViewDto>($"api/quizzes/attempts/{Uri.EscapeDataString(token)}", ct);
+
+    public async Task<QuizAttemptViewDto?> SubmitQuizAsync(string token, QuizSubmitRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync($"api/quizzes/attempts/{Uri.EscapeDataString(token)}/submit", request, ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<QuizAttemptViewDto>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    public async Task<QuizActionResult> RequestQuizReviewAsync(string token, QuizPrivateReviewRequest request, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.PostAsJsonAsync($"api/quizzes/attempts/{Uri.EscapeDataString(token)}/review", request, ct);
+            var result = await response.Content.ReadFromJsonAsync<QuizActionResult>(cancellationToken: ct);
+            return result ?? QuizActionResult.Fail("Could not send the request.");
+        }
+        catch (HttpRequestException) { return QuizActionResult.Fail("Could not send the request."); }
+        catch (NotSupportedException) { return QuizActionResult.Fail("Could not send the request."); }
+    }
+
+    public async Task<QuizActionResult> CompleteQuizPaymentAsync(string token, IReadOnlyDictionary<string, string> fields, CancellationToken ct = default)
+    {
+        try
+        {
+            var query = string.Join("&", fields.Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+            var path = $"api/quizzes/attempts/{Uri.EscapeDataString(token)}/payment";
+            if (query.Length > 0) path += "?" + query;
+            var response = await _http.PostAsync(path, null, ct);
+            var result = await response.Content.ReadFromJsonAsync<QuizActionResult>(cancellationToken: ct);
+            return result ?? QuizActionResult.Fail("Could not confirm the payment.");
+        }
+        catch (HttpRequestException) { return QuizActionResult.Fail("Could not confirm the payment."); }
+        catch (NotSupportedException) { return QuizActionResult.Fail("Could not confirm the payment."); }
+    }
+
     /// <summary>Public aggregate survey results (only for forms with public results enabled), or null.</summary>
     public async Task<FormPublicResultsDto?> GetFormResultsAsync(int formId, CancellationToken ct = default)
     {

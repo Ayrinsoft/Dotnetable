@@ -19,6 +19,18 @@
         {
             <div class="category-summary mb-4">@Model.Summary</div>
         }
+        @if (Model.TestCategories is { Count: > 0 })
+        {
+            <div class="mb-4">
+                <h2 class="h5">Tests</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var testCategory in Model.TestCategories)
+                    {
+                        <a class="btn btn-outline-secondary btn-sm" href="/quiz/category/@testCategory.QuizCategoryID">@testCategory.Title</a>
+                    }
+                </div>
+            </div>
+        }
         @if (blogAds.Count > 0)
         {
             <div class="mb-4">

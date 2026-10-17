@@ -27,6 +27,10 @@ public partial class MenuItem
 
     public int? VendorID { get; set; }
 
+    public int? QuizID { get; set; }
+
+    public int? QuizCategoryID { get; set; }
+
     public string? Url { get; set; }
 
     public string Title { get; set; } = null!;
@@ -62,4 +66,8 @@ public partial class MenuItem
     public virtual ProductCategory? ProductCategory { get; set; }
 
     public virtual Vendor? Vendor { get; set; }
+
+    public virtual Quiz? Quiz { get; set; }
+
+    public virtual QuizCategory? QuizCategory { get; set; }
 }

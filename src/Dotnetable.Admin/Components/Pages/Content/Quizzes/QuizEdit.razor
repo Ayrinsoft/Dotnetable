@@ -1,0 +1,303 @@
+@page "/content/quizzes/new"
+@page "/content/quizzes/{QuizId:int}"
+@attribute [Authorize(Policy = RoleKeys.QuizzesView)]
+@inject IQuizService QuizService
+@inject ILanguageService LanguageService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+@inject NavigationManager Nav
+
+<DNPageTitle Title=@(_model?.Title ?? L["quizzes.new", "New test"]) />
+
+@if (_loading || _model is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h5">@(_model.QuizID == 0 ? L["quizzes.new", "New test"] : _model.Title)</MudText>
+        <MudStack Row="true" Spacing="2">
+            @if (_model.QuizID > 0)
+            {
+                <MudButton Variant="Variant.Outlined" Href="@($"/content/quizzes/{_model.QuizID}/attempts")">
+                    @L["quizzes.sittings", "Sittings"]
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" Href="/content/quizzes">@L["back", "Back"]</MudButton>
+            @if (_canEdit)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_saving" OnClick="SaveAsync">@L["save", "Save"]</MudButton>
+            }
+        </MudStack>
+    </MudStack>
+
+    @if (_model.QuizID > 0)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            @L["quizzes.menu_help", "In Menus, add an item of type Quiz with this id, or type QuizCategory with the category id."]
+            <code class="ms-2">@L["quizzes.menu_id", "Menu id"] @_model.QuizID</code>
+            <code class="ms-2">[quiz:@_model.QuizID]</code>
+        </MudAlert>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_model.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_model.Slug" Label="@L["slug", "Slug"]" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_model.Summary" Label="@L["quizzes.summary", "Introduction"]" Lines="3" Variant="Variant.Outlined" />
+            @if (_languages.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">@L["other_languages", "Other languages"]</MudText>
+                @foreach (var lang in _languages)
+                {
+                    var code = lang.LanguageCode;
+                    <MudTextField T="string" Value="@TitleOf(_model, code)" ValueChanged="@(v => SetTitle(_model, code, v))"
+                                  Label="@($"{lang.Name} — {L["title", "Title"]}")" Variant="Variant.Outlined" Class="mb-2" />
+                    <MudTextField T="string" Value="@BodyOf(_model, code)" ValueChanged="@(v => SetBody(_model, code, v))"
+                                  Label="@($"{lang.Name} — {L["quizzes.summary", "Introduction"]}")" Lines="2" Variant="Variant.Outlined" Class="mb-3" />
+                }
+            }
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSelect T="int" @bind-Value="_model.QuizCategoryID" Label="@L["quizzes.category", "Category"]" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem T="int" Value="@category.QuizCategoryID">@category.Title</MudSelectItem>
+                }
+            </MudSelect>
+            <MudNumericField T="int" @bind-Value="_model.DurationMinutes" Label="@L["quizzes.minutes", "Time limit (minutes)"]" Variant="Variant.Outlined" Min="1" Class="mb-3" />
+            <MudSelect T="byte" @bind-Value="_model.QuestionMode" Label="@L["quizzes.draw", "Which questions to show"]" Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem T="byte" Value="@((byte)QuizQuestionMode.All)">@L["quizzes.draw_all", "All questions"]</MudSelectItem>
+                <MudSelectItem T="byte" Value="@((byte)QuizQuestionMode.Random)">@L["quizzes.draw_random", "A random sample"]</MudSelectItem>
+            </MudSelect>
+            @if (_model.QuestionMode == (byte)QuizQuestionMode.Random)
+            {
+                <MudNumericField T="int?" @bind-Value="_model.RandomCount" Label="@L["quizzes.random_count", "How many to draw"]" Variant="Variant.Outlined" Min="1" Class="mb-3" />
+            }
+            <MudSwitch T="bool" @bind-Value="_model.IsPublished" Color="Color.Success" Label="@L["quizzes.published", "Published"]" />
+            <MudSwitch T="bool" @bind-Value="_model.OfferPrivateReview" Color="Color.Primary"
+                       Label="@L["quizzes.offer_private", "Offer a private answer from a specialist"]" />
+            @if (_model.OfferPrivateReview)
+            {
+                <MudStack Row="true" Spacing="2" Class="mt-2">
+                    <MudNumericField T="decimal" @bind-Value="_model.PrivateReviewFee" Label="@L["quizzes.fee", "Fee"]" Variant="Variant.Outlined" Min="0" />
+                    <MudTextField @bind-Value="_model.CurrencyCode" Label="@L["currency", "Currency"]" Variant="Variant.Outlined" />
+                </MudStack>
+            }
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2">@L["quizzes.bands", "Score results"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+        @L["quizzes.bands_hint", "After the test, the taker sees the result whose percent range contains their score."]
+    </MudText>
+    @foreach (var band in _model.Bands)
+    {
+        <MudPaper Outlined="true" Class="pa-3 mb-2">
+            <MudGrid>
+                <MudItem xs="6" md="2"><MudNumericField T="decimal" @bind-Value="band.MinPercent" Label="@L["quizzes.from", "From %"]" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="6" md="2"><MudNumericField T="decimal" @bind-Value="band.MaxPercent" Label="@L["quizzes.to", "To %"]" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12" md="8"><MudTextField @bind-Value="band.Title" Label="@L["title", "Title"]" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="band.Body" Label="@L["quizzes.result_text", "Result text"]" Lines="3" Variant="Variant.Outlined" /></MudItem>
+                @foreach (var lang in _languages)
+                {
+                    var code = lang.LanguageCode;
+                    var row = band;
+                    <MudItem xs="12" md="4">
+                        <MudTextField T="string" Value="@TitleOf(row, code)" ValueChanged="@(v => SetTitle(row, code, v))"
+                                      Label="@($"{lang.Name} — {L["title", "Title"]}")" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" md="8">
+                        <MudTextField T="string" Value="@BodyOf(row, code)" ValueChanged="@(v => SetBody(row, code, v))"
+                                      Label="@($"{lang.Name} — {L["quizzes.result_text", "Result text"]}")" Variant="Variant.Outlined" />
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => _model.Bands.Remove(band))">@L["delete", "Delete"]</MudButton>
+        </MudPaper>
+    }
+    @if (_canEdit)
+    {
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddBand">@L["quizzes.band_add", "Add a result"]</MudButton>
+    }
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2">@L["quizzes.questions", "Questions"] (@_model.Questions.Count)</MudText>
+    @for (var i = 0; i < _model.Questions.Count; i++)
+    {
+        var question = _model.Questions[i];
+        var index = i;
+        <MudPaper Outlined="true" Class="pa-3 mb-3">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.subtitle2">@(index + 1)</MudText>
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="@(() => Move(index, -1))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == _model.Questions.Count - 1" OnClick="@(() => Move(index, 1))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => _model.Questions.RemoveAt(index))" />
+                </MudStack>
+            </MudStack>
+            <MudTextField @bind-Value="question.Prompt" Label="@L["quizzes.prompt", "Question"]" Lines="3" Variant="Variant.Outlined" Class="mb-2" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudNumericField T="decimal" @bind-Value="question.Points" Label="@L["quizzes.points", "Points"]" Variant="Variant.Outlined" Min="0.01m" Style="max-width:140px" />
+                <MudSwitch T="bool" @bind-Value="question.AllowMultiple" Color="Color.Primary" Label="@L["quizzes.multi", "Several correct options"]" />
+                <MudSwitch T="bool" @bind-Value="question.AllowText" Color="Color.Primary" Label="@L["quizzes.written", "Written answer too"]" />
+                <MudSwitch T="bool" @bind-Value="question.IsActive" Color="Color.Success" Label="@L["active", "Active"]" />
+            </MudStack>
+            @foreach (var option in question.Options)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                    <MudCheckBox T="bool" @bind-Value="option.IsCorrect" Color="Color.Success" />
+                    <MudTextField @bind-Value="option.Text" Label="@L["quizzes.option", "Option"]" Variant="Variant.Outlined" Class="flex-grow-1" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => question.Options.Remove(option))" />
+                </MudStack>
+            }
+            <MudButton Size="Size.Small" OnClick="@(() => question.Options.Add(new QuizOptionInput()))">@L["quizzes.option_add", "Add option"]</MudButton>
+            <MudStack Row="true" Spacing="2" Class="mt-2" AlignItems="AlignItems.Center">
+                @foreach (var image in question.Images)
+                {
+                    <MudChip T="string" OnClose="@(() => question.Images.Remove(image))">#@image.FileRecordID</MudChip>
+                }
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image" OnClick="@(() => PickImageAsync(question))">
+                    @L["quizzes.image_add", "Add image"]
+                </MudButton>
+            </MudStack>
+            @if (question.Images.Count > 1)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["quizzes.slides_hint", "More than one image is shown as slides the taker moves through."]</MudText>
+            }
+        </MudPaper>
+    }
+    @if (_canEdit)
+    {
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddQuestion">@L["quizzes.question_add", "Add question"]</MudButton>
+    }
+}
+
+@code {
+    [Parameter] public int QuizId { get; set; }
+    [SupplyParameterFromQuery(Name = "website")] public int? WebsiteQuery { get; set; }
+
+    private QuizEditorDto? _model;
+    private List<QuizCategoryListItemDto> _categories = new();
+    private List<Language> _languages = new();
+    private bool _loading = true;
+    private bool _saving;
+    private bool _canEdit;
+    private int _websiteId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        var isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, QuizId == 0 ? RoleKeys.QuizzesInsert : RoleKeys.QuizzesEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (WebsiteQuery is int requested && isMaster) _websiteId = requested;
+
+        _loading = true;
+        if (QuizId == 0)
+        {
+            _model = new QuizEditorDto
+            {
+                WebsiteID = _websiteId,
+                DurationMinutes = 30,
+                QuestionMode = (byte)QuizQuestionMode.Random,
+                RandomCount = 50,
+                Bands =
+                {
+                    new QuizBandInput { MinPercent = 0, MaxPercent = 49, Title = "Lower range", Body = "Your score is in the lower range." },
+                    new QuizBandInput { MinPercent = 50, MaxPercent = 100, Title = "Upper range", Body = "Your score is in the upper range." },
+                },
+            };
+        }
+        else
+        {
+            _model = await QuizService.GetQuizAsync(QuizId, isMaster ? null : _websiteId);
+        }
+
+        if (_model is not null)
+        {
+            _categories = await QuizService.GetCategoriesAsync(_model.WebsiteID);
+            _languages = _model.WebsiteID > 0
+                ? await LanguageService.GetOtherActiveForWebsiteAsync(_model.WebsiteID)
+                : new List<Language>();
+        }
+        _loading = false;
+    }
+
+    private static QuizTextDto TextOf(List<QuizTextDto> rows, string code) =>
+        rows.FirstOrDefault(t => string.Equals(t.LanguageCode, code, StringComparison.OrdinalIgnoreCase))
+        ?? AddText(rows, code);
+
+    private static QuizTextDto AddText(List<QuizTextDto> rows, string code)
+    {
+        var row = new QuizTextDto { LanguageCode = code };
+        rows.Add(row);
+        return row;
+    }
+
+    private static string? TitleOf(QuizEditorDto model, string code) => TextOf(model.Translations, code).Title;
+    private static string? BodyOf(QuizEditorDto model, string code) => TextOf(model.Translations, code).Body;
+    private static void SetTitle(QuizEditorDto model, string code, string? value) => TextOf(model.Translations, code).Title = value;
+    private static void SetBody(QuizEditorDto model, string code, string? value) => TextOf(model.Translations, code).Body = value;
+    private static string? TitleOf(QuizBandInput band, string code) => TextOf(band.Translations, code).Title;
+    private static string? BodyOf(QuizBandInput band, string code) => TextOf(band.Translations, code).Body;
+    private static void SetTitle(QuizBandInput band, string code, string? value) => TextOf(band.Translations, code).Title = value;
+    private static void SetBody(QuizBandInput band, string code, string? value) => TextOf(band.Translations, code).Body = value;
+
+    private void AddQuestion()
+    {
+        if (_model is null) return;
+        _model.Questions.Add(new QuizQuestionInput
+        {
+            Points = 1,
+            IsActive = true,
+            SortOrder = _model.Questions.Count,
+            Options = { new QuizOptionInput(), new QuizOptionInput() },
+        });
+    }
+
+    private void AddBand() => _model?.Bands.Add(new QuizBandInput { MinPercent = 0, MaxPercent = 100 });
+
+    private void Move(int index, int delta)
+    {
+        if (_model is null) return;
+        var target = index + delta;
+        if (target < 0 || target >= _model.Questions.Count) return;
+        (_model.Questions[index], _model.Questions[target]) = (_model.Questions[target], _model.Questions[index]);
+    }
+
+    private async Task PickImageAsync(QuizQuestionInput question)
+    {
+        if (_model is null) return;
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _model.WebsiteID,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not FileRecord file) return;
+        question.Images.Add(new QuizImageInput { FileRecordID = file.FileRecordID, Url = file.CNDUrl ?? file.ThumbnailCDN });
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_model is null) return;
+        for (var i = 0; i < _model.Questions.Count; i++) _model.Questions[i].SortOrder = i;
+        _saving = true;
+        var (ok, error, id) = await QuizService.SaveQuizAsync(_model);
+        _saving = false;
+        if (!ok)
+        {
+            Snackbar.Add(error ?? L["save_failed", "Could not save."], Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(L["saved", "Saved."], Severity.Success);
+        if (_model.QuizID == 0) Nav.NavigateTo($"/content/quizzes/{id}");
+        else _model = await QuizService.GetQuizAsync(id, null);
+    }
+}

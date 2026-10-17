@@ -32,4 +32,10 @@ public enum MenuItemType : byte
 
     /// <summary>A vendor / seller (<c>VendorID</c>).</summary>
     Vendor = 7,
+
+    /// <summary>A timed test (<c>QuizID</c>).</summary>
+    Quiz = 8,
+
+    /// <summary>A test category (<c>QuizCategoryID</c>).</summary>
+    QuizCategory = 9,
 }

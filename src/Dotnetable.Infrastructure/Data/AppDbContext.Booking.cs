@@ -84,5 +84,7 @@ public partial class AppDbContext
                 .HasForeignKey(d => d.OrderID)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
+        ConfigureQuizzes(modelBuilder);
     }
 }
