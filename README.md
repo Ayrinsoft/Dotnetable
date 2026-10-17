@@ -52,6 +52,7 @@ On first launch it walks you through a guided setup that creates the database sc
 - ✅ **JWT authentication**, rate limiting, and other security invariants baked in
 - ✅ **Customizable Blazor admin panel**
 - ✅ **Pluggable providers** for SMS gateways, payment gateways, and file storage
+- ✅ **Plugins, as with WordPress** — you can create plugins that add features on top of Dotnetable. A plugin based on this program is part of the GPL work: it must stay open source under the GPL, and it cannot be closed or shipped as proprietary software
 - ✅ **React sample frontend** included (`src/dotnetable-react`)
 
 ### Tech Stack
@@ -194,6 +195,10 @@ Dotnetable is **free software** under the [GNU General Public License v3.0](LICE
 
 The GPL is **copyleft**. If you distribute a modified version, or a larger program that includes this one, that version must stay under the GPL and you must provide its source code. You may not relicense it under a proprietary license or ship a closed-source copy. Running a private modified copy that you do not distribute is allowed. The GPL does not by itself require publishing changes that are only used as a network service; see the license text for the exact terms.
 
+**Plugins.** You can write plugins for Dotnetable in the same way plugins are written for WordPress: separate features that build on this program. A plugin that is based on Dotnetable, or that is combined with it into one program, must be released under the GPL as well, with its source available. It may not be proprietary, and it may not be used to distribute a closed-source copy of Dotnetable.
+
+**Every version.** This applies to every version published by Ayrinsoft, including earlier releases and older branches that were previously offered under the MIT License. Those versions are now offered under GPLv3. A copy someone already received under MIT keeps the MIT permission that came with that copy. New distribution of any version is under the GPL.
+
 That permission covers *using the code*, not *write access to this repository*:
 
 - ✅ Anyone may clone or fork this repo and adapt it for themselves.
@@ -241,6 +246,7 @@ That permission covers *using the code*, not *write access to this repository*:
 - ✅ **احراز هویت JWT**، محدودسازی نرخ درخواست و سایر ملاحظات امنیتی به‌صورت پیش‌فرض فعال است
 - ✅ **پنل مدیریت Blazor قابل شخصی‌سازی**
 - ✅ **درگاه‌های افزونه‌محور** برای پیامک، درگاه‌های پرداخت و ذخیره‌سازی فایل
+- ✅ **پلاگین، مثل وردپرس** — می‌توان برای Dotnetable پلاگین ساخت و قابلیت اضافه کرد. پلاگینی که بر پایهٔ این برنامه باشد بخشی از اثر GPL است: باید تحت GPL متن‌باز بماند و نمی‌توان آن را بست یا به‌صورت اختصاصی منتشر کرد
 - ✅ **نمونه فرانت‌اند React** به همراه پروژه (`src/dotnetable-react`)
 
 ### پشته فناوری
@@ -382,6 +388,10 @@ dotnet run --project src/Dotnetable.Docs
 پروژه Dotnetable **نرم‌افزار آزاد** است و تحت [مجوز عمومی همگانی گنو، نسخهٔ ۳](LICENSE.txt) (GNU GPL v3) یا هر نسخهٔ بعدی که بنیاد نرم‌افزار آزاد منتشر کند، منتشر می‌شود. استفاده، مطالعه، تغییر و اشتراک‌گذاری آن — از جمله در کار تجاری — آزاد است.
 
 این لایسنس **کپی‌لفت** است. اگر نسخهٔ تغییریافته را منتشر کنید، یا برنامه‌ای بزرگ‌تر که این پروژه بخشی از آن است را توزیع کنید، آن نسخه باید تحت همین GPL بماند و کد منبعش را هم در اختیار گیرنده بگذارید. بستن سورس یا عوض کردن لایسنس به یک لایسنس اختصاصی مجاز نیست. اجرای یک نسخهٔ تغییریافته که منتشر نمی‌شود مجاز است. خود GPL الزام نمی‌کند تغییراتی که فقط به‌صورت سرویس شبکه‌ای استفاده می‌شوند منتشر شوند؛ متن لایسنس شرط‌های دقیق را می‌گوید.
+
+**پلاگین.** می‌توان برای Dotnetable پلاگین نوشت، همان‌طور که برای وردپرس پلاگین نوشته می‌شود: قابلیت‌هایی جدا که روی این برنامه سوار می‌شوند. پلاگینی که بر پایهٔ Dotnetable باشد، یا همراه با آن در یک برنامه ترکیب شود، باید تحت همین GPL منتشر شود و کد منبعش در دسترس بماند. پلاگین اختصاصی مجاز نیست و نمی‌توان با آن یک نسخهٔ بسته‌منبع از Dotnetable توزیع کرد.
+
+**همهٔ نسخه‌ها.** این قاعده شامل همهٔ نسخه‌هایی است که Ayrinsoft منتشر کرده، از جمله انتشارهای قبلی و شاخه‌های قدیمی‌تر که قبلاً تحت لایسنس MIT عرضه شده بودند. آن نسخه‌ها هم اکنون تحت GPLv3 عرضه می‌شوند. نسخه‌ای که کسی قبلاً تحت MIT دریافت کرده، اجازهٔ همان نسخهٔ MIT را برای همان کپی حفظ می‌کند. هر توزیع تازه از هر نسخه‌ای تحت GPL است.
 
 این اجازه مربوط به **استفاده از کد** است، نه **دسترسی نوشتن به این مخزن**:
 
