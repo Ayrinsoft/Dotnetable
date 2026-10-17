@@ -143,6 +143,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVendorProductService, VendorProductService>();
         services.AddScoped<IVendorCreditService, VendorCreditService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ISlowSellerService, SlowSellerService>();
         services.AddScoped<IProductAgentService, ProductAgentService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IPriceListService, PriceListService>();

@@ -337,6 +337,7 @@
                          Expanded="@IsGroupActive("/catalog/", "/booking")">
                 <AuthorizeView Policy="@RoleKeys.ProductsView" Context="pr">
                     <MudNavLink Href="/catalog/products" Icon="@Icons.Material.Filled.ShoppingBag">@L["products", "Products"]</MudNavLink>
+                    <MudNavLink Href="/catalog/slow-sellers" Icon="@Icons.Material.Filled.TrendingDown">@L["slow_sellers", "Slow sellers"]</MudNavLink>
                     <MudNavLink Href="/booking" Icon="@Icons.Material.Filled.EventAvailable">@L["booking", "Appointments"]</MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.PriceListsView" Context="pl">

@@ -35,6 +35,10 @@ public partial class ContentComment
 
     public string Body { get; set; } = null!;
 
+    /// <summary>Language of the page the visitor was reading, for example <c>fa</c> or <c>en</c>.
+    /// Null on comments written before language was stored; those stay on the site's default language.</summary>
+    public string? LanguageCode { get; set; }
+
     /// <summary>Values of <c>ModerationStatus</c> (1 pending, 2 approved, 3 rejected).</summary>
     public byte Status { get; set; }
 

@@ -1863,6 +1863,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
                     b.Property<DateTime?>("ModeratedAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime(0)");

@@ -34,12 +34,15 @@ public class ContentCommentService : IContentCommentService
         if (body.Length > IContentCommentService.BodyMaxLength)
             return CommentSubmitResult.Invalid($"Comment must be at most {IContentCommentService.BodyMaxLength} characters.");
 
+        var (language, siteDefault) = await ResolveLanguagesAsync(_context, submission.WebsiteId, submission.LanguageCode, ct);
         if (submission.ParentCommentId is int parentId)
         {
-            var parentOk = await ForTarget(_context.ContentComments, submission.Target, submission.TargetId)
-                .AnyAsync(c => c.ContentCommentID == parentId && c.WebsiteID == submission.WebsiteId
-                               && c.Status == (byte)ModerationStatus.Approved, ct);
-            if (!parentOk)
+            var parent = await ForTarget(_context.ContentComments, submission.Target, submission.TargetId)
+                .Where(c => c.ContentCommentID == parentId && c.WebsiteID == submission.WebsiteId
+                            && c.Status == (byte)ModerationStatus.Approved)
+                .Select(c => new { c.LanguageCode })
+                .FirstOrDefaultAsync(ct);
+            if (parent is null || !SameLanguageBucket(parent.LanguageCode, language, siteDefault))
                 return CommentSubmitResult.Invalid("The comment you are replying to does not exist.");
         }
 
@@ -80,6 +83,7 @@ public class ContentCommentService : IContentCommentService
             AuthorName = name,
             AuthorEmail = email,
             Body = body,
+            LanguageCode = language,
             Status = (byte)ModerationStatus.Pending,
             IpAddress = Truncate(submission.IpAddress, IpMaxLength),
             UserAgent = Truncate(submission.UserAgent, UserAgentMaxLength),
@@ -91,7 +95,7 @@ public class ContentCommentService : IContentCommentService
     }
 
     public async Task<PagedResult<CommentDto>> GetApprovedAsync(
-        int websiteId, CommentTarget target, int targetId, GridQuery query, CancellationToken ct = default)
+        int websiteId, CommentTarget target, int targetId, GridQuery query, string? languageCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -99,9 +103,17 @@ public class ContentCommentService : IContentCommentService
             return new PagedResult<CommentDto>();
 
         var approved = ForTarget(_context.ContentComments.AsNoTracking(), target, targetId)
-            .Where(c => c.WebsiteID == websiteId && c.Status == (byte)ModerationStatus.Approved)
-            // Staff replies show the writer's admin avatar.
-            .Include(c => c.AuthorMember).ThenInclude(m => m!.Avatar);
+            .Where(c => c.WebsiteID == websiteId && c.Status == (byte)ModerationStatus.Approved);
+        // Null means "do not filter" (moderation-style callers and older tests). A public request always
+        // passes a value, including "" when the visitor sent no language, so the list stays on one language.
+        if (languageCode is not null)
+        {
+            var (language, siteDefault) = await ResolveLanguagesAsync(_context, websiteId, languageCode, ct);
+            var includeLegacy = language == siteDefault;
+            approved = approved.Where(c => c.LanguageCode == language || (includeLegacy && c.LanguageCode == null));
+        }
+        // Staff replies show the writer's admin avatar.
+        approved = approved.Include(c => c.AuthorMember).ThenInclude(m => m!.Avatar);
 
         var roots = approved.Where(c => c.ParentCommentID == null);
         var total = await roots.CountAsync(ct);
@@ -211,6 +223,7 @@ public class ContentCommentService : IContentCommentService
             AuthorName = name.Length > IContentCommentService.NameMaxLength ? name[..IContentCommentService.NameMaxLength] : name,
             AuthorEmail = member.Email,
             Body = body,
+            LanguageCode = NormalizeLanguage(parent.LanguageCode),
             Status = (byte)ModerationStatus.Approved,
             CreatedAt = now,
             ModeratedAt = now,
@@ -307,4 +320,54 @@ public class ContentCommentService : IContentCommentService
 
     private static string? Truncate(string? value, int max) =>
         string.IsNullOrEmpty(value) ? null : value.Length <= max ? value : value[..max];
+
+    /// <summary>
+    /// Picks the language a new comment is stored under, and the site default that older comments
+    /// (null <see cref="ContentComment.LanguageCode"/>) belong to. An unknown or empty request falls
+    /// back to the site's active default language, then its first active language, then
+    /// <see cref="Website.DefaultLanguageCode"/>, then <c>en</c>.
+    /// </summary>
+    private static async Task<(string Language, string SiteDefault)> ResolveLanguagesAsync(
+        AppDbContext context, int websiteId, string? requested, CancellationToken ct)
+    {
+        var languages = await context.Languages.AsNoTracking()
+            .Where(l => l.WebsiteID == websiteId && l.Active)
+            .OrderBy(l => l.Priority).ThenBy(l => l.LanguageID)
+            .Select(l => new { l.LanguageCode, l.IsDefault })
+            .ToListAsync(ct);
+
+        string? Match(string? code)
+        {
+            var normalized = NormalizeLanguage(code);
+            if (normalized is null) return null;
+            var row = languages.FirstOrDefault(l =>
+                string.Equals(NormalizeLanguage(l.LanguageCode), normalized, StringComparison.Ordinal));
+            return row is null ? null : NormalizeLanguage(row.LanguageCode);
+        }
+
+        var siteDefault = languages.FirstOrDefault(l => l.IsDefault)?.LanguageCode
+            ?? languages.FirstOrDefault()?.LanguageCode;
+        var resolvedDefault = NormalizeLanguage(siteDefault);
+        if (resolvedDefault is null)
+        {
+            var websiteDefault = await context.Websites.AsNoTracking()
+                .Where(w => w.WebsiteID == websiteId)
+                .Select(w => w.DefaultLanguageCode)
+                .FirstOrDefaultAsync(ct);
+            resolvedDefault = NormalizeLanguage(websiteDefault) ?? "en";
+        }
+
+        return (Match(requested) ?? resolvedDefault, resolvedDefault);
+    }
+
+    private static bool SameLanguageBucket(string? stored, string language, string siteDefault) =>
+        (NormalizeLanguage(stored) ?? siteDefault) == language;
+
+    /// <summary>Two ASCII letters, lowercased. Anything else is treated as "no language requested".</summary>
+    private static string? NormalizeLanguage(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var code = value.Trim().ToLowerInvariant();
+        return code.Length == 2 && code.All(char.IsAsciiLetter) ? code : null;
+    }
 }

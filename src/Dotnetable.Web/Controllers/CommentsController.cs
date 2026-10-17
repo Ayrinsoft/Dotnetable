@@ -12,15 +12,15 @@ public class CommentsController : Controller
 
     public CommentsController(ApiClient api) => _api = api;
 
-    /// <summary>A further page of approved comments ("load more").</summary>
+    /// <summary>A further page of approved comments ("load more"), in the language of the current page.</summary>
     [HttpGet]
     public async Task<IActionResult> List(CommentTarget target, int targetId, int page = 1, CancellationToken ct = default) =>
-        Json(await _api.GetCommentsAsync(target, targetId, page, ct: ct));
+        Json(await _api.GetCommentsAsync(target, targetId, page, lang: Request.Cookies["lang"], ct: ct));
 
     [HttpPost]
     public async Task<IActionResult> Submit(CommentTarget target, int targetId, [FromBody] CommentSubmitRequest request, CancellationToken ct = default)
     {
-        var result = await _api.SubmitCommentAsync(target, targetId, request, ct);
+        var result = await _api.SubmitCommentAsync(target, targetId, request, Request.Cookies["lang"], ct);
         return StatusCode((int)result.Status, new { message = result.Message });
     }
 }

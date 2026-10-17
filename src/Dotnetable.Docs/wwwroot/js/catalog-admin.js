@@ -1271,9 +1271,48 @@ window.DOCS_ADMIN = {
             },
           ],
           relatedApi: ["products", "inventory", "price-lists"],
-          related: ["price-lists", "catalog-categories", "attributes", "brands", "vendors", "inventory-stock"],
+          related: ["slow-sellers", "price-lists", "catalog-categories", "attributes", "brands", "vendors", "inventory-stock"],
           keywords: [
             { en: "sku variant price", fa: "کد کالا واریانت قیمت" },
+          ],
+        },
+        {
+          id: "slow-sellers",
+          title: { en: "Slow sellers", fa: "کم‌فروش‌ها" },
+          adminPath: "/catalog/slow-sellers",
+          summary: {
+            en: "Published products that sold few units in the last 30 days, so you can choose a discount yourself.",
+            fa: "محصولات منتشرشده‌ای که در ۳۰ روز اخیر کم فروخته‌اند، تا خودتان تخفیف را انتخاب کنید.",
+          },
+          purpose: [
+            {
+              en: "One list. It does not apply a discount, coupon, or price change.",
+              fa: "فقط یک لیست است. تخفیف، کوپن یا قیمت را خودش عوض نمی‌کند.",
+            },
+            {
+              en: "A sale is units on paid, processing, shipped, or completed orders of this website. Pending, cancelled, and refunded orders are left out. The date is PaidAt, or CreatedAt when the order was never marked paid.",
+              fa: "فروش یعنی تعداد روی سفارش‌های پرداخت‌شده، در حال پردازش، ارسال‌شده یا تکمیل‌شده همین سایت. سفارش در انتظار پرداخت، لغوشده و مستردشده حساب نمی‌شود. تاریخ، زمان پرداخت است و اگر نباشد زمان ثبت سفارش.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Catalog → Slow sellers. Set “Max units sold in 30 days” (default 2) and run. Search matches title or slug.",
+              fa: "کاتالوگ ← کم‌فروش‌ها. «حداکثر تعداد فروش در ۳۰ روز» را بگذارید (پیش‌فرض ۲) و اجرا کنید. جستجو عنوان یا نامک را می‌گردد.",
+            },
+            {
+              en: "Open **Set discount** on a row. On the product, set the compare-at price above the selling price, or create a coupon under Promotions. You choose the amount and the kind.",
+              fa: "روی ردیف **ثبت تخفیف** را بزنید. در کالا قیمت قبل از تخفیف را بالاتر از قیمت فروش بگذارید، یا در پروموشن یک کوپن بسازید. مبلغ و نوع تخفیف را خودتان انتخاب می‌کنید.",
+            },
+          ],
+          tips: [
+            {
+              en: "“Already set” means an active variant already has a compare-at price above its selling price. Stock on hand is shown so you can skip products you cannot ship.",
+              fa: "«از قبل ثبت شده» یعنی یک واریانت فعال قیمت قبل از تخفیف بالاتر از قیمت فروش دارد. موجودی نشان داده می‌شود تا کالایی که قابل ارسال نیست را کنار بگذارید.",
+            },
+          ],
+          related: ["products", "coupons", "inventory-stock"],
+          keywords: [
+            { en: "slow seller discount low sales", fa: "کم فروش تخفیف" },
           ],
         },
         {

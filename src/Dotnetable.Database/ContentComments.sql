@@ -9,6 +9,7 @@ CREATE TABLE [dbo].[ContentComments] (
     [AuthorName]          NVARCHAR (150)  NOT NULL,
     [AuthorEmail]         NVARCHAR (256)  NULL,
     [Body]                NVARCHAR (4000) NOT NULL,
+    [LanguageCode]        CHAR (2)        NULL,
     [Status]              TINYINT         NOT NULL,
     [IpAddress]           NVARCHAR (64)   NULL,
     [UserAgent]           NVARCHAR (512)  NULL,

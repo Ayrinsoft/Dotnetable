@@ -40,36 +40,38 @@ public class CommentsController : BaseController
         _cache = cache;
     }
 
-    /// <summary>Approved comments of a post: top-level comments newest first, replies nested.</summary>
+    /// <summary>Approved comments of a post: top-level comments newest first, replies nested.
+    /// <paramref name="lang"/> limits the thread to that language. Omitted, the site default language is used.</summary>
     [HttpGet("posts/{postId:int}/comments")]
-    public Task<IActionResult> GetForPost(int postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
-        GetAsync(CommentTarget.Post, postId, page, pageSize, ct);
+    public Task<IActionResult> GetForPost(int postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? lang = null, CancellationToken ct = default) =>
+        GetAsync(CommentTarget.Post, postId, page, pageSize, lang, ct);
 
-    /// <summary>Approved comments of a CMS page.</summary>
+    /// <summary>Approved comments of a CMS page. Same <paramref name="lang"/> rule as posts.</summary>
     [HttpGet("pages/{pageId:int}/comments")]
-    public Task<IActionResult> GetForPage(int pageId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
-        GetAsync(CommentTarget.Page, pageId, page, pageSize, ct);
+    public Task<IActionResult> GetForPage(int pageId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? lang = null, CancellationToken ct = default) =>
+        GetAsync(CommentTarget.Page, pageId, page, pageSize, lang, ct);
 
     [HttpPost("posts/{postId:int}/comments")]
     [EnableRateLimiting(RateLimiting.PublicWritePolicy)]
-    public Task<IActionResult> SubmitForPost(int postId, [FromBody] CommentSubmitRequest request, CancellationToken ct = default) =>
-        SubmitAsync(CommentTarget.Post, postId, request, ct);
+    public Task<IActionResult> SubmitForPost(int postId, [FromBody] CommentSubmitRequest request, [FromQuery] string? lang = null, CancellationToken ct = default) =>
+        SubmitAsync(CommentTarget.Post, postId, request, lang, ct);
 
     [HttpPost("pages/{pageId:int}/comments")]
     [EnableRateLimiting(RateLimiting.PublicWritePolicy)]
-    public Task<IActionResult> SubmitForPage(int pageId, [FromBody] CommentSubmitRequest request, CancellationToken ct = default) =>
-        SubmitAsync(CommentTarget.Page, pageId, request, ct);
+    public Task<IActionResult> SubmitForPage(int pageId, [FromBody] CommentSubmitRequest request, [FromQuery] string? lang = null, CancellationToken ct = default) =>
+        SubmitAsync(CommentTarget.Page, pageId, request, lang, ct);
 
-    private async Task<IActionResult> GetAsync(CommentTarget target, int targetId, int page, int pageSize, CancellationToken ct)
+    private async Task<IActionResult> GetAsync(CommentTarget target, int targetId, int page, int pageSize, string? lang, CancellationToken ct)
     {
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
         var query = new GridQuery { PageIndex = page, PageSize = GridQuery.ClampPageSize(pageSize) };
-        return Ok(await _comments.GetApprovedAsync(website.WebsiteID, target, targetId, query, ct));
+        // Always pass a language so a public list never returns every language. Empty resolves to the site default.
+        return Ok(await _comments.GetApprovedAsync(website.WebsiteID, target, targetId, query, lang ?? string.Empty, ct));
     }
 
-    private async Task<IActionResult> SubmitAsync(CommentTarget target, int targetId, CommentSubmitRequest request, CancellationToken ct)
+    private async Task<IActionResult> SubmitAsync(CommentTarget target, int targetId, CommentSubmitRequest request, string? lang, CancellationToken ct)
     {
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
@@ -115,7 +117,7 @@ public class CommentsController : BaseController
         var result = await _comments.SubmitAsync(new CommentSubmission(
             website.WebsiteID, target, targetId, request.ParentCommentId, clientId,
             request.AuthorName, request.AuthorEmail, request.Body,
-            clientIp, userAgent), ct);
+            clientIp, userAgent, lang), ct);
 
         if (!result.Success)
             return result.NotFound

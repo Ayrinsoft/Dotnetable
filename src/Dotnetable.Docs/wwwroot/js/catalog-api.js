@@ -1850,8 +1850,9 @@ window.DOCS_API = {
               query: [
                 { name: "page", desc: { en: "1-based page of top-level comments (default 1)", fa: "شماره صفحه نظرات سطح اول (پیش‌فرض ۱)" } },
                 { name: "pageSize", desc: { en: "Top-level comments per page (default 20, max 100)", fa: "تعداد نظر سطح اول در هر صفحه (پیش‌فرض ۲۰، حداکثر ۱۰۰)" } },
+                { name: "lang", desc: { en: "Language of the page, e.g. fa or en. A comment is returned only for the language it was written in. Omitted, the site default language is used. Older comments with no language appear only on that default.", fa: "زبان صفحه، مثلاً fa یا en. هر نظر فقط در زبانی که نوشته شده برمی‌گردد. اگر نیاید، زبان پیش‌فرض سایت استفاده می‌شود. نظرهای قدیمی بدون زبان فقط در همان زبان پیش‌فرض دیده می‌شوند." } },
               ],
-              request: { body: "GET /api/posts/12/comments?page=1" },
+              request: { body: "GET /api/posts/12/comments?page=1&lang=fa" },
               response: {
                 status: 200,
                 body: {
@@ -1869,8 +1870,8 @@ window.DOCS_API = {
               },
               notes: [
                 {
-                  en: "Top-level comments are newest first; replies are nested (oldest first) and are not counted in `totalCount`. Email, IP and customer id are never returned.",
-                  fa: "نظرات سطح اول از جدید به قدیم‌اند؛ پاسخ‌ها تو در تو (قدیمی اول) هستند و در `totalCount` شمرده نمی‌شوند. ایمیل، IP و شناسه مشتری هرگز برگردانده نمی‌شود.",
+                  en: "Top-level comments are newest first; replies are nested (oldest first) and are not counted in `totalCount`. Email, IP and customer id are never returned. A comment written on the Persian page is not returned for `lang=en`, and the reverse. A reply must use the same language as its parent.",
+                  fa: "نظرات سطح اول از جدید به قدیم‌اند؛ پاسخ‌ها تو در تو (قدیمی اول) هستند و در `totalCount` شمرده نمی‌شوند. ایمیل، IP و شناسه مشتری هرگز برگردانده نمی‌شود. نظری که در صفحه فارسی نوشته شده با `lang=en` برنمی‌گردد و برعکس. پاسخ باید همان زبان نظر والد باشد.",
                 },
                 {
                   en: "Comments off, unpublished or unknown id → empty page (`items: []`).",
@@ -1884,7 +1885,7 @@ window.DOCS_API = {
               path: "/api/posts/{postId}/comments  ·  /api/pages/{pageId}/comments",
               auth: "optional-jwt",
               request: {
-                body: {
+                body: "POST /api/posts/12/comments?lang=fa\n" + JSON.stringify({
                   body: "Great article!",
                   parentCommentId: null,
                   authorName: "Sara",
@@ -1892,7 +1893,7 @@ window.DOCS_API = {
                   captchaToken: "…",
                   captchaAnswer: "7",
                   website: "",
-                },
+                }, null, 2),
               },
               response: {
                 status: 200,
@@ -1904,8 +1905,8 @@ window.DOCS_API = {
                   fa: "**مهمان:** `authorName` الزامی، `authorEmail` اختیاری و کپچا الزامی است (همان چالش فرم تماس: `GET /api/captcha/challenge`). **مشتری واردشده** (توکن Bearer با `client.review`): نام/ایمیل از پروفایل گرفته می‌شود و کپچا لازم نیست.",
                 },
                 {
-                  en: "`parentCommentId` must be an approved comment of the same post/page. `body` is 2–4000 characters. `website` is a honeypot and must stay empty.",
-                  fa: "`parentCommentId` باید نظر تأییدشده‌ای از همان پست/صفحه باشد. `body` بین ۲ تا ۴۰۰۰ کاراکتر است. `website` فیلد honeypot است و باید خالی بماند.",
+                  en: "`parentCommentId` must be an approved comment of the same post/page and the same language. `lang` is the page language (query string); omitted, the comment is stored on the site default language. `body` is 2–4000 characters. `website` is a honeypot and must stay empty.",
+                  fa: "`parentCommentId` باید نظر تأییدشده همان پست/صفحه و همان زبان باشد. `lang` زبان صفحه است (query string)؛ اگر نیاید نظر روی زبان پیش‌فرض سایت ذخیره می‌شود. `body` بین ۲ تا ۴۰۰۰ کاراکتر است. `website` فیلد honeypot است و باید خالی بماند.",
                 },
                 {
                   en: "Errors: `400` validation/captcha, `404` comments not available for that post/page, `403` account not allowed to comment, `429` one comment per 15 s per visitor (plus the per-IP public write rate limit).",

@@ -86,6 +86,7 @@
                 <MudStack Spacing="1" Style="min-width:0; flex:1 1 360px">
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                         <MudChip T="string" Size="Size.Small" Color="@StatusColor(c.Status)" Variant="Variant.Outlined">@StatusLabel(c.Status)</MudChip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@(string.IsNullOrWhiteSpace(c.LanguageCode) ? L["comments.default_language", "Default language"] : c.LanguageCode.Trim().ToUpperInvariant())</MudChip>
                         @if (c.Post is not null)
                         {
                             <MudText Typo="Typo.caption" Color="Color.Secondary">@L["post", "Post"]:</MudText>

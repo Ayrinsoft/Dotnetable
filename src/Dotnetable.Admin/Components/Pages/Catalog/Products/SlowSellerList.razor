@@ -1,0 +1,182 @@
+@page "/catalog/slow-sellers"
+@attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@inject ISlowSellerService SlowSellers
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["slow_sellers", "Slow sellers"] />
+
+<MudStack Spacing="1" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["slow_sellers", "Slow sellers"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["slow_sellers.subtitle", "Published products that sold few units in the last 30 days. This list does not change any price. Open a product and set the compare-at price, or create a coupon, for the amount and kind of discount you want."]
+    </MudText>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudGrid Spacing="2">
+        @if (_isMaster)
+        {
+            <MudItem xs="12" sm="6" md="3">
+                <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" />
+            </MudItem>
+        }
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField T="int" @bind-Value="_maxUnits" Min="0" Max="1000000" Variant="Variant.Outlined" Dense="true"
+                             Label="@L["slow_sellers.max_units", "Max units sold in 30 days"]" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="_search" Variant="Variant.Outlined" Dense="true" Immediate="false"
+                          Label="@L["search", "Search"]" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" Disabled="@(_loading || _websiteId <= 0)">
+                @L["run", "Run"]
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+}
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (!_loading && _items.Count == 0)
+    {
+        <MudText Color="Color.Secondary" Align="Align.Center" Class="py-6">
+            @L["slow_sellers.empty", "No products are at or under this sales level."]
+        </MudText>
+    }
+    else if (_items.Count > 0)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+            @_from.ToLocalTime().ToString("d") – @_to.ToLocalTime().ToString("d")
+            · @_total
+        </MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["product", "Product"]</th>
+                    <th class="text-end">@L["slow_sellers.units", "Units sold"]</th>
+                    <th class="text-end">@L["orders", "Orders"]</th>
+                    <th class="text-end">@L["price", "Price"]</th>
+                    <th>@L["slow_sellers.discount", "Discount"]</th>
+                    <th class="text-end">@L["inventory.onhand", "On hand"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _items)
+                {
+                    <tr>
+                        <td>
+                            <MudText Typo="Typo.body2">@row.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@row.Slug</MudText>
+                        </td>
+                        <td class="text-end">@row.UnitsSold</td>
+                        <td class="text-end">@row.OrderCount</td>
+                        <td class="text-end">@(row.Price is decimal price ? MoneyFormat.Group(price, _currency) : "—")</td>
+                        <td>
+                            @if (row.HasDiscount)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@L["slow_sellers.has_discount", "Already set"]</MudChip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@L["slow_sellers.no_discount", "None"]</MudText>
+                            }
+                        </td>
+                        <td class="text-end">@row.StockOnHand</td>
+                        <td class="text-end">
+                            @if (_canEdit)
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                           Href="@($"/catalog/products/{row.ProductId}")">
+                                    @L["slow_sellers.open", "Set discount"]
+                                </MudButton>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+        <MudPagination Class="mt-3" Count="@PageCount" Selected="_page" SelectedChanged="OnPageChanged" />
+    }
+</MudPaper>
+
+@code {
+    private const int PageSize = 25;
+
+    private bool _loading = true;
+    private bool _isMaster;
+    private bool _canEdit;
+    private int _websiteId;
+    private int _maxUnits = ISlowSellerService.DefaultMaxUnitsSold;
+    private int _page = 1;
+    private int _total;
+    private string? _search;
+    private string? _currency;
+    private DateTime _from;
+    private DateTime _to;
+    private List<Website> _websites = new();
+    private List<SlowSellerRow> _items = new();
+
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(_total / (double)PageSize));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.ProductsEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        _page = 1;
+        await LoadAsync();
+    }
+
+    private async Task OnPageChanged(int page)
+    {
+        _page = page;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0)
+        {
+            _items = new();
+            _total = 0;
+            _loading = false;
+            return;
+        }
+
+        _loading = true;
+        var report = await SlowSellers.GetAsync(_websiteId, _maxUnits, _search, new GridQuery { PageIndex = _page, PageSize = PageSize });
+        _items = report.Items.ToList();
+        _total = report.TotalCount;
+        _from = report.FromUtc;
+        _to = report.ToUtc;
+        _currency = report.CurrencyCode;
+        if (_page > PageCount)
+        {
+            _page = PageCount;
+            _loading = false;
+            await LoadAsync();
+            return;
+        }
+        _loading = false;
+    }
+}

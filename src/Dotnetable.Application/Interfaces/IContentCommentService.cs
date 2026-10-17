@@ -17,8 +17,10 @@ public interface IContentCommentService
     Task<CommentSubmitResult> SubmitAsync(CommentSubmission submission, CancellationToken ct = default);
 
     /// <summary>Approved top-level comments (newest first, paged) with all their approved replies nested.
-    /// Returns an empty page when the target is not published or has comments turned off.</summary>
-    Task<PagedResult<CommentDto>> GetApprovedAsync(int websiteId, CommentTarget target, int targetId, GridQuery query, CancellationToken ct = default);
+    /// Returns an empty page when the target is not published or has comments turned off.
+    /// When <paramref name="languageCode"/> is set, only comments written in that language are returned.
+    /// Comments stored before a language was recorded count as the website's default language.</summary>
+    Task<PagedResult<CommentDto>> GetApprovedAsync(int websiteId, CommentTarget target, int targetId, GridQuery query, string? languageCode = null, CancellationToken ct = default);
 
     /// <summary>Moderation list with <c>Post</c>, <c>Page</c>, <c>ParentComment</c>, <c>WebsiteClient</c> and
     /// <c>AuthorMember</c> loaded; pending comments sort oldest first, everything else newest first.</summary>

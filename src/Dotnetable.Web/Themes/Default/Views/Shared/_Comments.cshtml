@@ -9,7 +9,8 @@
 *@
 @{
     const int pageSize = 20;
-    var comments = await Api.GetCommentsAsync(Model.Target, Model.TargetId, 1, pageSize);
+    var lang = Context.Request.Cookies["lang"];
+    var comments = await Api.GetCommentsAsync(Model.Target, Model.TargetId, 1, pageSize, lang);
     var isLoggedIn = Context.Request.Cookies.ContainsKey(ClientAuth.TokenCookie);
 }
 

@@ -1407,6 +1407,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.AuthorEmail).HasMaxLength(256);
             entity.Property(e => e.AuthorName).HasMaxLength(150);
             entity.Property(e => e.Body).HasMaxLength(4000);
+            entity.Property(e => e.LanguageCode).HasMaxLength(2).IsUnicode(false).IsFixedLength();
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.IpAddress).HasMaxLength(64);
             entity.Property(e => e.ModeratedAt).HasPrecision(0);

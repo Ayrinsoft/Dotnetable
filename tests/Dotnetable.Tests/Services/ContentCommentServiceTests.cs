@@ -83,8 +83,8 @@ public class ContentCommentServiceTests : IDisposable
     };
 
     private static CommentSubmission Guest(CommentTarget target, int targetId, string body = "Nice post",
-        int? parentId = null, string? name = "Guest", string? email = null, int websiteId = SiteId) =>
-        new(websiteId, target, targetId, parentId, null, name, email, body, "127.0.0.1", "tests");
+        int? parentId = null, string? name = "Guest", string? email = null, int websiteId = SiteId, string? language = null) =>
+        new(websiteId, target, targetId, parentId, null, name, email, body, "127.0.0.1", "tests", language);
 
     private async Task<int> ApprovedCommentAsync(CommentTarget target, int targetId, int? parentId = null)
     {
@@ -176,6 +176,63 @@ public class ContentCommentServiceTests : IDisposable
         stored.AuthorName.Should().Be("Sara Ahmadi");
         stored.AuthorEmail.Should().Be("sara@example.com");
         stored.WebsiteClientID.Should().Be(ClientId);
+    }
+
+    [Fact]
+    public async Task Comments_Show_Only_On_The_Language_They_Were_Written_In()
+    {
+        _context.Websites.Add(new Website
+        {
+            WebsiteID = SiteId, TradeName = "Test", WebsiteAddress = "test.example", AuthCode = Guid.NewGuid(),
+            Active = true, Manager = "Mgr", Mobile = "123", Email = "admin@test.example",
+            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow), DefaultLanguageCode = "fa",
+            DefaultCurrencyCode = "IRR", BrandName = "Test",
+        });
+        _context.Languages.AddRange(
+            new Language
+            {
+                WebsiteID = SiteId, LanguageCode = "fa", LanguageCodeISO = "fa", Name = "Persian",
+                Priority = 1, IsDefault = true, Active = true,
+            },
+            new Language
+            {
+                WebsiteID = SiteId, LanguageCode = "en", LanguageCodeISO = "en", Name = "English",
+                Priority = 2, IsDefault = false, Active = true,
+            });
+        _context.ContentComments.Add(new ContentComment
+        {
+            WebsiteID = SiteId, PostID = OpenPostId, AuthorName = "Old", Body = "Before languages",
+            Status = (byte)ModerationStatus.Approved, CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+        });
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var persian = await _service.SubmitAsync(Guest(CommentTarget.Post, OpenPostId, "سلام", language: "fa"));
+        var english = await _service.SubmitAsync(Guest(CommentTarget.Post, OpenPostId, "Hello", language: "en"));
+        persian.Success.Should().BeTrue(persian.Error);
+        english.Success.Should().BeTrue(english.Error);
+        await _service.ModerateAsync(SiteId, persian.CommentId!.Value, approve: true, MemberId);
+        await _service.ModerateAsync(SiteId, english.CommentId!.Value, approve: true, MemberId);
+
+        var onPersian = await _service.GetApprovedAsync(SiteId, CommentTarget.Post, OpenPostId, FirstPage, "fa");
+        onPersian.Items.Select(c => c.Body).Should().BeEquivalentTo("سلام", "Before languages");
+        var onEnglish = await _service.GetApprovedAsync(SiteId, CommentTarget.Post, OpenPostId, FirstPage, "en");
+        onEnglish.Items.Select(c => c.Body).Should().BeEquivalentTo("Hello");
+
+        var cross = await _service.SubmitAsync(Guest(CommentTarget.Post, OpenPostId, "پاسخ", parentId: english.CommentId, language: "fa"));
+        cross.Success.Should().BeFalse();
+
+        var reply = await _service.ReplyAsync(SiteId, persian.CommentId!.Value, MemberId, "پاسخ تیم");
+        reply!.LanguageCode.Should().Be("fa");
+        var afterReply = await _service.GetApprovedAsync(SiteId, CommentTarget.Post, OpenPostId, FirstPage, "en");
+        afterReply.Items.Should().ContainSingle().Which.Replies.Should().BeEmpty();
+        (await _service.GetApprovedAsync(SiteId, CommentTarget.Post, OpenPostId, FirstPage, "fa"))
+            .Items.Should().Contain(c => c.Body == "سلام" && c.Replies.Any(r => r.Body == "پاسخ تیم"));
+
+        var unknown = await _service.SubmitAsync(Guest(CommentTarget.Post, OpenPostId, "Other", language: "de"));
+        unknown.Success.Should().BeTrue(unknown.Error);
+        (await _context.ContentComments.AsNoTracking().SingleAsync(c => c.ContentCommentID == unknown.CommentId))
+            .LanguageCode.Should().Be("fa");
     }
 
     [Fact]

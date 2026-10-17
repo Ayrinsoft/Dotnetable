@@ -1938,6 +1938,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("character(2)")
+                        .IsFixedLength();
+
                     b.Property<DateTime?>("ModeratedAt")
                         .HasPrecision(0)
                         .HasColumnType("timestamp(0) with time zone");

@@ -58,7 +58,8 @@ public sealed record CommentSubmission(
     string? AuthorEmail,
     string Body,
     string? IpAddress,
-    string? UserAgent);
+    string? UserAgent,
+    string? LanguageCode = null);
 
 /// <summary>Outcome of a comment submission. <see cref="NotFound"/> means the post/page is missing,
 /// unpublished, or has comments turned off.</summary>
