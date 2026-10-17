@@ -371,3 +371,7 @@ FodyWeavers.xsd
 # Runtime local settings written by Setup / Settings: DB connection + Turnstile keys (do not commit secrets)
 **/dbsettings.json
 **/localsettings.json
+
+# Local notes for coding assistants. Kept off the public repository.
+/AGENTS.md
+/CLAUDE.md

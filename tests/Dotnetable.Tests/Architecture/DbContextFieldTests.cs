@@ -6,7 +6,7 @@ using Xunit;
 namespace Dotnetable.Tests.Architecture;
 
 /// <summary>
-/// Guards the rule in AGENTS.md: an application service must not hold an <see cref="AppDbContext"/>
+/// Guards the architecture rule: an application service must not hold an <see cref="AppDbContext"/>
 /// as a field.
 ///
 /// <para>Why it matters: Blazor Server runs a layout, a page and several child components'
