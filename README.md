@@ -4,7 +4,7 @@
 Database-agnostic, cross-platform, and fully extendable — Dotnetable gives you complete control over your backend with maximum flexibility.
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![License](https://img.shields.io/badge/license-see%20LICENSE.txt-blue)](LICENSE.txt)
+[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE.txt)
 [![Repo](https://img.shields.io/badge/GitHub-Ayrinsoft%2FDotnetable-181717?logo=github)](https://github.com/Ayrinsoft/Dotnetable)
 
 🔗 **Repository:** [github.com/Ayrinsoft/Dotnetable](https://github.com/Ayrinsoft/Dotnetable)
@@ -190,7 +190,9 @@ Write access (pushing directly, merging pull requests) is limited to the project
 
 ### License & Usage Rules
 
-Dotnetable is **free software** under the [GNU General Public License v3.0](LICENSE.txt) (or any later version), including every earlier version of this project. You may use, study, modify, and share it. Distributed modifications and plugins based on this program must stay under the GPL, with source available. You may not close the source.
+Dotnetable is **free software** under the [GNU General Public License v3.0](LICENSE.txt) (or any later version published by the Free Software Foundation). You may use, study, modify, and share it, including in commercial work.
+
+The GPL is **copyleft**. If you distribute a modified version, or a larger program that includes this one, that version must stay under the GPL and you must provide its source code. You may not relicense it under a proprietary license or ship a closed-source copy. Running a private modified copy that you do not distribute is allowed. The GPL does not by itself require publishing changes that are only used as a network service; see the license text for the exact terms.
 
 That permission covers *using the code*, not *write access to this repository*:
 
@@ -377,7 +379,9 @@ dotnet run --project src/Dotnetable.Docs
 
 ### لایسنس و قوانین استفاده
 
-پروژه Dotnetable **نرم‌افزار آزاد** است و تحت [مجوز GPL نسخهٔ ۳](LICENSE.txt) (یا هر نسخهٔ بعدی) منتشر می‌شود، از جمله نسخه‌های قبلی همین پروژه. تغییر منتشرشده و پلاگینِ مبتنی بر این برنامه باید تحت GPL بماند و کد منبعش در دسترس باشد. بستن سورس مجاز نیست.
+پروژه Dotnetable **نرم‌افزار آزاد** است و تحت [مجوز عمومی همگانی گنو، نسخهٔ ۳](LICENSE.txt) (GNU GPL v3) یا هر نسخهٔ بعدی که بنیاد نرم‌افزار آزاد منتشر کند، منتشر می‌شود. استفاده، مطالعه، تغییر و اشتراک‌گذاری آن — از جمله در کار تجاری — آزاد است.
+
+این لایسنس **کپی‌لفت** است. اگر نسخهٔ تغییریافته را منتشر کنید، یا برنامه‌ای بزرگ‌تر که این پروژه بخشی از آن است را توزیع کنید، آن نسخه باید تحت همین GPL بماند و کد منبعش را هم در اختیار گیرنده بگذارید. بستن سورس یا عوض کردن لایسنس به یک لایسنس اختصاصی مجاز نیست. اجرای یک نسخهٔ تغییریافته که منتشر نمی‌شود مجاز است. خود GPL الزام نمی‌کند تغییراتی که فقط به‌صورت سرویس شبکه‌ای استفاده می‌شوند منتشر شوند؛ متن لایسنس شرط‌های دقیق را می‌گوید.
 
 این اجازه مربوط به **استفاده از کد** است، نه **دسترسی نوشتن به این مخزن**:
 

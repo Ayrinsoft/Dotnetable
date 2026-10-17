@@ -14,8 +14,7 @@ public partial class Website
     public Guid AuthCode { get; set; }
 
     /// <summary>
-    /// Secret for <c>POST /api/product-agent</c>. Separate from <see cref="AuthCode"/>,
-    /// which the storefront sends on public reads. Null until an admin generates it.
+    /// Unused. Kept so databases that already applied <c>AddCatalogAgentKey</c> stay compatible.
     /// </summary>
     public Guid? CatalogAgentKey { get; set; }
 
