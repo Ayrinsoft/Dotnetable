@@ -335,6 +335,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseProvisioner, SqlServerProvisioner>();
         services.AddSingleton<IDatabaseProvisioner, PostgreSqlProvisioner>();
         services.AddSingleton<IDatabaseProvisioner, MySqlProvisioner>();
+        services.AddSingleton<IDatabaseProvisioner, SqliteProvisioner>();
         services.AddSingleton<IDatabaseProvisionerRegistry, DatabaseProvisionerRegistry>();
 
         services.AddApplication();
@@ -349,6 +350,7 @@ public static class ServiceCollectionExtensions
     public const string SqlServerMigrations = "Dotnetable.Migrations.SqlServer";
     public const string MySqlMigrations = "Dotnetable.Migrations.MySql";
     public const string PostgreSqlMigrations = "Dotnetable.Migrations.PostgreSql";
+    public const string SqliteMigrations = "Dotnetable.Migrations.Sqlite";
 
     internal static void ConfigureProvider(DbContextOptionsBuilder options, string provider, string connectionString)
     {
@@ -382,9 +384,44 @@ public static class ServiceCollectionExtensions
                 options.UseMySQL(connectionString, mysql => mysql.MigrationsAssembly(MySqlMigrations));
                 break;
 
+            case "sqlite":
+                // Decimal TEXT mapping and UseSqlite live in the migrations project so this
+                // assembly does not take a project reference back to it. The host copies the DLL.
+                ConfigureSqlite(options, connectionString);
+                break;
+
             default:
                 throw new NotSupportedException(
-                    $"Database provider '{provider}' is not supported. Use: SqlServer, PostgreSQL, MySQL, MariaDB");
+                    $"Database provider '{provider}' is not supported. Use: SqlServer, PostgreSQL, MySQL, MariaDB, SQLite");
         }
+    }
+
+    private static void ConfigureSqlite(DbContextOptionsBuilder options, string connectionString)
+    {
+        const string typeName = "Dotnetable.Migrations.Sqlite.SqliteDatabaseSetup, Dotnetable.Migrations.Sqlite";
+        var type = Type.GetType(typeName, throwOnError: false);
+        if (type is null)
+        {
+            try
+            {
+                type = System.Reflection.Assembly.Load("Dotnetable.Migrations.Sqlite")
+                    .GetType("Dotnetable.Migrations.Sqlite.SqliteDatabaseSetup", throwOnError: true);
+            }
+            catch (Exception ex)
+            {
+                throw new NotSupportedException(
+                    "SQLite support requires the Dotnetable.Migrations.Sqlite assembly. Reference it from the host project.",
+                    ex);
+            }
+        }
+
+        var configure = type!.GetMethod(
+                "Configure",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                binder: null,
+                types: [typeof(DbContextOptionsBuilder), typeof(string)],
+                modifiers: null)
+            ?? throw new MissingMethodException(type.FullName, "Configure");
+        configure.Invoke(null, [options, connectionString]);
     }
 }

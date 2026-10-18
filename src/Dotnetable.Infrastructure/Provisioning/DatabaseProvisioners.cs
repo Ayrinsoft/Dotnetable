@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using MySql.Data.MySqlClient;
 using Npgsql;
 
@@ -142,5 +143,83 @@ public class MySqlProvisioner : IDatabaseProvisioner
         await using var command = connection.CreateCommand();
         command.CommandText = $"CREATE DATABASE IF NOT EXISTS `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
         await command.ExecuteNonQueryAsync(ct);
+    }
+}
+
+public class SqliteProvisioner : IDatabaseProvisioner
+{
+    public bool Handles(string provider) => provider.Equals("sqlite", StringComparison.OrdinalIgnoreCase);
+
+    public string BuildConnectionString(DatabaseConnectionInfo info, bool includeDatabase)
+    {
+        var path = ValidatePath(info.DatabaseName);
+        return new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            ForeignKeys = true,
+        }.ToString();
+    }
+
+    public async Task<ConnectionTestResult> TestConnectionAsync(DatabaseConnectionInfo info, CancellationToken ct = default)
+    {
+        try
+        {
+            var path = ValidatePath(info.DatabaseName);
+            // Opening ReadWriteCreate would create the file. A missing file is a valid setup target.
+            if (!File.Exists(path))
+                return ConnectionTestResult.Ok($"SQLite file '{path}' will be created.");
+
+            var connectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = path,
+                Mode = SqliteOpenMode.ReadOnly,
+                ForeignKeys = true,
+            }.ToString();
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync(ct);
+            return ConnectionTestResult.Ok($"Opened SQLite file '{path}'.");
+        }
+        catch (Exception ex)
+        {
+            return ConnectionTestResult.Fail(ex.Message);
+        }
+    }
+
+    public async Task CreateDatabaseAsync(DatabaseConnectionInfo info, CancellationToken ct = default)
+    {
+        var path = ValidatePath(info.DatabaseName);
+        // An existing file is the database. Never delete or recreate it.
+        if (File.Exists(path))
+            return;
+
+        var directory = Path.GetDirectoryName(Path.GetFullPath(path));
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            ForeignKeys = true,
+        }.ToString();
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync(ct);
+    }
+
+    internal static string ValidatePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new InvalidOperationException("SQLite database path is required.");
+
+        var trimmed = path.Trim();
+        if (trimmed.Contains('\0'))
+            throw new InvalidOperationException("SQLite database path is invalid.");
+
+        var segments = trimmed.Split(['/', '\\']);
+        if (segments.Any(segment => segment == ".."))
+            throw new InvalidOperationException("SQLite database path must not contain '..'.");
+
+        return trimmed;
     }
 }

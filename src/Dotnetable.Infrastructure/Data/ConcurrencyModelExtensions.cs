@@ -57,7 +57,7 @@ internal static class ConcurrencyModelExtensions
             return entity;
         }
 
-        // Kept so the entity, the SSDT scripts and all three InitialCreate migrations describe the
+        // Kept so the entity, the SSDT scripts and every provider's InitialCreate describe the
         // same table, but optional and never written: correctness comes from the atomic UPDATEs.
         entity.Property(rowVersion)
             .IsConcurrencyToken(false)

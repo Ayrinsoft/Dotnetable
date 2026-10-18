@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="ClosedXML" Version="0.105.1" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
@@ -38,6 +39,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Dotnetable.Domain\Dotnetable.Domain.csproj" />
 		<ProjectReference Include="..\Dotnetable.Application\Dotnetable.Application.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Dotnetable.Tests" />
 	</ItemGroup>
 
 </Project>

@@ -56,38 +56,48 @@
                     <MudSelectItem T="string" Value="@("PostgreSQL")">PostgreSQL</MudSelectItem>
                     <MudSelectItem T="string" Value="@("MySQL")">MySQL</MudSelectItem>
                     <MudSelectItem T="string" Value="@("MariaDB")">MariaDB</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("SQLite")">SQLite</MudSelectItem>
                 </MudSelect>
 
-                <MudTextField T="string"
-                              @bind-Value="_req.Database.Server"
-                              Label="@_s.DbServer"
-                              Variant="Variant.Outlined"
-                              Class="mb-1"
-                              Required="true"
-                              RequiredError="@_s.Required" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
-                    @_s.DbServerHint
-                </MudText>
-
-                @if (_req.Database.Provider != "SqlServer")
+                @if (_req.Database.Provider != "SQLite")
                 {
-                    <MudNumericField T="int"
-                                     @bind-Value="_req.Database.Port"
-                                     Label="@_s.DbPort"
-                                     Variant="Variant.Outlined"
-                                     Class="mb-3"
-                                     Min="1" Max="65535" />
+                    <MudTextField T="string"
+                                  @bind-Value="_req.Database.Server"
+                                  Label="@_s.DbServer"
+                                  Variant="Variant.Outlined"
+                                  Class="mb-1"
+                                  Required="true"
+                                  RequiredError="@_s.Required" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
+                        @_s.DbServerHint
+                    </MudText>
+
+                    @if (_req.Database.Provider != "SqlServer")
+                    {
+                        <MudNumericField T="int"
+                                         @bind-Value="_req.Database.Port"
+                                         Label="@_s.DbPort"
+                                         Variant="Variant.Outlined"
+                                         Class="mb-3"
+                                         Min="1" Max="65535" />
+                    }
                 }
 
                 <MudTextField T="string"
                               @bind-Value="_req.Database.DatabaseName"
-                              Label="@_s.DbName"
+                              Label="@(_req.Database.Provider == "SQLite" ? _s.DbFile : _s.DbName)"
                               Variant="Variant.Outlined"
-                              Class="mb-3"
+                              Class="@(_req.Database.Provider == "SQLite" ? "mb-1" : "mb-3")"
                               Required="true"
                               RequiredError="@_s.Required" />
+                @if (_req.Database.Provider == "SQLite")
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 ml-2">
+                        @_s.DbFileHint
+                    </MudText>
+                }
 
-                @if (_req.Database.Provider != "SqlServer" || !_req.Database.IntegratedSecurity)
+                @if (_req.Database.Provider != "SQLite" && (_req.Database.Provider != "SqlServer" || !_req.Database.IntegratedSecurity))
                 {
                     <MudTextField T="string"
                                   @bind-Value="_req.Database.Username"
@@ -388,7 +398,20 @@
 
     private void OnProviderChanged(string provider)
     {
+        var previous = _req.Database.Provider;
         _req.Database.Provider = provider;
+        if (provider == "SQLite")
+        {
+            if (string.IsNullOrWhiteSpace(_req.Database.DatabaseName)
+                || string.Equals(_req.Database.DatabaseName, "Dotnetable", StringComparison.OrdinalIgnoreCase))
+                _req.Database.DatabaseName = "App_Data/dotnetable.sqlite";
+        }
+        else if (previous == "SQLite"
+                 && string.Equals(_req.Database.DatabaseName, "App_Data/dotnetable.sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            _req.Database.DatabaseName = "Dotnetable";
+        }
+
         _req.Database.Port = provider switch
         {
             "PostgreSQL" => 5432,

@@ -45,7 +45,7 @@ On first launch it walks you through a guided setup that creates the database sc
 
 - ✅ **Cross-platform** — Linux / Windows / Docker
 - ✅ **Guided setup** on first launch (database connection, schema, seed data)
-- ✅ **Multi-database support** — SQL Server, PostgreSQL, MySQL / MariaDB
+- ✅ **Multi-database support** — SQL Server, PostgreSQL, MySQL / MariaDB, SQLite
 - ✅ **EF Core** — code-first schema with SSDT-mirrored `.sql` scripts
 - ✅ **Modular, layered architecture** (Domain / Application / Infrastructure / API / Admin)
 - ✅ **RESTful API** with versioning, for any frontend
@@ -79,6 +79,7 @@ Dotnetable/
 │  ├─ Dotnetable.Migrations.SqlServer
 │  ├─ Dotnetable.Migrations.MySql
 │  ├─ Dotnetable.Migrations.PostgreSql
+│  ├─ Dotnetable.Migrations.Sqlite
 │  ├─ Dotnetable.API               # Public REST API
 │  ├─ Dotnetable.Admin             # Blazor Server admin panel
 │  ├─ Dotnetable.Web               # Public-facing website / storefront
@@ -91,7 +92,7 @@ Dotnetable/
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- One of: SQL Server, PostgreSQL, MySQL, or MariaDB (a local/dev instance is enough to get started)
+- One of: SQL Server, PostgreSQL, MySQL, MariaDB, or SQLite (a local/dev instance is enough to get started; SQLite is a single file)
 - (Optional) [Docker](https://www.docker.com/) if you prefer running in a container
 - (Optional) Node.js 18+ if you want to run the `dotnetable-react` sample frontend
 
@@ -139,7 +140,7 @@ npm run dev
 
 ### Database & Migrations
 
-Dotnetable supports **SQL Server**, **PostgreSQL**, and **MySQL/MariaDB** through three separate EF Core migration projects. Each keeps a single `InitialCreate` migration that always reflects the current model (no incremental migration chain).
+Dotnetable supports **SQL Server**, **PostgreSQL**, **MySQL/MariaDB**, and **SQLite** through separate EF Core migration projects. Each project has its own incremental migration chain, starting at `InitialCreate`. SQLite stores `decimal` values as `TEXT` (configured in `Dotnetable.Migrations.Sqlite`) so applying migrations does not rewrite them as binary floats. Migrations only add or alter schema; they do not delete an existing SQLite file.
 
 Install the EF Core CLI tool if you don't have it yet:
 
@@ -153,9 +154,10 @@ Apply migrations manually (pick the provider you're using):
 dotnet ef database update --project src/Dotnetable.Migrations.SqlServer   --startup-project src/Dotnetable.Migrations.SqlServer
 dotnet ef database update --project src/Dotnetable.Migrations.MySql       --startup-project src/Dotnetable.Migrations.MySql
 dotnet ef database update --project src/Dotnetable.Migrations.PostgreSql  --startup-project src/Dotnetable.Migrations.PostgreSql
+dotnet ef database update --project src/Dotnetable.Migrations.Sqlite      --startup-project src/Dotnetable.Migrations.Sqlite
 ```
 
-> In most cases you don't need to run this manually — the guided setup in the Admin panel creates and seeds the database for you.
+> In most cases you don't need to run this manually — the guided setup in the Admin panel creates and seeds the database for you. For SQLite, set `DOTNETABLE_MIGRATIONS_CONNECTION` (for example `Data Source=App_Data/dotnetable.sqlite`) before `dotnet ef database update`, otherwise the tool uses `dotnetable.sqlite` in the working directory. An existing file is migrated in place.
 
 The canonical schema (kept in lockstep with the EF model) also lives as plain SQL under `src/Dotnetable.Database` (an SSDT project), useful for SQL Server Schema Compare workflows.
 
@@ -239,7 +241,7 @@ That permission covers *using the code*, not *write access to this repository*:
 
 - ✅ **چندسکویی** — لینوکس / ویندوز / داکر
 - ✅ **راه‌اندازی هدایت‌شده** در اولین اجرا (اتصال پایگاه داده، ساخت شما، درج داده اولیه)
-- ✅ **پشتیبانی از چند پایگاه داده** — SQL Server، PostgreSQL، MySQL / MariaDB
+- ✅ **پشتیبانی از چند پایگاه داده** — SQL Server، PostgreSQL، MySQL / MariaDB، SQLite
 - ✅ **Entity Framework Core** — شمای کد-محور همراه با اسکریپت‌های `.sql` هم‌تراز در SSDT
 - ✅ **معماری لایه‌ای و ماژولار** (Domain / Application / Infrastructure / API / Admin)
 - ✅ **API مبتنی بر REST** با نسخه‌بندی، مناسب برای هر فرانت‌اند
@@ -273,6 +275,7 @@ Dotnetable/
 │  ├─ Dotnetable.Migrations.SqlServer
 │  ├─ Dotnetable.Migrations.MySql
 │  ├─ Dotnetable.Migrations.PostgreSql
+│  ├─ Dotnetable.Migrations.Sqlite
 │  ├─ Dotnetable.API               # API عمومی REST
 │  ├─ Dotnetable.Admin             # پنل مدیریت Blazor Server
 │  ├─ Dotnetable.Web               # وب‌سایت عمومی / فروشگاه
@@ -285,7 +288,7 @@ Dotnetable/
 ### پیش‌نیازها
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- یکی از: SQL Server، PostgreSQL، MySQL یا MariaDB (یک نمونه لوکال/توسعه کافی است)
+- یکی از: SQL Server، PostgreSQL، MySQL، MariaDB یا SQLite (یک نمونه لوکال/توسعه کافی است؛ SQLite یک فایل است)
 - (اختیاری) [داکر](https://www.docker.com/) در صورت تمایل به اجرا داخل کانتینر
 - (اختیاری) Node.js نسخه ۱۸ به بالا برای اجرای نمونه فرانت‌اند `dotnetable-react`
 
@@ -333,7 +336,7 @@ npm run dev
 
 ### پایگاه داده و مایگریشن‌ها
 
-Dotnetable از **SQL Server**، **PostgreSQL** و **MySQL/MariaDB** از طریق سه پروژه جداگانه مایگریشن EF Core پشتیبانی می‌کند. هر پروژه تنها یک مایگریشن `InitialCreate` دارد که همیشه با مدل فعلی هماهنگ نگه داشته می‌شود (بدون زنجیره مایگریشن افزایشی).
+Dotnetable از **SQL Server**، **PostgreSQL**، **MySQL/MariaDB** و **SQLite** از طریق پروژه‌های جداگانه مایگریشن EF Core پشتیبانی می‌کند. هر پروژه زنجیره افزایشی خودش را دارد که از `InitialCreate` شروع می‌شود. در SQLite مقدارهای `decimal` به صورت `TEXT` ذخیره می‌شوند (تنظیمات داخل `Dotnetable.Migrations.Sqlite`) تا اعمال مایگریشن آن‌ها را به عدد اعشاری دودویی تبدیل نکند. مایگریشن‌ها فقط اسکیما را اضافه یا تغییر می‌دهند و فایل SQLite موجود را حذف نمی‌کنند.
 
 در صورت نیاز، ابزار خط فرمان EF Core را نصب کنید:
 
@@ -347,9 +350,10 @@ dotnet tool install --global dotnet-ef
 dotnet ef database update --project src/Dotnetable.Migrations.SqlServer   --startup-project src/Dotnetable.Migrations.SqlServer
 dotnet ef database update --project src/Dotnetable.Migrations.MySql       --startup-project src/Dotnetable.Migrations.MySql
 dotnet ef database update --project src/Dotnetable.Migrations.PostgreSql  --startup-project src/Dotnetable.Migrations.PostgreSql
+dotnet ef database update --project src/Dotnetable.Migrations.Sqlite      --startup-project src/Dotnetable.Migrations.Sqlite
 ```
 
-> در بیشتر موارد نیازی به اجرای دستی این دستورات نیست — فرایند راه‌اندازی هدایت‌شده در پنل مدیریت، پایگاه داده را می‌سازد و داده‌های اولیه را درج می‌کند.
+> در بیشتر موارد نیازی به اجرای دستی این دستورات نیست — فرایند راه‌اندازی هدایت‌شده در پنل مدیریت، پایگاه داده را می‌سازد و داده‌های اولیه را درج می‌کند. برای SQLite پیش از `dotnet ef database update` متغیر `DOTNETABLE_MIGRATIONS_CONNECTION` را تنظیم کنید (مثلاً `Data Source=App_Data/dotnetable.sqlite`)؛ در غیر این صورت ابزار از فایل `dotnetable.sqlite` در پوشه جاری استفاده می‌کند. فایل موجود در جای خود به‌روزرسانی می‌شود.
 
 شمای اصلی پایگاه داده (که همیشه با مدل EF هماهنگ نگه داشته می‌شود) به‌صورت اسکریپت‌های خام SQL نیز در مسیر `src/Dotnetable.Database` (یک پروژه SSDT) موجود است؛ این مسیر برای گردش‌کار Schema Compare در SQL Server مفید است.
 

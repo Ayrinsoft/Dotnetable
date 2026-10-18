@@ -105,17 +105,28 @@ public class DatabaseUpdateService : IDatabaseUpdateService
                 await conn.OpenAsync(ct);
 
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = """
-                SELECT CASE WHEN EXISTS (
-                    SELECT 1 FROM INFORMATION_SCHEMA.TABLES
-                    WHERE TABLE_NAME = @t
-                ) THEN 1 ELSE 0 END
-                """;
+            var sqlite = context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+            // SQLite has no INFORMATION_SCHEMA. A failed lookup used to look like "no tables",
+            // and Migrate would replay InitialCreate against a file that already had data.
+            cmd.CommandText = sqlite
+                ? """
+                  SELECT 1 FROM sqlite_master
+                  WHERE type = 'table' AND lower(name) = lower(@t)
+                  LIMIT 1
+                  """
+                : """
+                  SELECT CASE WHEN EXISTS (
+                      SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+                      WHERE TABLE_NAME = @t
+                  ) THEN 1 ELSE 0 END
+                  """;
             var p = cmd.CreateParameter();
             p.ParameterName = "@t";
             p.Value = table;
             cmd.Parameters.Add(p);
             var result = await cmd.ExecuteScalarAsync(ct);
+            if (sqlite)
+                return result is not null && result is not DBNull;
             return Convert.ToInt32(result) == 1;
         }
         catch

@@ -3,7 +3,7 @@ namespace Dotnetable.Application.DTOs;
 /// <summary>Database connection details collected by the Setup page. Provider-agnostic.</summary>
 public class DatabaseConnectionInfo
 {
-    /// <summary>SqlServer (default/primary), PostgreSQL, MySQL or MariaDB.</summary>
+    /// <summary>SqlServer (default/primary), PostgreSQL, MySQL, MariaDB, or SQLite.</summary>
     public string Provider { get; set; } = "SqlServer";
 
     public string Server { get; set; } = ".";
