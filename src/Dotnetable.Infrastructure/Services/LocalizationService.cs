@@ -11,13 +11,16 @@ public class LocalizationService : ILocalizationService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly TranslationCache _cache;
+    private readonly IExcelExporterRegistry _excel;
 
     public LocalizationService(
         IDbContextFactory<AppDbContext> contextFactory,
-        TranslationCache cache)
+        TranslationCache cache,
+        IExcelExporterRegistry excel)
     {
         _contextFactory = contextFactory;
         _cache = cache;
+        _excel = excel;
     }
 
     /// <summary>Cache uses 0 for admin (null WebsiteID).</summary>
@@ -164,7 +167,7 @@ public class LocalizationService : ILocalizationService
             })
             .ToListAsync(ct);
 
-        return ExcelWorkbook.Write(
+        return _excel.Write(
             "Translations",
             ["Key", "Default", "Value"],
             rows.Select(r => (IReadOnlyList<object?>)[r.ItemKey, r.DefaultValue, r.Value ?? r.DefaultValue]));
@@ -174,7 +177,7 @@ public class LocalizationService : ILocalizationService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        var rows = ExcelWorkbook.Read(excel);
+        var rows = _excel.Read(excel);
 
         var keys = await _context.LocalizationKeys
             .Where(k => k.WebsiteID == websiteId)

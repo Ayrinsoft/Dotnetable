@@ -10,8 +10,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class LocationService : ILocationService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IExcelExporterRegistry _excel;
 
-    public LocationService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+    public LocationService(IDbContextFactory<AppDbContext> contextFactory, IExcelExporterRegistry excel)
+    {
+        _contextFactory = contextFactory;
+        _excel = excel;
+    }
 
     // ── Countries ────────────────────────────────────────────────────
 
@@ -102,7 +107,7 @@ public class LocationService : ILocationService
     }
 
     public byte[] GetCountryImportSample() =>
-        ExcelWorkbook.Write(
+        _excel.Write(
             "Countries",
             ["CountryCode", "Title", "LanguageCode", "PhonePrefix"],
             [new object?[] { "IR", "Iran", "fa", "98" }]);
@@ -111,7 +116,7 @@ public class LocationService : ILocationService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        var rows = ExcelWorkbook.Read(excel);
+        var rows = _excel.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -268,7 +273,7 @@ public class LocationService : ILocationService
     }
 
     public byte[] GetStateImportSample() =>
-        ExcelWorkbook.Write(
+        _excel.Write(
             "States",
             ["CountryCode", "Title", "LanguageCode", "Active"],
             [new object?[] { "IR", "Tehran", "fa", "true" }]);
@@ -277,7 +282,7 @@ public class LocationService : ILocationService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        var rows = ExcelWorkbook.Read(excel);
+        var rows = _excel.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -449,7 +454,7 @@ public class LocationService : ILocationService
     }
 
     public byte[] GetCityImportSample() =>
-        ExcelWorkbook.Write(
+        _excel.Write(
             "Cities",
             ["CountryCode", "Title", "StateTitle", "LanguageCode", "Latitude", "Longitude", "Active"],
             [new object?[] { "IR", "Tehran", "Tehran", "fa", "35.6892", "51.3890", "true" }]);
@@ -458,7 +463,7 @@ public class LocationService : ILocationService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        var rows = ExcelWorkbook.Read(excel);
+        var rows = _excel.Read(excel);
 
         int added = 0, skipped = 0;
         var errors = new List<string>();
@@ -584,7 +589,7 @@ public class LocationService : ILocationService
         city.LanguageCode = (city.LanguageCode ?? string.Empty).Trim();
     }
 
-    private static bool HasHeader(List<string[]> rows, string firstColumn) =>
+    private static bool HasHeader(IReadOnlyList<string[]> rows, string firstColumn) =>
         rows.Count > 0 && rows[0].Length > 0
         && rows[0][0].Trim().Equals(firstColumn, StringComparison.OrdinalIgnoreCase);
 

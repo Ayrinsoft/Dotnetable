@@ -17,11 +17,16 @@ public class FormService : IFormService
 
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAdminNotificationService _notifications;
+    private readonly IExcelExporterRegistry _excel;
 
-    public FormService(IDbContextFactory<AppDbContext> contextFactory, IAdminNotificationService notifications)
+    public FormService(
+        IDbContextFactory<AppDbContext> contextFactory,
+        IAdminNotificationService notifications,
+        IExcelExporterRegistry excel)
     {
         _contextFactory = contextFactory;
         _notifications = notifications;
+        _excel = excel;
     }
 
     // ── Admin: forms ────────────────────────────────────────────────
@@ -361,7 +366,7 @@ public class FormService : IFormService
             return (IReadOnlyList<object?>)cells;
         });
 
-        return ExcelWorkbook.Write("Responses", headers, dataRows);
+        return _excel.Write("Responses", headers, dataRows);
     }
 
     // ── Public (API-facing) ─────────────────────────────────────────

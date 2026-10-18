@@ -55,7 +55,7 @@ public class ShippingAndDigitalProductTests : IDisposable
                 new MoneyDto { Amount = usd, AmountUsd = usd, CurrencyCode = "USD" });
 
         _shipping = new ShippingService(_factory, currency.Object);
-        _listings = new VendorProductService(_factory);
+        _listings = new VendorProductService(_factory, TestExcel.Registry);
     }
 
     public void Dispose() => _context.Dispose();

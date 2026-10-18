@@ -27,7 +27,7 @@ public class FormServiceTests : IDisposable
         // Services open a context per call now, so they get a factory over the same options;
         // the fixture keeps its own _context for seeding and asserting.
         var factory = new TestDbContextFactory(opts);
-        _service = new FormService(factory, new Mock<IAdminNotificationService>().Object);
+        _service = new FormService(factory, new Mock<IAdminNotificationService>().Object, TestExcel.Registry);
 
         _website = NewWebsite("Test", "test.com");
         _context.Websites.Add(_website);
@@ -531,15 +531,14 @@ public class FormServiceTests : IDisposable
         bytes[0].Should().Be((byte)'P');
         bytes[1].Should().Be((byte)'K');
 
-        using var package = new OfficeOpenXml.ExcelPackage(new MemoryStream(bytes));
-        var sheet = package.Workbook.Worksheets.First();
-        sheet.Cells[1, 1].Text.Should().Be("ResponseID");
-        sheet.Cells[1, 2].Text.Should().Be("SubmittedAtUtc");
-        sheet.Cells[1, 5].Text.Should().Be("Your comment");
-        sheet.Cells[1, 6].Text.Should().Be("Favorite color");
-        sheet.Cells[2, 4].Text.Should().Be("1.1.1.1");
-        sheet.Cells[2, 5].Text.Should().Be("hello, world");
-        sheet.Cells[2, 6].Text.Should().Be("Red");
+        var rows = TestExcel.Registry.Read(new MemoryStream(bytes));
+        rows[0][0].Should().Be("ResponseID");
+        rows[0][1].Should().Be("SubmittedAtUtc");
+        rows[0][4].Should().Be("Your comment");
+        rows[0][5].Should().Be("Favorite color");
+        rows[1][3].Should().Be("1.1.1.1");
+        rows[1][4].Should().Be("hello, world");
+        rows[1][5].Should().Be("Red");
     }
 
     [Fact]

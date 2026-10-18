@@ -11,11 +11,16 @@ public class AccountingReportService : IAccountingReportService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IChartOfAccountService _coa;
+    private readonly IExcelExporterRegistry _excel;
 
-    public AccountingReportService(IDbContextFactory<AppDbContext> contextFactory, IChartOfAccountService coa)
+    public AccountingReportService(
+        IDbContextFactory<AppDbContext> contextFactory,
+        IChartOfAccountService coa,
+        IExcelExporterRegistry excel)
     {
         _contextFactory = contextFactory;
         _coa = coa;
+        _excel = excel;
     }
 
     public async Task<IReadOnlyList<TrialBalanceRowDto>> GetTrialBalanceAsync(
@@ -150,7 +155,7 @@ public class AccountingReportService : IAccountingReportService
     public async Task<byte[]> ExportTrialBalanceExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
     {
         var rows = await GetTrialBalanceAsync(websiteId, from, to, taxOnly, ct);
-        return ExcelWorkbook.Write("TrialBalance",
+        return _excel.Write("TrialBalance",
             new[] { "Code", "Name", "Type", "Debit", "Credit", "Balance" },
             rows.Select(r => (IReadOnlyList<object?>)new object?[] { r.Code, r.Name, r.AccountType, r.Debit, r.Credit, r.Balance }));
     }
@@ -168,7 +173,7 @@ public class AccountingReportService : IAccountingReportService
             list.Add(new object?[] { r.Code, r.Name, r.Balance });
         list.Add(new object?[] { "Total expenses", "", pnl.TotalExpenses });
         list.Add(new object?[] { "Net profit/(loss)", "", pnl.NetProfit });
-        return ExcelWorkbook.Write("PnL", new[] { "Code", "Name", "Amount" }, list);
+        return _excel.Write("PnL", new[] { "Code", "Name", "Amount" }, list);
     }
 
     public async Task<byte[]> ExportJournalsExcelAsync(int websiteId, DateOnly from, DateOnly to, bool taxOnly = false, CancellationToken ct = default)
@@ -184,7 +189,7 @@ public class AccountingReportService : IAccountingReportService
                         && l.JournalEntry.EntryDate <= to);
         if (taxOnly) q = q.Where(l => l.JournalEntry.ReportToTax);
         var lines = await q.OrderBy(l => l.JournalEntry.EntryDate).ThenBy(l => l.JournalEntryID).ToListAsync(ct);
-        return ExcelWorkbook.Write("Journals",
+        return _excel.Write("Journals",
             new[] { "Entry", "Date", "Account", "Debit", "Credit", "Description", "ReportToTax" },
             lines.Select(l => (IReadOnlyList<object?>)new object?[]
             {

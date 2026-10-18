@@ -18,10 +18,12 @@ public class PayrollService : IPayrollService
     private readonly IChartOfAccountService _coa;
     private readonly IJournalService _journals;
     private readonly IAdminNotificationService _notifications;
+    private readonly IExcelExporterRegistry _excel;
 
     public PayrollService(
         IDbContextFactory<AppDbContext> contextFactory, IHrService hr, IFinancialLedgerService ledger,
-        IChartOfAccountService coa, IJournalService journals, IAdminNotificationService notifications)
+        IChartOfAccountService coa, IJournalService journals, IAdminNotificationService notifications,
+        IExcelExporterRegistry excel)
     {
         _contextFactory = contextFactory;
         _hr = hr;
@@ -29,6 +31,7 @@ public class PayrollService : IPayrollService
         _coa = coa;
         _journals = journals;
         _notifications = notifications;
+        _excel = excel;
     }
 
     public async Task<PagedResult<PayrollRun>> GetRunsAsync(int websiteId, GridQuery query, CancellationToken ct = default)
@@ -271,7 +274,7 @@ public class PayrollService : IPayrollService
             run.CurrencyCode, run.RunNumber, run.PeriodFrom.ToString("yyyy-MM-dd"), run.PeriodTo.ToString("yyyy-MM-dd"),
             ((PayrollRunStatus)run.Status).ToString(),
         });
-        return ExcelWorkbook.Write("Payroll", headers, rows);
+        return _excel.Write("Payroll", headers, rows);
     }
 
     public async Task<byte[]> ExportInsurancePayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
@@ -295,7 +298,7 @@ public class PayrollService : IPayrollService
             l.EmployeeInsurance + l.EmployerInsurance,
             l.PayrollRun?.CurrencyCode,
         });
-        return ExcelWorkbook.Write("InsurancePayable", headers, rows);
+        return _excel.Write("InsurancePayable", headers, rows);
     }
 
     public async Task<byte[]> ExportTaxPayableExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
@@ -318,7 +321,7 @@ public class PayrollService : IPayrollService
             l.Gross, l.EmployeeInsurance, Math.Max(0, l.Gross - l.EmployeeInsurance),
             l.IncomeTax, l.PayrollRun?.CurrencyCode,
         });
-        return ExcelWorkbook.Write("TaxPayable", headers, rows);
+        return _excel.Write("TaxPayable", headers, rows);
     }
 
     public async Task<byte[]> ExportStatutoryExcelAsync(int websiteId, DateOnly from, DateOnly to, CancellationToken ct = default)
@@ -342,7 +345,7 @@ public class PayrollService : IPayrollService
             l.Gross, l.EmployeeInsurance, l.EmployerInsurance, l.IncomeTax, l.Net, l.EmployerCost,
             l.PayrollRun?.CurrencyCode,
         });
-        return ExcelWorkbook.Write("Statutory", headers, rows);
+        return _excel.Write("Statutory", headers, rows);
     }
 
     public async Task<byte[]> ExportPayslipsExcelAsync(int payrollRunId, CancellationToken ct = default)
@@ -369,7 +372,7 @@ public class PayrollService : IPayrollService
             l.Gross, l.EmployeeInsurance, l.EmployerInsurance, l.IncomeTax, l.Net, l.EmployerCost,
             ((PayrollRunStatus)run.Status).ToString(),
         });
-        return ExcelWorkbook.Write("Payslips", headers, rows);
+        return _excel.Write("Payslips", headers, rows);
     }
 
     public async Task<string?> BuildPayslipHtmlAsync(int payrollLineId, CancellationToken ct = default)

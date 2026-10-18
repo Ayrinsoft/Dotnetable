@@ -122,6 +122,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFileStorageProvider, Storage.CloudinaryStorageProvider>();
         services.AddScoped<IFileStorageProvider, Storage.BunnyStorageProvider>();
         services.AddScoped<IFileStorageProviderRegistry, Storage.FileStorageProviderRegistry>();
+        services.AddSingleton<IExcelExporter, Excel.ClosedXmlExcelExporter>();
+        services.AddSingleton<IExcelExporter, Excel.MiniExcelExcelExporter>();
+        services.AddSingleton<IExcelExporterRegistry, Excel.ExcelExporterRegistry>();
         services.AddScoped<IStorageSettingService, StorageSettingService>();
         services.AddScoped<IFileService, FileService>();
         services.AddScoped<ILocationService, LocationService>();

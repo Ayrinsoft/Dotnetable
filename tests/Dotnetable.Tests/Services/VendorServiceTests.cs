@@ -32,7 +32,7 @@ public class VendorServiceTests : IDisposable
 
         var fx = new CurrencyConversionService(factory);
         _vendors = new VendorService(factory, fx);
-        _listings = new VendorProductService(factory);
+        _listings = new VendorProductService(factory, TestExcel.Registry);
         var currency = new CurrencyConversionService(factory);
         var suppliers = new SupplierService(factory);
         var tax = new TaxService(factory);

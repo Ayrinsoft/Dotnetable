@@ -13,8 +13,13 @@ public class VendorProductService : IVendorProductService
     // Contexts come from DbLease per operation: it joins an ambient transaction when one is in
     // flight and otherwise opens a short-lived context, so nothing is shared across a circuit.
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IExcelExporterRegistry _excel;
 
-    public VendorProductService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+    public VendorProductService(IDbContextFactory<AppDbContext> contextFactory, IExcelExporterRegistry excel)
+    {
+        _contextFactory = contextFactory;
+        _excel = excel;
+    }
 
     public async Task<PagedResult<VendorProductListItemDto>> GetPagedAsync(int vendorId, GridQuery query, CancellationToken ct = default)
     {
@@ -573,7 +578,7 @@ public class VendorProductService : IVendorProductService
 
         var q = await BuildScopedListingsQueryAsync(_context, websiteId, vendorId, actingMemberId, ct);
         if (q is null)
-            return ExcelWorkbook.Write("Listings", ListingExcelHeaders, Array.Empty<IReadOnlyList<object?>>());
+            return _excel.Write("Listings", ListingExcelHeaders, Array.Empty<IReadOnlyList<object?>>());
 
         var rows = await q
             .OrderBy(vp => vp.Vendor.Name)
@@ -597,7 +602,7 @@ public class VendorProductService : IVendorProductService
             })
             .ToListAsync(ct);
 
-        return ExcelWorkbook.Write(
+        return _excel.Write(
             "Listings",
             ListingExcelHeaders,
             rows.Select(r => (IReadOnlyList<object?>)
@@ -623,7 +628,7 @@ public class VendorProductService : IVendorProductService
         await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
         var _context = _lease.Context;
 
-        var rows = ExcelWorkbook.Read(excel);
+        var rows = _excel.Read(excel);
         if (rows.Count == 0)
             return new VendorListingImportResult(0, 0, 0, ["Excel file is empty."]);
 
