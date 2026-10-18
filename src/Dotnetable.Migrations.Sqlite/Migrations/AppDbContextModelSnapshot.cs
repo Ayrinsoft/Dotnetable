@@ -2448,7 +2448,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SMTPPort")
@@ -3675,7 +3674,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SortOrder")
@@ -4810,11 +4808,9 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ApiKey")
-                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ApiSecret")
-                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CallbackUrl")
@@ -4828,7 +4824,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("MerchantID")
-                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -4842,7 +4837,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SettingsJSON")
-                        .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SortOrder")
@@ -8752,7 +8746,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TurnstileSecretKey")
-                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TurnstileSiteKey")
@@ -9280,7 +9273,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SortOrder")
@@ -9359,7 +9351,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WebsiteID")
@@ -9519,7 +9510,6 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SortOrder")

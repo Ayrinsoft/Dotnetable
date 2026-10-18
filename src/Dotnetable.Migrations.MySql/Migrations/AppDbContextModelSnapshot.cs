@@ -2450,8 +2450,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SMTPPort")
                         .HasColumnType("int");
@@ -3677,8 +3676,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -4812,12 +4810,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ApiKey")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ApiSecret")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("CallbackUrl")
                         .HasMaxLength(500)
@@ -4830,8 +4826,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MerchantID")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -4844,8 +4839,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<string>("SettingsJSON")
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -8754,8 +8748,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("tinyint unsigned");
 
                     b.Property<string>("TurnstileSecretKey")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
@@ -9282,8 +9275,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -9361,8 +9353,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -9521,8 +9512,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");

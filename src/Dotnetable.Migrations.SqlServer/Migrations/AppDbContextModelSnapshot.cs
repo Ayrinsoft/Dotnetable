@@ -2548,8 +2548,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SMTPPort")
                         .HasColumnType("int");
@@ -3827,8 +3826,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -5002,12 +5000,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentGatewayID"));
 
                     b.Property<string>("ApiKey")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ApiSecret")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CallbackUrl")
                         .HasMaxLength(500)
@@ -5020,8 +5016,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("MerchantID")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -5034,8 +5029,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("SettingsJSON")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -9088,8 +9082,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("tinyint");
 
                     b.Property<string>("TurnstileSecretKey")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
@@ -9640,8 +9633,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -9723,8 +9715,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("int");
@@ -9891,8 +9882,7 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");

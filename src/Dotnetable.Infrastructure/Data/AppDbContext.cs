@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
+using Dotnetable.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Dotnetable.Infrastructure.Data;
 
@@ -11,6 +13,7 @@ public partial class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
+        _settingKey = options.FindExtension<SettingProtectionOptionsExtension>()?.Key;
     }
 
     public virtual DbSet<AdminNotification> AdminNotifications { get; set; }

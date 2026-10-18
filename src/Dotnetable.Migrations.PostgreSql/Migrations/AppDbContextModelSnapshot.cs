@@ -2545,8 +2545,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.Property<int>("SMTPPort")
                         .HasColumnType("integer");
@@ -3822,8 +3821,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -4997,12 +4995,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PaymentGatewayID"));
 
                     b.Property<string>("ApiKey")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ApiSecret")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("CallbackUrl")
                         .HasMaxLength(500)
@@ -5015,8 +5011,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("MerchantID")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -5029,8 +5024,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<string>("SettingsJSON")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -9081,8 +9075,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<string>("TurnstileSecretKey")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("text");
 
                     b.Property<string>("TurnstileSiteKey")
                         .HasMaxLength(200)
@@ -9633,8 +9626,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -9716,8 +9708,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("StorageSettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("integer");
@@ -9884,8 +9875,7 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Property<string>("SettingsJSON")
                         .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("text");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");

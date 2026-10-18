@@ -7,6 +7,7 @@ using Dotnetable.Infrastructure.Caching;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Provisioning;
 using Dotnetable.Infrastructure.Repositories;
+using Dotnetable.Infrastructure.Security;
 using Dotnetable.Infrastructure.Services;
 using Dotnetable.Infrastructure.Services.Caching;
 using Microsoft.AspNetCore.Identity;
@@ -49,9 +50,18 @@ public static class ServiceCollectionExtensions
         // constructed, so parallel component init no longer shares one context. For brand-new
         // services prefer IDbContextFactory + short-lived contexts (see DbContextFactoryExtensions)
         // so even two concurrent methods on the same service stay safe.
+        // Same Internal secret Admin and the API already share. ProtectionKey overrides it when set,
+        // so the cache-sync header can be rotated later without making stored credentials unreadable.
+        var settingKey = SettingProtector.DeriveKey(
+            configuration["Internal:ProtectionKey"],
+            configuration["Internal:SyncSecret"]);
+
         services.AddDbContextFactory<AppDbContext>((sp, options) =>
-            ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>()),
-            ServiceLifetime.Scoped);
+        {
+            ConfigureFromStore(options, sp.GetRequiredService<IDatabaseConfigStore>());
+            if (settingKey is not null)
+                options.UseSettingProtection(settingKey);
+        }, ServiceLifetime.Scoped);
 
         // AddDbContextFactory also registers AppDbContext as Scoped (same lifetime as the factory).
         // That reintroduces the shared-context race in Blazor — strip it and re-register Transient.
@@ -80,6 +90,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<MaintenanceService>();
         // Media backfill: thumbnails, immutable Cache-Control and bucket robots.txt for pre-existing files.
         services.AddHostedService<FileMediaBackfillService>();
+        services.AddHostedService<SettingSecretBackfillService>();
         services.AddHostedService<Marketplace.MarketplaceSyncService>();
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();

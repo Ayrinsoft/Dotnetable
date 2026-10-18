@@ -3,7 +3,7 @@
     [WebsiteID]               INT            NOT NULL,
     [Provider]                TINYINT        NOT NULL,
     [TurnstileSiteKey]        NVARCHAR (200) NULL,
-    [TurnstileSecretKey]      NVARCHAR (200) NULL,
+    [TurnstileSecretKey]      NVARCHAR (MAX) NULL,
     CONSTRAINT [PK_WebsiteCaptchaSettings] PRIMARY KEY CLUSTERED ([WebsiteCaptchaSettingID] ASC),
     CONSTRAINT [FK_WebsiteCaptchaSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])
 );

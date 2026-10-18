@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[WebsiteSmsSettings] (
     [WebsiteID]           INT             NOT NULL,
     [Provider]            VARCHAR (50)    NOT NULL,
     [Title]               NVARCHAR (150)  NOT NULL,
-    [SettingsJSON]        NVARCHAR (4000) NOT NULL,
+    [SettingsJSON]        NVARCHAR (MAX)  NOT NULL,
     [SenderNumber]        VARCHAR (32)    NULL,
     [IsActive]            BIT             NOT NULL,
     [SortOrder]           INT             NOT NULL,

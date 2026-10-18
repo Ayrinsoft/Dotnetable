@@ -2,7 +2,7 @@
     [WebsiteStorageSettingsID] INT             IDENTITY (1, 1) NOT NULL,
     [WebsiteID]                INT             NOT NULL,
     [StorageProvider]          SMALLINT        NOT NULL,
-    [StorageSettingsJSON]      NVARCHAR (2000) NOT NULL,
+    [StorageSettingsJSON]      NVARCHAR (MAX)  NOT NULL,
     [Active]                   BIT             NOT NULL,
     [MaxFileSizeKB]            BIGINT          NOT NULL,
     [AllowedExtensions]        VARCHAR (710)   NULL,

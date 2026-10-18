@@ -86,5 +86,6 @@ public partial class AppDbContext
         });
 
         ConfigureQuizzes(modelBuilder);
+        ApplySettingSecrets(modelBuilder);
     }
 }

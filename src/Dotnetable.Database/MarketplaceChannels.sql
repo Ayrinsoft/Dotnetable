@@ -3,7 +3,7 @@ CREATE TABLE [dbo].[MarketplaceChannels] (
     [WebsiteID]            INT             NOT NULL,
     [Provider]             VARCHAR (50)    NOT NULL,
     [Title]                NVARCHAR (150)  NOT NULL,
-    [SettingsJSON]         NVARCHAR (4000) NOT NULL,
+    [SettingsJSON]         NVARCHAR (MAX)  NOT NULL,
     [FeedToken]            VARCHAR (64)    NOT NULL,
     [IncludeAllProducts]   BIT             CONSTRAINT [DF_MarketplaceChannels_IncludeAllProducts] DEFAULT ((1)) NOT NULL,
     [IsActive]             BIT             NOT NULL,

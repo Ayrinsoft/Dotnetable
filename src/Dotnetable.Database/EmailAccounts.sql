@@ -4,7 +4,7 @@ CREATE TABLE [dbo].[EmailAccounts] (
     [AccountType]     TINYINT        NOT NULL,
     [Name]            NVARCHAR (64)  NOT NULL,
     [EmailAddress]    VARCHAR (64)   NOT NULL,
-    [Password]        NVARCHAR (256) NOT NULL,
+    [Password]        NVARCHAR (MAX) NOT NULL,
     [MailServer]      VARCHAR (64)   NOT NULL,
     [SMTPPort]        INT            NOT NULL,
     [EnableSSL]       BIT            NOT NULL,
