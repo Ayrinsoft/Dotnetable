@@ -38,7 +38,7 @@ else if (_model is not null)
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
                     <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.import_json", "Import from JSON"]</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-                        @L["posts.import_json_hint", "Reads the file in the browser and fills the text fields. Nothing is stored. Categories, the featured image, and the other publish settings stay as they are."]
+                        @L["posts.import_json_hint", "Reads the file in the browser and fills the text fields and, when the file has one, the location. Nothing is stored until you save. Categories, the featured image, and the other publish settings stay as they are."]
                     </MudText>
                     <MudStack Row="true" Spacing="2" Class="flex-wrap">
                         <MudFileUpload T="IBrowserFile" FilesChanged="ImportJsonAsync" Accept=".json,application/json" Disabled="@_importing">
@@ -60,14 +60,19 @@ else if (_model is not null)
                         }
                     </MudStack>
                     <MudExpansionPanels Elevation="0" Class="mt-3">
-                        <MudExpansionPanel Text="@L["posts.import_sample", "JSON sample for agents"]">
+                        <MudExpansionPanel Text="@L["posts.import_sample", "Sample file and agent prompt"]">
                             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
-                                @L["posts.import_sample_hint", "language is the main block. summary fills the excerpt, keywords fill meta keywords, content_html fills the body. translations is keyed by language code. Do not include the image or categories."]
+                                @L["posts.import_sample_hint", "Download the sample, or copy the prompt into an AI assistant. Paste your article under the prompt, or ask it to write the article. Then import the JSON file it returns."]
                             </MudText>
-                            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyImportSampleAsync" Class="mb-2">
-                                @L["posts.import_copy_sample", "Copy sample"]
-                            </MudButton>
-                            <pre style="white-space:pre-wrap; max-height:280px; overflow:auto; margin:0; font-size:12px;">@PostImportSample.Json</pre>
+                            <MudStack Row="true" Spacing="2" Class="flex-wrap mb-2">
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadImportSampleAsync">
+                                    @L["posts.import_download_sample", "Download sample JSON"]
+                                </MudButton>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyAgentPromptAsync">
+                                    @L["posts.import_copy_prompt", "Copy agent prompt"]
+                                </MudButton>
+                            </MudStack>
+                            <pre style="white-space:pre-wrap; max-height:220px; overflow:auto; margin:0; font-size:12px;">@PostImportSample.PromptFor(L.LanguageCode)</pre>
                         </MudExpansionPanel>
                     </MudExpansionPanels>
                 </MudPaper>
@@ -558,7 +563,7 @@ else if (_model is not null)
 
             var doc = PostImportParser.Parse(json);
             ApplyImport(doc);
-            Snackbar.Add(L["posts.import_done", "Text fields filled from the file. Categories and the image were left as they are."], Severity.Success);
+            Snackbar.Add(L["posts.import_done", "Fields filled from the file. Categories and the image were left as they are."], Severity.Success);
         }
         catch (Exception ex)
         {
@@ -590,8 +595,7 @@ else if (_model is not null)
         if (!byLang.TryGetValue(mainCode, out var main)) return;
         FillMain(main);
         _mainEditorVersion++;
-
-        var skipped = new List<string>();
+        var skipped = ApplyLocation(doc.Location);
         foreach (var (code, locale) in byLang)
         {
             if (code.Equals(mainCode, StringComparison.OrdinalIgnoreCase)) continue;
@@ -605,7 +609,7 @@ else if (_model is not null)
         }
 
         if (skipped.Count > 0)
-            Snackbar.Add(string.Format(L["posts.import_lang_skipped", "No active language for: {0}. Those blocks were not placed."], string.Join(", ", skipped)), Severity.Warning);
+            Snackbar.Add(string.Format(L["posts.import_lang_skipped", "No active language for: {0}. Those blocks were not placed."], string.Join(", ", skipped.Distinct(StringComparer.OrdinalIgnoreCase))), Severity.Warning);
     }
 
     private void FillMain(PostImportLocale locale)
@@ -637,6 +641,68 @@ else if (_model is not null)
         if (body.Length > 0) target.Content = body;
     }
 
+    private List<string> ApplyLocation(PostImportLocation? location)
+    {
+        var skipped = new List<string>();
+        if (location is null || _model is null) return skipped;
+
+        var hasLat = location.Latitude is not null;
+        var hasLng = location.Longitude is not null;
+        if (hasLat != hasLng)
+            throw new InvalidOperationException(L["posts.import_location_pair", "location needs both latitude and longitude, or neither."]);
+        if (hasLat)
+        {
+            var lat = location.Latitude!.Value;
+            var lng = location.Longitude!.Value;
+            if (lat is < -90 or > 90 || lng is < -180 or > 180)
+                throw new InvalidOperationException(L["posts.import_location_range", "latitude must be from -90 to 90 and longitude from -180 to 180."]);
+            _latitude = lat;
+            _longitude = lng;
+            _model.HasLocation = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(location.Address))
+        {
+            _address = location.Address.Trim();
+            _model.HasLocation = true;
+        }
+
+        if (location.Addresses is not null)
+        {
+            foreach (var (code, address) in location.Addresses)
+            {
+                if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(address)) continue;
+                var lang = code.Trim();
+                if (lang.Equals(_defaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (string.IsNullOrWhiteSpace(_address)) _address = address.Trim();
+                    _model.HasLocation = true;
+                    continue;
+                }
+                if (_languages.All(l => !l.Code.Equals(lang, StringComparison.OrdinalIgnoreCase)))
+                {
+                    skipped.Add(lang);
+                    continue;
+                }
+                _locationAddresses[lang] = address.Trim();
+                _model.HasLocation = true;
+            }
+        }
+
+        if (location.Kind is byte kind)
+        {
+            if (Enum.IsDefined((PostLocationKind)kind))
+            {
+                _locationKind = (PostLocationKind)kind;
+                _model.HasLocation = true;
+            }
+            else
+                Snackbar.Add(string.Format(L["posts.import_kind_skipped", "Place type {0} is not a known kind and was left unchanged."], kind), Severity.Warning);
+        }
+
+        return skipped;
+    }
+
     private async Task ExportJsonAsync()
     {
         if (_model is null) return;
@@ -663,22 +729,43 @@ else if (_model is not null)
                 ContentHtml = kv.Value.Content,
             },
             StringComparer.OrdinalIgnoreCase);
-        var json = PostImportWriter.Write(_defaultLanguageCode, main, others);
+        PostImportLocation? location = null;
+        if (_model.HasLocation)
+        {
+            var addresses = _locationAddresses
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                .ToDictionary(kv => kv.Key, kv => kv.Value.Trim(), StringComparer.OrdinalIgnoreCase);
+            location = new PostImportLocation
+            {
+                Latitude = _latitude,
+                Longitude = _longitude,
+                Kind = _locationKind == PostLocationKind.Unspecified ? null : (byte)_locationKind,
+                Address = _address,
+                Addresses = addresses.Count > 0 ? addresses : null,
+            };
+        }
+        var json = PostImportWriter.Write(_defaultLanguageCode, main, others, location);
         var name = string.IsNullOrWhiteSpace(_model.Slug) ? "post" : _model.Slug;
         var bytes = global::System.Text.Encoding.UTF8.GetBytes(json);
         await JS.InvokeVoidAsync("dotnetableFile.download", name + ".json", Convert.ToBase64String(bytes), "application/json");
     }
 
-    private async Task CopyImportSampleAsync()
+    private async Task DownloadImportSampleAsync()
+    {
+        var bytes = global::System.Text.Encoding.UTF8.GetBytes(PostImportSample.Json);
+        await JS.InvokeVoidAsync("dotnetableFile.download", "post-import-sample.json", Convert.ToBase64String(bytes), "application/json");
+    }
+
+    private async Task CopyAgentPromptAsync()
     {
         try
         {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", PostImportSample.Json);
-            Snackbar.Add(L["posts.import_sample_copied", "Sample copied."], Severity.Success);
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", PostImportSample.PromptFor(L.LanguageCode));
+            Snackbar.Add(L["posts.import_prompt_copied", "Prompt copied."], Severity.Success);
         }
         catch
         {
-            Snackbar.Add(L["posts.import_sample_copy_failed", "Could not copy. Select the sample text instead."], Severity.Warning);
+            Snackbar.Add(L["posts.import_sample_copy_failed", "Could not copy. Select the prompt text instead."], Severity.Warning);
         }
     }
 
