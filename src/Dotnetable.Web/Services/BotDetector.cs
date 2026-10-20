@@ -38,11 +38,19 @@ public static partial class BotDetector
         RegexOptions.IgnoreCase)]
     private static partial Regex HumanTokens();
 
-    [GeneratedRegex(@"facebookexternalhit|facebookcatalog|Twitterbot|TelegramBot|WhatsApp|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterestbot|redditbot|vkShare|Embedly|Iframely|bitlybot|SnapchatBot",
+    [GeneratedRegex(@"facebookexternalhit|facebookcatalog|Twitterbot|TelegramBot|WhatsApp|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterestbot|redditbot|vkShare|Embedly|Iframely|bitlybot|SnapchatBot|meta-externalfetcher",
         RegexOptions.IgnoreCase)]
     private static partial Regex LinkPreviewPattern();
 
-    [GeneratedRegex(@"bot\b|bot/|bot;|crawl|spider|slurp|archiver|scraper|fetcher|headless|lighthouse|pagespeed|gtmetrix|pingdom|preview|mediapartners|adsbot|feedfetcher|python|curl/|wget|httpclient|http-client|okhttp|java/|go-http|libwww|axios|node-fetch|undici|scrapy|phantomjs|puppeteer|playwright|selenium|semrush|ahrefs|mj12|majestic|baiduspider|bytespider|petalbot|sogou|seznam|gptbot|chatgpt|oai-searchbot|claudebot|claude-web|anthropic|perplexity|ccbot|cohere|diffbot|amazonbot|applebot|duckduckbot|ia_archiver|dataforseo|screaming frog",
+    /// <summary>
+    /// Crawlers that ship a normal Mozilla/Chrome User-Agent and never say "bot", so the generic
+    /// pattern below lets them through and they download every image. Checked before that pattern.
+    /// </summary>
+    [GeneratedRegex(@"GoogleOther|Google-InspectionTool|Google-Read-Aloud|GoogleProducer|APIs-Google|DuplexWeb-Google|Google-Agent|Google-Extended|meta-externalagent|Claude-User|Imagesift|TikTokSpider",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex DisguisedCrawlerPattern();
+
+    [GeneratedRegex(@"bot\b|bot/|bot;|crawl|spider|slurp|archiver|scraper|fetcher|headless|lighthouse|pagespeed|gtmetrix|pingdom|preview|mediapartners|adsbot|feedfetcher|python|curl/|wget|httpclient|http-client|okhttp|java/|go-http|libwww|axios|node-fetch|undici|scrapy|phantomjs|puppeteer|playwright|selenium|semrush|ahrefs|mj12|majestic|baiduspider|bytespider|petalbot|sogou|seznam|gptbot|chatgpt|oai-searchbot|claudebot|claude-web|claude-user|anthropic|perplexity|ccbot|cohere|diffbot|amazonbot|applebot|duckduckbot|ia_archiver|dataforseo|screaming frog",
         RegexOptions.IgnoreCase)]
     private static partial Regex CrawlerPattern();
 
@@ -67,8 +75,16 @@ public static partial class BotDetector
 
         var ua = HumanTokens().Replace(userAgent, " ");
 
+        // WhatsApp's phone browser sends a full Chrome UA plus "WhatsApp/…". Its preview fetcher
+        // is only "WhatsApp/2.x" (or "compatible; WhatsApp"), which must stay a link preview.
+        if (ua.Contains("WhatsApp", StringComparison.OrdinalIgnoreCase)
+            && ua.Contains("Mozilla/", StringComparison.OrdinalIgnoreCase)
+            && ua.Contains("Chrome/", StringComparison.OrdinalIgnoreCase)
+            && !ua.Contains("compatible; WhatsApp", StringComparison.OrdinalIgnoreCase))
+            return BotKind.None;
+
         if (LinkPreviewPattern().IsMatch(ua)) return BotKind.LinkPreview;
-        if (CrawlerPattern().IsMatch(ua)) return BotKind.Crawler;
+        if (DisguisedCrawlerPattern().IsMatch(ua) || CrawlerPattern().IsMatch(ua)) return BotKind.Crawler;
 
         // Real browsers all claim Mozilla/…; anything else is a library or a tool.
         return ua.Contains("Mozilla/", StringComparison.OrdinalIgnoreCase) ? BotKind.None : BotKind.Crawler;

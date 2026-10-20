@@ -32,6 +32,7 @@
     <ProjectReference Include="..\..\src\Dotnetable.Application\Dotnetable.Application.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Domain\Dotnetable.Domain.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Infrastructure\Dotnetable.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Dotnetable.Web\Dotnetable.Web.csproj" />
     <ProjectReference Include="..\..\src\Dotnetable.Migrations.Sqlite\Dotnetable.Migrations.Sqlite.csproj" />
   </ItemGroup>
 

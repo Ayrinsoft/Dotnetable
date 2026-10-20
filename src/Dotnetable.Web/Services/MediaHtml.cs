@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Dom;
@@ -35,6 +36,10 @@ public static partial class MediaHtml
 
     [GeneratedRegex(@"url\(\s*(['""]?)(?<url>[^'""\)]+)\1\s*\)", RegexOptions.IgnoreCase)]
     private static partial Regex CssUrlPattern();
+
+    /// <summary>Any absolute or protocol-relative URL left in the serialized page.</summary>
+    [GeneratedRegex(@"(?:https?:)?//[^\s""'<>)]+", RegexOptions.IgnoreCase)]
+    private static partial Regex AbsoluteUrlPattern();
 
     /// <summary>Originals that have a <c>{name}_thumb.webp</c> next to them (see <c>ImageThumbnailer</c>).</summary>
     private static readonly HashSet<string> ThumbnailedExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -266,13 +271,32 @@ public static partial class MediaHtml
                 link.Replace(link.ChildNodes.ToArray());
         }
 
+        var keepUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var element in document.All.ToList())
         {
-            // The favicon is tiny and is what search results show next to the site name.
-            if (element.LocalName == "link") continue;
+            // Stylesheets and the favicon stay. Every other link to an uploaded image (preload,
+            // image_src) is stripped below so a crawler has no address to request.
+            if (element.LocalName == "link")
+            {
+                var rel = element.GetAttribute("rel") ?? string.Empty;
+                var href = element.GetAttribute("href");
+                var asImage = string.Equals(element.GetAttribute("as"), "image", StringComparison.OrdinalIgnoreCase);
+                var icon = rel.Contains("icon", StringComparison.OrdinalIgnoreCase);
+                if (icon && !string.IsNullOrWhiteSpace(href))
+                    keepUrls.Add(href);
+                if (icon || rel.Contains("stylesheet", StringComparison.OrdinalIgnoreCase)
+                    || rel.Contains("canonical", StringComparison.OrdinalIgnoreCase)
+                    || (!asImage && !IsImageExtension(href)))
+                    continue;
+            }
 
             var isMeta = element.LocalName == "meta";
-            if (isMeta && keepShareImage) continue;
+            if (isMeta && keepShareImage)
+            {
+                if (IsShareImageMeta(element) && element.GetAttribute("content") is { Length: > 0 } shareUrl)
+                    keepUrls.Add(shareUrl);
+                continue;
+            }
 
             foreach (var name in UrlAttributes)
             {
@@ -292,7 +316,40 @@ public static partial class MediaHtml
                 element.SetAttribute("style", CssUrlPattern().Replace(style, m => IsUploadedFile(m.Groups["url"].Value) ? "none" : m.Value));
         }
 
-        return document.ToHtml(HtmlMarkupFormatter.Instance);
+        // Style and script text are not attributes, and a crawler that renders them would still
+        // request any upload URL written there. Replace those addresses so the request is never made.
+        var htmlOut = document.ToHtml(HtmlMarkupFormatter.Instance);
+        return AbsoluteUrlPattern().Replace(htmlOut, match =>
+        {
+            var raw = match.Value;
+            var decoded = WebUtility.HtmlDecode(raw);
+            if (keepUrls.Contains(raw) || keepUrls.Contains(decoded)) return raw;
+            return IsUploadedFile(decoded) || IsUploadedFile(raw) ? Placeholder : raw;
+        });
+    }
+
+    private static bool IsShareImageMeta(IElement element)
+    {
+        var property = element.GetAttribute("property");
+        var name = element.GetAttribute("name");
+        return string.Equals(property, "og:image", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(property, "og:image:url", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "twitter:image", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsImageExtension(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        var ext = Extension(url);
+        return ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".gif", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".webp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".avif", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".svg", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".bmp", StringComparison.OrdinalIgnoreCase)
+            || ext.Equals(".ico", StringComparison.OrdinalIgnoreCase);
     }
 
     // ── URLs ─────────────────────────────────────────────────
