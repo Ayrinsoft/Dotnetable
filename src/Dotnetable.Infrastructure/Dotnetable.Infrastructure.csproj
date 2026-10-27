@@ -34,6 +34,7 @@
 		<PackageReference Include="CloudinaryDotNet" Version="1.29.3" />
 		<PackageReference Include="SkiaSharp" Version="4.153.1" />
 		<PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.22" />
 	</ItemGroup>
 
 	<ItemGroup>
