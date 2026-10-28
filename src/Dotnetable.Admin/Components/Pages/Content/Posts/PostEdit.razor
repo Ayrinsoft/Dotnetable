@@ -885,7 +885,12 @@ else if (_model is not null)
             Snackbar.Add(L["saved", "Saved."], Severity.Success);
             Nav.NavigateTo("/content/posts");
         }
-        catch (Exception ex) { Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error); }
+        catch (Exception ex)
+        {
+            var detail = ex;
+            while (detail.InnerException is not null) detail = detail.InnerException;
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {detail.Message}", Severity.Error);
+        }
         finally { _saving = false; }
     }
 }

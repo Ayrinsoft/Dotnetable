@@ -101,17 +101,43 @@ public class PostService : IPostService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        post.UpdatedAt = DateTime.UtcNow;
-        if (post.Status == PublishedStatus && post.PublishedAt is null)
-            post.PublishedAt = DateTime.UtcNow;
+        // The edit form holds the graph from GetById (translations, tags, categories, location,
+        // city, featured file). Posts.Update on that graph inserts PostTags rows that already
+        // exist and rewrites unrelated rows. Those relations are saved by their own methods.
+        var existing = await _context.Posts.FirstOrDefaultAsync(p => p.PostID == post.PostID, ct);
+        if (existing is null) return;
 
-        var used = await GetUsedSlugsAsync(_context, post.WebsiteID, post.PostID, ct);
-        post.Slug = SlugGenerator.MakeUnique(
-            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? post.Title : post.Slug, SlugMaxLength),
+        existing.WebsiteID = post.WebsiteID;
+        existing.PostTypeID = post.PostTypeID;
+        existing.AuthorMemberID = post.AuthorMemberID;
+        existing.Title = post.Title;
+        existing.Excerpt = post.Excerpt;
+        existing.Content = post.Content;
+        existing.MetaTitle = post.MetaTitle;
+        existing.MetaDescription = post.MetaDescription;
+        existing.MetaKeywords = post.MetaKeywords;
+        existing.FeaturedImageFileID = post.FeaturedImageFileID;
+        existing.Status = post.Status;
+        existing.PublishedAt = post.PublishedAt;
+        existing.ScheduledAt = post.ScheduledAt;
+        existing.IsFeatured = post.IsFeatured;
+        existing.CommentsEnabled = post.CommentsEnabled;
+        existing.HasLocation = post.HasLocation;
+        existing.IsActive = post.IsActive;
+        existing.UpdatedAt = DateTime.UtcNow;
+        if (existing.Status == PublishedStatus && existing.PublishedAt is null)
+            existing.PublishedAt = DateTime.UtcNow;
+
+        var used = await GetUsedSlugsAsync(_context, existing.WebsiteID, existing.PostID, ct);
+        existing.Slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? existing.Title : post.Slug, SlugMaxLength),
             used);
 
-        _context.Posts.Update(post);
         await _context.SaveChangesAsync(ct);
+
+        post.Slug = existing.Slug;
+        post.UpdatedAt = existing.UpdatedAt;
+        post.PublishedAt = existing.PublishedAt;
     }
 
     public async Task DeleteAsync(int postId, CancellationToken ct = default)
