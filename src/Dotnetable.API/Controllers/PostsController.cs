@@ -1,4 +1,5 @@
 using System.Net;
+using Dotnetable.Application.Content;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +17,15 @@ public class PostsController : BaseController
     private static readonly TimeSpan ViewWindow = TimeSpan.FromHours(6);
 
     private readonly IPostService _postService;
+    private readonly IContentVersionService _contentVersions;
     private readonly IWebsiteService _websiteService;
     private readonly IMemoryCache _cache;
 
-    public PostsController(IPostService postService, IWebsiteService websiteService, IMemoryCache cache)
+    public PostsController(
+        IPostService postService, IContentVersionService contentVersions, IWebsiteService websiteService, IMemoryCache cache)
     {
         _postService = postService;
+        _contentVersions = contentVersions;
         _websiteService = websiteService;
         _cache = cache;
     }
@@ -31,13 +35,62 @@ public class PostsController : BaseController
     public async Task<IActionResult> GetPublished(
         [FromQuery] string? type = null, [FromQuery] string? category = null, [FromQuery] string? tag = null, [FromQuery] string? author = null,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 12, [FromQuery] string? lang = null,
-        CancellationToken ct = default)
+        [FromQuery] string? version = null, CancellationToken ct = default)
     {
         var website = await ResolveWebsiteAsync(_websiteService, ct);
         if (website is null) return NotFound(new { message = "Website could not be resolved." });
 
-        var result = await _postService.GetPublishedAsync(website.WebsiteID, type, category, tag, page, GridQuery.ClampPageSize(pageSize), lang, author, ct);
-        return Ok(result);
+        try
+        {
+            var result = await _postService.GetPublishedAsync(
+                website.WebsiteID, type, category, tag, page, GridQuery.ClampPageSize(pageSize), lang, author, version, ct);
+            return Ok(result);
+        }
+        catch (ContentEditionException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Published content release labels for this website (help center / policy versions).</summary>
+    [HttpGet("content-versions")]
+    public async Task<IActionResult> ContentVersions(CancellationToken ct = default)
+    {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        var rows = await _contentVersions.GetPublishedAsync(website.WebsiteID, ct);
+        return Ok(rows.Select(v => new ContentVersionDto
+        {
+            ContentVersionID = v.ContentVersionID,
+            Name = v.Name,
+            SortOrder = v.SortOrder,
+            IsLatest = v.IsLatest,
+            IsPublished = v.IsPublished,
+        }));
+    }
+
+    /// <summary>
+    /// Published post by stable key. <c>version</c> is a content release such as <c>1.2</c>.
+    /// Omit it to use the latest published content release, or the unversioned row when the site has none.
+    /// </summary>
+    [HttpGet("by-key/{stableKey}")]
+    public async Task<IActionResult> GetByStableKey(
+        string stableKey, [FromQuery] string? version = null, [FromQuery] string? type = null,
+        [FromQuery] string? lang = null, CancellationToken ct = default)
+    {
+        var website = await ResolveWebsiteAsync(_websiteService, ct);
+        if (website is null) return NotFound(new { message = "Website could not be resolved." });
+
+        try
+        {
+            var post = await _postService.GetByStableKeyAsync(website.WebsiteID, stableKey, version, type, lang, ct);
+            return post is null ? NotFound() : Ok(post);
+        }
+        catch (ContentEditionException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>Featured published posts (newest first).</summary>

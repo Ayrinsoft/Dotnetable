@@ -125,7 +125,6 @@ public sealed class RedirectResultDto
 
 // ── Admin filters ─────────────────────────────────────────────────────────────
 
-/// <summary>Optional filters applied to the admin post listing.</summary>
 /// <summary>A website content release line, for the public version picker.</summary>
 public sealed class ContentVersionDto
 {
@@ -136,6 +135,7 @@ public sealed class ContentVersionDto
     public bool IsPublished { get; init; }
 }
 
+/// <summary>Optional filters applied to the admin post listing.</summary>
 public sealed class PostFilter
 {
     public int? PostTypeID { get; set; }

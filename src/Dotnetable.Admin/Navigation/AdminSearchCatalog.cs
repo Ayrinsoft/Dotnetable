@@ -79,6 +79,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("categories", "Categories", "/content/categories", Icons.Material.Filled.Category, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
         new AdminSearchPage("tags", "Tags", "/content/tags", Icons.Material.Filled.Label, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
         new AdminSearchPage("post_types", "Post Types", "/content/post-types", Icons.Material.Filled.Dashboard, "content", "Content", RoleKeys.TaxonomyView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
+        new AdminSearchPage("content_versions", "Content versions", "/content/versions", Icons.Material.Filled.AccountTree, "content", "Content", RoleKeys.PostsView, NavArea: AdminNavArea.ContentBlog, VendorMemberAllowed: false),
         new AdminSearchPage("redirects", "Redirects", "/content/redirects", Icons.Material.Filled.CallSplit, "content", "Content", RoleKeys.RedirectsView, NavArea: AdminNavArea.ContentExtra, VendorMemberAllowed: false),
 
         new AdminSearchPage("products", "Products", "/catalog/products", Icons.Material.Filled.ShoppingBag, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog),

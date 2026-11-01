@@ -40,6 +40,7 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
         else
             result.Note = "A copy was written on the target website. The source website still has its original rows. Changing a site from blog to store does not delete this data.";
 
+        await CopyContentVersionsAsync(context, sourceWebsiteId, targetWebsiteId, ct);
         var postTypeMap = await CopyPostTypesAsync(context, sourceWebsiteId, targetWebsiteId, result, ct);
         var categoryMap = await CopyContentCategoriesAsync(context, sourceWebsiteId, targetWebsiteId, postTypeMap, result, ct);
         var tagMap = await CopyTagsAsync(context, sourceWebsiteId, targetWebsiteId, result, ct);
@@ -54,6 +55,30 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
         }
 
         return result;
+    }
+
+    private static async Task CopyContentVersionsAsync(
+        AppDbContext context, int sourceId, int targetId, CancellationToken ct)
+    {
+        var source = await context.ContentVersions.AsNoTracking().Where(v => v.WebsiteID == sourceId).ToListAsync(ct);
+        if (source.Count == 0) return;
+        var names = (await context.ContentVersions.AsNoTracking()
+            .Where(v => v.WebsiteID == targetId)
+            .Select(v => v.Name)
+            .ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in source)
+        {
+            if (!names.Add(row.Name)) continue;
+            context.ContentVersions.Add(new ContentVersion
+            {
+                WebsiteID = targetId,
+                Name = row.Name,
+                SortOrder = row.SortOrder,
+                IsLatest = row.IsLatest,
+                IsPublished = row.IsPublished,
+            });
+        }
+        await context.SaveChangesAsync(ct);
     }
 
     private static async Task<Dictionary<int, int>> CopyPostTypesAsync(
@@ -81,6 +106,8 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
                 HasTags = row.HasTags,
                 HasAuthor = row.HasAuthor,
                 CommentsEnabled = row.CommentsEnabled,
+                SupportsStableKey = row.SupportsStableKey,
+                SupportsVersioning = row.SupportsVersioning,
             };
             context.PostTypes.Add(copy);
             await context.SaveChangesAsync(ct);
@@ -217,6 +244,9 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
                 CommentsEnabled = row.CommentsEnabled,
                 HasLocation = row.HasLocation && row.PostLocation is not null,
                 IsActive = row.IsActive,
+                StableKey = row.StableKey,
+                AppliesFrom = row.AppliesFrom,
+                AppliesTo = row.AppliesTo,
                 CreatedAt = now,
                 UpdatedAt = now,
             };

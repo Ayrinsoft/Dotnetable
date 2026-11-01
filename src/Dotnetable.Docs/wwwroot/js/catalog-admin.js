@@ -862,6 +862,10 @@ window.DOCS_ADMIN = {
               en: "Turn on **This post has a location** to store a place type, latitude, longitude, an optional city and an address. The address can be translated per language. Place types are Unspecified (0), Office (1), Store (2), Branch (3), Showroom (4), Warehouse (5), Venue (6), Other (7), Historical and cultural (8), Recreation (9), Ecolodge (10), Backpacking (11), Restaurant (12), Pilgrimage (13), Nature (14), Camp and adventure (15) and Bazaar (16). The public site does not draw the map yet; the API already returns `hasLocation` and `location` (including numeric `kind`).",
               fa: "گزینه **This post has a location** را روشن کنید تا نوع مکان، عرض و طول جغرافیایی، شهر اختیاری و آدرس ذخیره شود. آدرس برای هر زبان قابل ترجمه است. نوع مکان یکی از این‌هاست: نامشخص (۰)، دفتر (۱)، فروشگاه (۲)، شعبه (۳)، شوروم (۴)، انبار (۵)، محل برگزاری (۶)، سایر (۷)، تاریخی و فرهنگی (۸)، تفریحی (۹)، اقامتگاه بوم‌گردی (۱۰)، کوله‌گردی (۱۱)، رستوران (۱۲)، زیارتی و مذهبی (۱۳)، طبیعت‌گردی (۱۴)، کمپ و ماجراجویی (۱۵) و بازار سنتی (۱۶). سایت عمومی هنوز نقشه را نشان نمی‌دهد؛ API از الان `hasLocation` و `location` (شامل `kind` عددی) را برمی‌گرداند.",
             },
+            {
+              en: "On a post type, turn on **Stable key** or **Release versions** only for help, policy, or release-note types. The post editor then shows an optional stable key and an applies-from / applies-to range. **New edition** copies the saved post, closes the previous range, and opens the next release so unchanged articles stay one row. Blog types leave both switches off and never show these fields. Add the release names under **Content versions**.",
+              fa: "روی نوع پست، **Stable key** یا **Release versions** را فقط برای راهنما، سیاست یا یادداشت انتشار روشن کنید. بعد در ویرایش پست کلید ثابت و بازه applies-from / applies-to دیده می‌شود. **New edition** پست ذخیره‌شده را کپی می‌کند، بازه قبلی را می‌بندد و انتشار بعدی را باز می‌کند تا متن عوض‌نشده یک ردیف بماند. نوع بلاگ هر دو سوئیچ را خاموش می‌گذارد و این فیلدها را نشان نمی‌دهد. نام انتشارها را در **Content versions** اضافه کنید.",
+            },
           ],
           related: ["content-categories", "content-tags", "post-types", "media-library", "content-comments", "content-authors"],
         },
@@ -1045,8 +1049,32 @@ window.DOCS_ADMIN = {
               en: "Create post types you need, then select them on each post.",
               fa: "نوع‌های لازم را بسازید، سپس روی هر پست انتخاب کنید.",
             },
+            {
+              en: "**Stable key** and **Release versions** are off by default. Turn them on only for a type that needs a permanent reference or editions per content release (1.0, 2.0). Versioning also allows a stable key.",
+              fa: "**Stable key** و **Release versions** پیش‌فرض خاموش‌اند. فقط برای نوعی روشن کنید که مرجع ثابت یا نسخه به‌ازای انتشار محتوا (۱.۰، ۲.۰) می‌خواهد. نسخه‌بندی، کلید ثابت را هم مجاز می‌کند.",
+            },
           ],
           related: ["posts"],
+        },
+        {
+          id: "content-versions",
+          title: { en: "Content versions", fa: "نسخه‌های محتوا" },
+          adminPath: "/content/versions",
+          summary: {
+            en: "Optional release labels (1.0, 1.2) for versioned post types.",
+            fa: "برچسب‌های اختیاری انتشار (۱.۰، ۱.۲) برای نوع پست نسخه‌دار.",
+          },
+          purpose: {
+            en: "Give a help center or policy section a latest release and a dropdown of names. Blog posts do not use this list.",
+            fa: "برای مرکز راهنما یا بخش سیاست، آخرین انتشار و فهرست نام‌ها را می‌دهد. پست بلاگ از این فهرست استفاده نمی‌کند.",
+          },
+          howTo: [
+            {
+              en: "Add a name, sort order, and mark one row Latest and Published. The public API lists only published rows. Readers who omit `version` get the latest published label.",
+              fa: "یک نام و ترتیب بگذارید و یک ردیف را Latest و Published کنید. API عمومی فقط ردیف‌های منتشرشده را می‌دهد. خواننده‌ای که `version` نفرستد، آخرین برچسب منتشرشده را می‌گیرد.",
+            },
+          ],
+          related: ["posts", "post-types"],
         },
         {
           id: "menus",

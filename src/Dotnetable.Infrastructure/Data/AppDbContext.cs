@@ -2809,8 +2809,7 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false)
                 .HasComment("Last content release this edition covers, inclusive. Null means the edition is still open.");
             entity.HasIndex(e => new { e.WebsiteID, e.PostTypeID, e.StableKey, e.AppliesFrom }, "UQ_Posts_StableEdition")
-                .IsUnique()
-                .HasFilter("[StableKey] IS NOT NULL");
+                .IsUnique();
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)

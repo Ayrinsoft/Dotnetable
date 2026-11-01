@@ -19,6 +19,9 @@ CREATE TABLE [dbo].[Posts] (
     [LikeCount]           INT CONSTRAINT [DF_Posts_LikeCount] DEFAULT ((0)) NOT NULL,
     [CommentsEnabled]     BIT NOT NULL,
     [HasLocation]         BIT CONSTRAINT [DF_Posts_HasLocation] DEFAULT ((0)) NOT NULL,
+    [StableKey]           VARCHAR (80)    NULL,
+    [AppliesFrom]         VARCHAR (40)    NULL,
+    [AppliesTo]           VARCHAR (40)    NULL,
     [IsActive]            BIT NOT NULL,
     [CreatedAt]           DATETIME NOT NULL,
     [UpdatedAt]           DATETIME NOT NULL,
@@ -44,3 +47,19 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Posts_WebsiteID]
     ON [dbo].[Posts] ([WebsiteID] ASC);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_Posts_StableEdition]
+    ON [dbo].[Posts] ([WebsiteID] ASC, [PostTypeID] ASC, [StableKey] ASC, [AppliesFrom] ASC)
+    WHERE [StableKey] IS NOT NULL AND [AppliesFrom] IS NOT NULL;
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Stable reference for one logical post. Null unless the post type opts in. Does not change after the post is published.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Posts', @level2type = N'COLUMN', @level2name = N'StableKey';
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'First content release this edition covers. Null means unversioned or every release. Editions that share StableKey avoid copying unchanged text.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Posts', @level2type = N'COLUMN', @level2name = N'AppliesFrom';
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Last content release this edition covers, inclusive. Null means the edition is still open.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Posts', @level2type = N'COLUMN', @level2name = N'AppliesTo';
+GO
+

@@ -251,6 +251,7 @@ public static class ServiceCollectionExtensions
 
         // Content: posts, pages, taxonomy (categories/tags/post types) and redirects.
         services.AddScoped<IPostTypeService, PostTypeService>();
+        services.AddScoped<IContentVersionService, ContentVersionService>();
         services.AddScoped<ITagService, TagService>();
 
         services.AddScoped<CategoryService>();

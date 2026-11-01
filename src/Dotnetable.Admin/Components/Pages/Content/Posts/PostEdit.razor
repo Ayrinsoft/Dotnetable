@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = RoleKeys.PostsView)]
 @inject IPostService PostService
 @inject IPostTypeService PostTypeService
+@inject IContentVersionService ContentVersions
 @inject ICategoryService CategoryService
 @inject ITagService TagService
 @inject AuthenticationStateProvider AuthState
@@ -223,6 +224,37 @@ else if (_model is not null)
                     }
                 </MudPaper>
 
+                @if (KeyEnabled && _model is not null)
+                {
+                    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.edition", "Stable reference"]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 d-block">
+                            @L["posts.edition_hint", "Optional. The key stays the same when the title or slug changes. Leave it blank for an ordinary post."]
+                        </MudText>
+                        <MudTextField @bind-Value="_model.StableKey" Label="@L["posts.stable_key", "Stable key"]" Variant="Variant.Outlined"
+                                      Disabled="@_stableKeyLocked" Class="mb-3"
+                                      HelperText="@L["posts.stable_key_hint", "Lower case letters, digits, dot, underscore, or hyphen. Locked after publish."]" />
+                        @if (VersioningEnabled)
+                        {
+                            <MudTextField @bind-Value="_model.AppliesFrom" Label="@L["posts.applies_from", "Applies from"]" Variant="Variant.Outlined" Class="mb-3"
+                                          HelperText="@VersionHint" />
+                            <MudTextField @bind-Value="_model.AppliesTo" Label="@L["posts.applies_to", "Applies to"]" Variant="Variant.Outlined" Class="mb-3"
+                                          HelperText="@L["posts.applies_to_hint", "Blank means this edition is still open. Inclusive."]" />
+                            @if (!_isNew && !string.IsNullOrWhiteSpace(_model.StableKey))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+                                    @L["posts.fork_hint", "Uses the last saved copy. Save this post first if you changed it."]
+                                </MudText>
+                                <MudTextField @bind-Value="_forkVersion" Label="@L["posts.fork_version", "New edition for version"]" Variant="Variant.Outlined" Class="mb-2" />
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(_saving || !_canEdit || string.IsNullOrWhiteSpace(_forkVersion))"
+                                           OnClick="ForkEditionAsync">
+                                    @L["posts.fork", "New edition"]
+                                </MudButton>
+                            }
+                        }
+                    </MudPaper>
+                }
+
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
                     <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.location", "Location"]</MudText>
                     <MudSwitch T="bool" @bind-Value="_model.HasLocation" Color="Color.Primary"
@@ -307,6 +339,9 @@ else if (_model is not null)
     private DateTime? _scheduledAt;
 
     private List<PostType> _postTypes = new();
+    private List<ContentVersion> _contentVersions = new();
+    private bool _stableKeyLocked;
+    private string _forkVersion = "";
     private List<Category> _categories = new();
     private List<Tag> _tags = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
@@ -395,6 +430,9 @@ else if (_model is not null)
         if (_countryId is int countryId)
             _cities = (await LocationService.GetCitiesByCountryAsync(countryId)).ToList();
         _postTypes = await PostTypeService.GetAllAsync(wid);
+        _contentVersions = wid > 0 ? await ContentVersions.GetAllAsync(wid) : new List<ContentVersion>();
+        _stableKeyLocked = !_isNew && _model is not null && _model.Status == 1
+            && !string.IsNullOrWhiteSpace(_model.StableKey);
         _categories = await CategoryService.GetAllAsync(wid);
         _tags = await TagService.GetAllAsync(wid);
         _prerequisites = ContentPrerequisiteHelper.ForPosts(L, _postTypes, _categories.Count, _tags.Count);
@@ -406,6 +444,16 @@ else if (_model is not null)
 
     private PostType? GetSelectedPostType() =>
         _model is null ? null : _postTypes.FirstOrDefault(t => t.PostTypeID == _model.PostTypeID);
+
+    private bool KeyEnabled => GetSelectedPostType() is { } type && (type.SupportsStableKey || type.SupportsVersioning);
+
+    private bool VersioningEnabled => GetSelectedPostType()?.SupportsVersioning == true;
+
+    private string VersionHint =>
+        _contentVersions.Count == 0
+            ? L["posts.applies_from_hint", "Blank covers every release. Add labels under Content versions, or type one such as 1.0."]
+            : string.Format(L["posts.applies_from_known", "Blank covers every release. This site's labels: {0}."],
+                string.Join(", ", _contentVersions.Select(v => v.Name)));
 
     private void OnPostTypeChanged(PostType? type)
     {
@@ -887,10 +935,32 @@ else if (_model is not null)
         }
         catch (Exception ex)
         {
-            var detail = ex;
-            while (detail.InnerException is not null) detail = detail.InnerException;
-            Snackbar.Add($"{L["save_failed", "Save failed"]}: {detail.Message}", Severity.Error);
+            ShowSaveError(ex);
         }
         finally { _saving = false; }
+    }
+
+    private async Task ForkEditionAsync()
+    {
+        if (_model is null || _model.PostID <= 0 || string.IsNullOrWhiteSpace(_forkVersion)) return;
+        _saving = true;
+        try
+        {
+            var edition = await PostService.CreateEditionAsync(_model.PostID, _forkVersion);
+            Snackbar.Add(L["posts.fork_saved", "New edition created. You can edit its text now."], Severity.Success);
+            Nav.NavigateTo($"/content/posts/{edition.PostID}");
+        }
+        catch (Exception ex)
+        {
+            ShowSaveError(ex);
+        }
+        finally { _saving = false; }
+    }
+
+    private void ShowSaveError(Exception ex)
+    {
+        var detail = ex;
+        while (detail.InnerException is not null) detail = detail.InnerException;
+        Snackbar.Add($"{L["save_failed", "Save failed"]}: {detail.Message}", Severity.Error);
     }
 }

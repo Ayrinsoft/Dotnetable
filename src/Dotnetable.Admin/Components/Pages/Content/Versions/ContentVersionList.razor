@@ -1,0 +1,198 @@
+@page "/content/versions"
+@attribute [Authorize(Policy = RoleKeys.PostsView)]
+@inject IContentVersionService Versions
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["content_versions", "Content versions"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["content_versions", "Content versions"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["content_versions.subtitle", "Release labels such as 1.0 or 1.2 for help articles and policies. A normal blog does not need these."]
+        </MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else
+{
+    @if (_canEdit)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_name" Label="@L["content_versions.name", "Version"]" Variant="Variant.Outlined"
+                                  HelperText="@L["content_versions.name_hint", "For example 1.2. Letters, digits, dot, plus, underscore, hyphen."]" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudNumericField T="int" @bind-Value="_sortOrder" Label="@L["sort_order", "Sort order"]" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_isLatest" Color="Color.Primary" Label="@L["content_versions.latest", "Latest"]" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_isPublished" Color="Color.Success" Label="@L["content_versions.published", "Published"]" />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Disabled="@_saving" OnClick="SaveAsync">
+                @(_editingId is null ? L["add", "Add"] : L["save", "Save"])
+            </MudButton>
+            @if (_editingId is not null)
+            {
+                <MudButton Variant="Variant.Text" Class="mt-3" OnClick="ClearForm">@L["cancel", "Cancel"]</MudButton>
+            }
+        </MudPaper>
+    }
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_items.Count == 0)
+        {
+            <MudText Color="Color.Secondary">@L["content_versions.empty", "No content versions yet."]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead>
+                    <tr>
+                        <th>@L["content_versions.name", "Version"]</th>
+                        <th>@L["sort_order", "Sort order"]</th>
+                        <th>@L["content_versions.latest", "Latest"]</th>
+                        <th>@L["content_versions.published", "Published"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _items)
+                    {
+                        <tr>
+                            <td><code>@row.Name</code></td>
+                            <td>@row.SortOrder</td>
+                            <td>@(row.IsLatest ? L["yes", "Yes"] : L["no", "No"])</td>
+                            <td>@(row.IsPublished ? L["yes", "Yes"] : L["no", "No"])</td>
+                            <td>
+                                @if (_canEdit)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => Edit(row))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(row))" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private bool _canEdit;
+    private int _websiteId;
+    private int? _editingId;
+    private string _name = "";
+    private int _sortOrder;
+    private bool _isLatest;
+    private bool _isPublished = true;
+    private List<ContentVersion> _items = new();
+    private List<Website> _websites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.PostsEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        ClearForm();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _items = _websiteId > 0 ? await Versions.GetAllAsync(_websiteId) : new List<ContentVersion>();
+        _loading = false;
+    }
+
+    private void Edit(ContentVersion row)
+    {
+        _editingId = row.ContentVersionID;
+        _name = row.Name;
+        _sortOrder = row.SortOrder;
+        _isLatest = row.IsLatest;
+        _isPublished = row.IsPublished;
+    }
+
+    private void ClearForm()
+    {
+        _editingId = null;
+        _name = "";
+        _sortOrder = 0;
+        _isLatest = false;
+        _isPublished = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_websiteId <= 0) return;
+        _saving = true;
+        try
+        {
+            await Versions.SaveAsync(new ContentVersion
+            {
+                ContentVersionID = _editingId ?? 0,
+                WebsiteID = _websiteId,
+                Name = _name,
+                SortOrder = _sortOrder,
+                IsLatest = _isLatest,
+                IsPublished = _isPublished,
+            });
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            ClearForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            var detail = ex;
+            while (detail.InnerException is not null) detail = detail.InnerException;
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {detail.Message}", Severity.Error);
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task DeleteAsync(ContentVersion row)
+    {
+        try
+        {
+            await Versions.DeleteAsync(row.ContentVersionID);
+            if (_editingId == row.ContentVersionID) ClearForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+    }
+}

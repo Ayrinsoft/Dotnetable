@@ -17,6 +17,13 @@ public interface IPostService
 
     Task<Post> CreateAsync(Post post, CancellationToken ct = default);
     Task UpdateAsync(Post post, CancellationToken ct = default);
+
+    /// <summary>
+    /// Closes the source edition at <paramref name="appliesFrom"/> and inserts a new post with the
+    /// same stable key, starting at that release. Translations, categories, tags, and location are copied.
+    /// The new slug can be edited afterwards. The source must already be saved.
+    /// </summary>
+    Task<Post> CreateEditionAsync(int sourcePostId, string appliesFrom, CancellationToken ct = default);
     Task DeleteAsync(int postId, CancellationToken ct = default);
     Task SetActiveAsync(int postId, bool active, CancellationToken ct = default);
 
@@ -43,12 +50,23 @@ public interface IPostService
     /// category slug or tag slug — all localized to <paramref name="languageCode"/>.</summary>
     Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default);
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null,
+        string? version = null, CancellationToken ct = default);
 
     /// <summary>A single published post by slug (base slug or a translated slug). Does not count a view —
     /// callers that rendered the page for a person send <see cref="RecordViewAsync"/> separately, so
     /// crawlers that only fetch the post are left out of the counter.</summary>
     Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// The published edition for <paramref name="stableKey"/> at <paramref name="version"/>.
+    /// A blank version uses the website's latest published content release, or the unversioned row.
+    /// <paramref name="postTypeSlug"/> is required when more than one post type uses the same key.
+    /// The version is ignored when that post type does not support versioning.
+    /// </summary>
+    Task<PostDetailDto?> GetByStableKeyAsync(
+        int websiteId, string stableKey, string? version = null, string? postTypeSlug = null,
+        string? languageCode = null, CancellationToken ct = default);
 
     /// <summary>Adds one to the published post's view count. Returns false when the post is missing or not public.</summary>
     Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default);

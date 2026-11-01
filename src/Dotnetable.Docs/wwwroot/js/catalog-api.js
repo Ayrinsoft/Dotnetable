@@ -1684,8 +1684,8 @@ window.DOCS_API = {
           id: "posts",
           title: { en: "Posts", fa: "پست‌ها" },
           summary: {
-            en: "Published blog/articles, featured list, post by slug.",
-            fa: "مقالات منتشرشده، ویژه، پست با اسلاگ.",
+            en: "Published blog/articles, featured list, post by slug. Optional stable key and content-release editions for help centers.",
+            fa: "مقالات منتشرشده، ویژه، پست با اسلاگ. کلید ثابت و نسخه‌های انتشار محتوا برای مرکز راهنما، اختیاری.",
           },
           relatedAdmin: ["posts", "content-categories", "content-tags"],
           endpoints: [
@@ -1699,6 +1699,7 @@ window.DOCS_API = {
                 { name: "type / category / tag", desc: { en: "Filter by post type, category or tag slug", fa: "فیلتر بر اساس اسلاگ نوع پست، دسته یا برچسب" } },
                 { name: "author", desc: { en: "Filter by author slug (see Authors)", fa: "فیلتر بر اساس اسلاگ نویسنده (بخش نویسندگان)" } },
                 { name: "page / pageSize / lang", desc: { en: "Paging and content language", fa: "صفحه‌بندی و زبان محتوا" } },
+                { name: "version", desc: { en: "Content release such as 1.2. Ignored for post types that do not use versioning. Keeps one edition per stable key.", fa: "انتشار محتوا مثل 1.2. برای نوع پستی که نسخه‌بندی ندارد نادیده گرفته می‌شود. برای هر کلید ثابت یک نسخه می‌ماند." } },
               ],
               response: {
                 status: 200,
@@ -1727,6 +1728,32 @@ window.DOCS_API = {
                 {
                   en: "`hasLocation` is false and `location` is null when the post has no map point. When it is set, `address` and `cityName` follow `lang` (address translations fall back to the default language). `kind` is a number: 0 Unspecified, 1 Office, 2 Store, 3 Branch, 4 Showroom, 5 Warehouse, 6 Venue, 7 Other, 8 Historical and cultural, 9 Recreation, 10 Ecolodge, 11 Backpacking, 12 Restaurant, 13 Pilgrimage, 14 Nature, 15 Camp and adventure, 16 Bazaar. New kinds are appended; existing numbers stay. The storefront does not render this yet.",
                   fa: "وقتی پست نقطه نقشه ندارد `hasLocation` برابر false و `location` برابر null است. اگر تنظیم شده باشد، `address` و `cityName` از `lang` پیروی می‌کنند (ترجمه آدرس در صورت نبود به زبان پیش‌فرض برمی‌گردد). `kind` عدد است: ۰ نامشخص، ۱ دفتر، ۲ فروشگاه، ۳ شعبه، ۴ شوروم، ۵ انبار، ۶ محل برگزاری، ۷ سایر، ۸ تاریخی و فرهنگی، ۹ تفریحی، ۱۰ اقامتگاه بوم‌گردی، ۱۱ کوله‌گردی، ۱۲ رستوران، ۱۳ زیارتی و مذهبی، ۱۴ طبیعت‌گردی، ۱۵ کمپ و ماجراجویی، ۱۶ بازار سنتی. مقدارهای جدید به انتها اضافه می‌شوند و شماره‌های فعلی عوض نمی‌شوند. استورفرانت هنوز این را نشان نمی‌دهد.",
+                },
+                {
+                  en: "`stableKey`, `appliesFrom` and `appliesTo` are null for an ordinary post. They are content release ranges (help, policy, release notes), not `X-Api-Version`.",
+                  fa: "`stableKey` و `appliesFrom` و `appliesTo` برای پست معمولی null هستند. این‌ها بازه انتشار محتوا هستند (راهنما، سیاست، یادداشت انتشار)، نه `X-Api-Version`.",
+                },
+              ],
+            },
+            {
+              title: { en: "By stable key / content versions", fa: "با کلید ثابت / نسخه‌های محتوا" },
+              method: "GET",
+              path: "/api/Posts/by-key/{stableKey}  ·  /api/Posts/content-versions",
+              auth: "website",
+              query: [
+                { name: "version", desc: { en: "Content release. Omit it for the latest published content version, or the unversioned row.", fa: "انتشار محتوا. اگر نباشد، آخرین نسخه منتشرشده محتوا یا ردیف بدون نسخه برمی‌گردد." } },
+                { name: "type", desc: { en: "Post type slug. Required when two types share the same stable key.", fa: "اسلاگ نوع پست. وقتی دو نوع یک کلید ثابت دارند لازم است." } },
+                { name: "lang", desc: { en: "Language", fa: "زبان" } },
+              ],
+              request: { body: "GET /api/Posts/by-key/getting-started?version=1.0&type=help" },
+              response: {
+                status: 200,
+                body: { slug: "getting-started", title: "Getting started", stableKey: "getting-started", appliesFrom: "1.0", appliesTo: "2.0", content: "<p>…</p>" },
+              },
+              notes: [
+                {
+                  en: "Among rows with the same website, post type and stable key, the match is AppliesFrom <= version and (AppliesTo is null or AppliesTo >= version). The highest AppliesFrom wins. A tie uses the higher post id. `GET /api/Posts/content-versions` lists published labels for the website.",
+                  fa: "بین ردیف‌های هم‌وب‌سایت، هم‌نوع و هم‌کلید، موردی انتخاب می‌شود که AppliesFrom <= version و (AppliesTo خالی یا AppliesTo >= version) باشد. بزرگ‌ترین AppliesFrom برنده است. اگر مساوی باشند شناسه پست بزرگ‌تر می‌ماند. `GET /api/Posts/content-versions` برچسب‌های منتشرشده همان وب‌سایت را می‌دهد.",
                 },
               ],
             },

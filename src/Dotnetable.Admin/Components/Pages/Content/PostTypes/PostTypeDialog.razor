@@ -15,6 +15,14 @@
             <MudSwitch T="bool" @bind-Value="Model.HasTags" Color="Color.Primary" Label="@L["post_types.tags", "Has tags"]" />
             <MudSwitch T="bool" @bind-Value="Model.HasAuthor" Color="Color.Primary" Label="@L["post_types.author", "Has author"]" />
             <MudSwitch T="bool" @bind-Value="Model.CommentsEnabled" Color="Color.Primary" Label="@L["post_types.comments", "Comments enabled"]" />
+            <MudSwitch T="bool" @bind-Value="Model.SupportsStableKey" Color="Color.Primary" Label="@L["post_types.stable_key", "Stable key"]" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2 d-block">
+                @L["post_types.stable_key_hint", "Posts can keep a reference that does not change when the slug or title changes. Leave off for a normal blog."]
+            </MudText>
+            <MudSwitch T="bool" @bind-Value="Model.SupportsVersioning" Color="Color.Primary" Label="@L["post_types.versioning", "Release versions"]" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+                @L["post_types.versioning_hint", "The same article can have editions for content releases such as 1.0 and 2.0. Unchanged text stays one post. This also allows a stable key."]
+            </MudText>
 
             <DNValidationSummary Errors="_formErrors" />
         </MudForm>

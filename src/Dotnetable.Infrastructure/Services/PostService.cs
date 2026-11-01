@@ -1,3 +1,4 @@
+using Dotnetable.Application.Content;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Text;
@@ -91,6 +92,7 @@ public class PostService : IPostService
         post.Slug = SlugGenerator.MakeUnique(
             SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? post.Title : post.Slug, SlugMaxLength),
             used);
+        await ApplyEditionAsync(_context, post, post, publishedKey: null, ct);
 
         _context.Posts.Add(post);
         await _context.SaveChangesAsync(ct);
@@ -106,6 +108,8 @@ public class PostService : IPostService
         // exist and rewrites unrelated rows. Those relations are saved by their own methods.
         var existing = await _context.Posts.FirstOrDefaultAsync(p => p.PostID == post.PostID, ct);
         if (existing is null) return;
+
+        var publishedKey = existing.Status == PublishedStatus ? existing.StableKey : null;
 
         existing.WebsiteID = post.WebsiteID;
         existing.PostTypeID = post.PostTypeID;
@@ -132,12 +136,169 @@ public class PostService : IPostService
         existing.Slug = SlugGenerator.MakeUnique(
             SlugGenerator.Normalize(string.IsNullOrWhiteSpace(post.Slug) ? existing.Title : post.Slug, SlugMaxLength),
             used);
+        await ApplyEditionAsync(_context, existing, post, publishedKey, ct);
 
         await _context.SaveChangesAsync(ct);
 
         post.Slug = existing.Slug;
+        post.StableKey = existing.StableKey;
+        post.AppliesFrom = existing.AppliesFrom;
+        post.AppliesTo = existing.AppliesTo;
         post.UpdatedAt = existing.UpdatedAt;
         post.PublishedAt = existing.PublishedAt;
+    }
+
+    public async Task<Post> CreateEditionAsync(int sourcePostId, string appliesFrom, CancellationToken ct = default)
+    {
+        var start = ContentEditionRules.NormalizeVersion(appliesFrom)
+            ?? throw new ContentEditionException("A new edition needs a version.");
+
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var source = await _context.Posts
+            .Include(p => p.PostType)
+            .Include(p => p.PostTranslations)
+            .Include(p => p.PostCategories)
+            .Include(p => p.Tags)
+            .Include(p => p.PostLocation).ThenInclude(l => l!.PostLocationTranslations)
+            .FirstOrDefaultAsync(p => p.PostID == sourcePostId, ct)
+            ?? throw new ContentEditionException("Post was not found.");
+
+        if (!source.PostType.SupportsVersioning)
+            throw new ContentEditionException("This post type does not use versions.");
+        if (string.IsNullOrEmpty(source.StableKey))
+            throw new ContentEditionException("Set a stable key on the saved post before starting a new edition.");
+        if (source.AppliesFrom is not null && ContentEditionRules.Compare(start, source.AppliesFrom) <= 0)
+            throw new ContentEditionException("The new edition must start after this one.");
+
+        var duplicate = await _context.Posts.AnyAsync(p =>
+            p.WebsiteID == source.WebsiteID && p.PostTypeID == source.PostTypeID &&
+            p.StableKey == source.StableKey && p.AppliesFrom == start, ct);
+        if (duplicate)
+            throw new ContentEditionException("Another edition already starts at that version.");
+
+        if (source.AppliesTo is null || ContentEditionRules.Compare(source.AppliesTo, start) > 0)
+            source.AppliesTo = start;
+
+        var now = DateTime.UtcNow;
+        var used = await GetUsedSlugsAsync(_context, source.WebsiteID, excludePostId: 0, ct);
+        var slug = SlugGenerator.MakeUnique(
+            SlugGenerator.Normalize($"{source.Slug}-{start}", SlugMaxLength), used);
+        used.Add(slug);
+
+        var edition = new Post
+        {
+            WebsiteID = source.WebsiteID,
+            PostTypeID = source.PostTypeID,
+            AuthorMemberID = source.AuthorMemberID,
+            Slug = slug,
+            Title = source.Title,
+            Excerpt = source.Excerpt,
+            Content = source.Content,
+            MetaTitle = source.MetaTitle,
+            MetaDescription = source.MetaDescription,
+            MetaKeywords = source.MetaKeywords,
+            FeaturedImageFileID = source.FeaturedImageFileID,
+            Status = source.Status,
+            PublishedAt = source.Status == PublishedStatus ? source.PublishedAt ?? now : source.PublishedAt,
+            ScheduledAt = source.ScheduledAt,
+            IsFeatured = source.IsFeatured,
+            CommentsEnabled = source.CommentsEnabled,
+            HasLocation = source.HasLocation && source.PostLocation is not null,
+            IsActive = source.IsActive,
+            StableKey = source.StableKey,
+            AppliesFrom = start,
+            AppliesTo = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        foreach (var translation in source.PostTranslations)
+        {
+            var translationSlug = SlugGenerator.MakeUnique(
+                SlugGenerator.Normalize(string.IsNullOrWhiteSpace(translation.Slug) ? translation.Title : translation.Slug, SlugMaxLength),
+                used);
+            used.Add(translationSlug);
+            edition.PostTranslations.Add(new PostTranslation
+            {
+                LanguageCode = translation.LanguageCode,
+                Title = translation.Title,
+                Slug = translationSlug,
+                Excerpt = translation.Excerpt,
+                Content = translation.Content,
+                MetaTitle = translation.MetaTitle,
+                MetaDescription = translation.MetaDescription,
+                MetaKeywords = translation.MetaKeywords,
+            });
+        }
+
+        foreach (var link in source.PostCategories)
+        {
+            edition.PostCategories.Add(new PostCategory { CategoryID = link.CategoryID, IsPrimary = link.IsPrimary });
+        }
+
+        foreach (var tag in source.Tags)
+            edition.Tags.Add(tag);
+
+        if (source.HasLocation && source.PostLocation is not null)
+        {
+            var location = new PostLocation
+            {
+                Latitude = source.PostLocation.Latitude,
+                Longitude = source.PostLocation.Longitude,
+                Kind = source.PostLocation.Kind,
+                Address = source.PostLocation.Address,
+                CityID = source.PostLocation.CityID,
+            };
+            foreach (var translation in source.PostLocation.PostLocationTranslations)
+            {
+                location.PostLocationTranslations.Add(new PostLocationTranslation
+                {
+                    LanguageCode = translation.LanguageCode,
+                    Address = translation.Address,
+                });
+            }
+            edition.PostLocation = location;
+        }
+
+        _context.Posts.Add(edition);
+        await _context.SaveChangesAsync(ct);
+        return edition;
+    }
+
+    /// <summary>
+    /// Keeps edition fields only when the post type opted in. A published stable key cannot change.
+    /// Null <c>AppliesFrom</c> values compare equal, so one unversioned row per key is allowed.
+    /// </summary>
+    private static async Task ApplyEditionAsync(
+        AppDbContext context, Post destination, Post incoming, string? publishedKey, CancellationToken ct)
+    {
+        var type = await context.PostTypes.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.PostTypeID == incoming.PostTypeID, ct)
+            ?? throw new ContentEditionException("Post type was not found.");
+        if (type.WebsiteID != incoming.WebsiteID)
+            throw new ContentEditionException("Post type belongs to another website.");
+
+        ContentEditionRules.Apply(incoming, type);
+        var allowKey = type.SupportsStableKey || type.SupportsVersioning;
+        if (allowKey && !string.IsNullOrEmpty(publishedKey)
+            && !string.Equals(publishedKey, incoming.StableKey, StringComparison.Ordinal))
+            throw new ContentEditionException("The stable key cannot change after the post is published.");
+
+        if (incoming.StableKey is not null)
+        {
+            var duplicate = await context.Posts.AnyAsync(p =>
+                p.PostID != destination.PostID &&
+                p.WebsiteID == incoming.WebsiteID &&
+                p.PostTypeID == incoming.PostTypeID &&
+                p.StableKey == incoming.StableKey &&
+                p.AppliesFrom == incoming.AppliesFrom, ct);
+            if (duplicate)
+                throw new ContentEditionException("Another edition already uses this stable key and start version.");
+        }
+
+        destination.StableKey = incoming.StableKey;
+        destination.AppliesFrom = incoming.AppliesFrom;
+        destination.AppliesTo = incoming.AppliesTo;
     }
 
     public async Task DeleteAsync(int postId, CancellationToken ct = default)
@@ -392,12 +553,13 @@ public class PostService : IPostService
 
     public async Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default)
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null,
+        string? version = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
         var now = DateTime.UtcNow;
-        var q = PublishedQuery(_context, websiteId, now);
+        var q = PublishedFilter(_context, websiteId, now);
 
         if (!string.IsNullOrWhiteSpace(postTypeSlug))
             q = q.Where(p => p.PostType.Slug == postTypeSlug);
@@ -416,15 +578,35 @@ public class PostService : IPostService
         if (!string.IsNullOrWhiteSpace(authorSlug))
             q = q.Where(p => p.AuthorMember != null && p.AuthorMember.AuthorProfile != null && p.AuthorMember.AuthorProfile.Slug == authorSlug);
 
-        var total = await q.CountAsync(ct);
-
         var take = pageSize < 1 ? 10 : pageSize;
         var skip = (pageIndex < 1 ? 0 : pageIndex - 1) * take;
+        string? release = string.IsNullOrWhiteSpace(version) ? null : ContentEditionRules.NormalizeVersion(version);
 
-        var posts = await q
-            .OrderByDescending(p => p.PublishedAt ?? p.CreatedAt)
-            .Skip(skip).Take(take)
-            .ToListAsync(ct);
+        List<Post> posts;
+        int total;
+        if (release is null)
+        {
+            total = await q.CountAsync(ct);
+            posts = await WithDetails(q)
+                .OrderByDescending(p => p.PublishedAt ?? p.CreatedAt)
+                .Skip(skip).Take(take)
+                .ToListAsync(ct);
+        }
+        else
+        {
+            // Versioned types collapse to the one edition that covers this release. Other posts stay.
+            var rows = await q.Select(p => new EditionCandidate(
+                p.PostID, p.PostTypeID, p.PostType.SupportsVersioning, p.StableKey,
+                p.AppliesFrom, p.AppliesTo, p.PublishedAt ?? p.CreatedAt)).ToListAsync(ct);
+            var ids = ContentEditionRules.SelectForVersion(rows, release);
+            total = ids.Count;
+            var pageIds = ids.Skip(skip).Take(take).ToList();
+            var loaded = pageIds.Count == 0
+                ? new List<Post>()
+                : await WithDetails(_context.Posts.AsNoTracking().Where(p => pageIds.Contains(p.PostID))).ToListAsync(ct);
+            var order = pageIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
+            posts = loaded.OrderBy(p => order[p.PostID]).ToList();
+        }
 
         return new PagedResult<PostSummaryDto>
         {
@@ -496,6 +678,57 @@ public class PostService : IPostService
         return ProjectDetail(post, languageCode);
     }
 
+    public async Task<PostDetailDto?> GetByStableKeyAsync(
+        int websiteId, string stableKey, string? version = null, string? postTypeSlug = null,
+        string? languageCode = null, CancellationToken ct = default)
+    {
+        var key = ContentEditionRules.NormalizeKey(stableKey);
+        if (key is null) return null;
+
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var now = DateTime.UtcNow;
+        var q = PublishedQuery(_context, websiteId, now).Where(p => p.StableKey == key);
+        if (!string.IsNullOrWhiteSpace(postTypeSlug))
+            q = q.Where(p => p.PostType.Slug == postTypeSlug);
+
+        var posts = await q.ToListAsync(ct);
+        if (posts.Count == 0) return null;
+
+        string? requested = string.IsNullOrWhiteSpace(version) ? null : ContentEditionRules.NormalizeVersion(version);
+        var groups = posts.GroupBy(p => p.PostTypeID).ToList();
+        Post? winner = null;
+        var hits = 0;
+        foreach (var group in groups)
+        {
+            var type = group.First().PostType;
+            var effective = type?.SupportsVersioning == true ? requested : null;
+            if (effective is null && type?.SupportsVersioning == true)
+                effective = await LatestReleaseAsync(_context, websiteId, ct);
+
+            var candidates = group.Select(p => new EditionCandidate(
+                p.PostID, p.PostTypeID, type?.SupportsVersioning == true, p.StableKey,
+                p.AppliesFrom, p.AppliesTo, p.PublishedAt ?? p.CreatedAt)).ToList();
+            var match = ContentEditionRules.Resolve(candidates, effective);
+            if (match is null) continue;
+            hits++;
+            winner = group.First(p => p.PostID == match.Id);
+        }
+
+        if (hits > 1)
+            throw new ContentEditionException("More than one post type uses this stable key. Pass the type slug.");
+        return winner is null ? null : ProjectDetail(winner, languageCode);
+    }
+
+    private static async Task<string?> LatestReleaseAsync(AppDbContext context, int websiteId, CancellationToken ct)
+    {
+        var names = await context.ContentVersions.AsNoTracking()
+            .Where(v => v.WebsiteID == websiteId && v.IsPublished && v.IsLatest)
+            .OrderByDescending(v => v.SortOrder)
+            .Select(v => v.Name)
+            .ToListAsync(ct);
+        return names.FirstOrDefault();
+    }
+
     public async Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
@@ -532,10 +765,13 @@ public class PostService : IPostService
     }
 
     // Takes the caller's context: an IQueryable is only valid while the context that built it is alive.
-    private static IQueryable<Post> PublishedQuery(AppDbContext _context, int websiteId, DateTime now) =>
+    private static IQueryable<Post> PublishedFilter(AppDbContext _context, int websiteId, DateTime now) =>
         _context.Posts.AsNoTracking()
             .Where(p => p.WebsiteID == websiteId && p.IsActive && p.Status == PublishedStatus &&
-                (p.PublishedAt == null || p.PublishedAt <= now))
+                (p.PublishedAt == null || p.PublishedAt <= now));
+
+    private static IQueryable<Post> WithDetails(IQueryable<Post> query) =>
+        query
             .Include(p => p.PostType)
             .Include(p => p.AuthorMember).ThenInclude(m => m!.Avatar)
             .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.PhotoFile)
@@ -546,6 +782,9 @@ public class PostService : IPostService
             .Include(p => p.PostLocation).ThenInclude(l => l!.City).ThenInclude(c => c!.CityTranslations)
             .Include(p => p.PostCategories).ThenInclude(pc => pc.Category).ThenInclude(c => c.CategoryTranslations)
             .Include(p => p.Tags).ThenInclude(t => t.TagTranslations);
+
+    private static IQueryable<Post> PublishedQuery(AppDbContext _context, int websiteId, DateTime now) =>
+        WithDetails(PublishedFilter(_context, websiteId, now));
 
     // ── Projection helpers ──────────────────────────────────────────
 
@@ -559,7 +798,8 @@ public class PostService : IPostService
             FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             HasLocation = p.HasLocation && p.PostLocation is not null, Location = ProjectLocation(p, lang),
-            PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
+            PublishedAt = p.PublishedAt, StableKey = p.StableKey, AppliesFrom = p.AppliesFrom, AppliesTo = p.AppliesTo,
+            Categories = Categories(p, lang), Tags = Tags(p, lang),
         };
     }
 
@@ -574,7 +814,8 @@ public class PostService : IPostService
             FeaturedImageUrl = FeaturedUrl(p), FeaturedImageFullUrl = p.FeaturedImageFile?.CNDUrl, PostTypeSlug = p.PostType?.Slug ?? string.Empty,
             AuthorName = author?.Name, Author = author, IsFeatured = p.IsFeatured, ViewCount = p.ViewCount, LikeCount = p.LikeCount,
             HasLocation = p.HasLocation && p.PostLocation is not null, Location = ProjectLocation(p, lang),
-            PublishedAt = p.PublishedAt, Categories = Categories(p, lang), Tags = Tags(p, lang),
+            PublishedAt = p.PublishedAt, StableKey = p.StableKey, AppliesFrom = p.AppliesFrom, AppliesTo = p.AppliesTo,
+            Categories = Categories(p, lang), Tags = Tags(p, lang),
             Content = content,
             // The post type can switch comments off for every post of that type.
             CommentsEnabled = p.CommentsEnabled && (p.PostType?.CommentsEnabled ?? true),

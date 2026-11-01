@@ -136,6 +136,7 @@
         {
             PostTypeID = t.PostTypeID, WebsiteID = t.WebsiteID, Name = t.Name, Slug = t.Slug,
             HasCategories = t.HasCategories, HasTags = t.HasTags, HasAuthor = t.HasAuthor, CommentsEnabled = t.CommentsEnabled,
+            SupportsStableKey = t.SupportsStableKey, SupportsVersioning = t.SupportsVersioning,
         };
         if (await ShowDialogAsync(copy, false)) await LoadAsync();
     }

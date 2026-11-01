@@ -266,6 +266,9 @@
                         <MudNavLink Href="/content/posts" Icon="@Icons.Material.Filled.Article">
                             @L["posts", "Posts"]
                         </MudNavLink>
+                        <MudNavLink Href="/content/versions" Icon="@Icons.Material.Filled.AccountTree">
+                            @L["content_versions", "Content versions"]
+                        </MudNavLink>
                     </AuthorizeView>
                     <AuthorizeView Policy="@RoleKeys.TaxonomyView" Context="tx">
                         <MudNavLink Href="/content/categories" Icon="@Icons.Material.Filled.Category">

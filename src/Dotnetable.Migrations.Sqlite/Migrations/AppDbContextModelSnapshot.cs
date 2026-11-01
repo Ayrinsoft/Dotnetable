@@ -1979,6 +1979,49 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.ToTable("ContentComments");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContentVersion", b =>
+                {
+                    b.Property<int>("ContentVersionID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsLatest")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("The release used when a reader does not ask for a version.");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("Hidden from the public version list until published.");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT")
+                        .HasComment("Content release label such as 1.2. Not an API version and not a product version.");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ContentVersionID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_ContentVersions_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Name" }, "UQ_ContentVersions_Website_Name")
+                        .IsUnique();
+
+                    b.ToTable("ContentVersions");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Country", b =>
                 {
                     b.Property<int>("CountryID")
@@ -5232,6 +5275,18 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AppliesFrom")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT")
+                        .HasComment("First content release this edition covers. Null means unversioned or every release.");
+
+                    b.Property<string>("AppliesTo")
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT")
+                        .HasComment("Last content release this edition covers, inclusive. Null means the edition is still open.");
+
                     b.Property<int?>("AuthorMemberID")
                         .HasColumnType("INTEGER");
 
@@ -5293,6 +5348,12 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("StableKey")
+                        .HasMaxLength(80)
+                        .IsUnicode(false)
+                        .HasColumnType("TEXT")
+                        .HasComment("Stable reference for one logical post. Null unless the post type opts in. Immutable once published.");
+
                     b.Property<byte>("Status")
                         .HasColumnType("INTEGER");
 
@@ -5319,6 +5380,9 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.HasIndex(new[] { "PostTypeID" }, "IX_Posts_PostTypeID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_Posts_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "PostTypeID", "StableKey", "AppliesFrom" }, "UQ_Posts_StableEdition")
+                        .IsUnique();
 
                     b.ToTable("Posts");
                 });
@@ -5478,6 +5542,18 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("SupportsStableKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("Opt-in. Posts of this type may keep a stable key. Blog types leave this off.");
+
+                    b.Property<bool>("SupportsVersioning")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("Opt-in. Posts of this type may have release-scoped editions that share a stable key.");
 
                     b.Property<int>("WebsiteID")
                         .HasColumnType("INTEGER");
@@ -10486,6 +10562,18 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ContentVersion", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("ContentVersions")
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ContentVersions_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.CountryTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Country", "Country")
@@ -14541,6 +14629,8 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Navigation("ClientWallets");
 
                     b.Navigation("ContactUsMessages");
+
+                    b.Navigation("ContentVersions");
 
                     b.Navigation("Coupons");
 

@@ -47,6 +47,13 @@ public class CachedPostService : IPostService
         await InvalidateAsync(ct);
     }
 
+    public async Task<Post> CreateEditionAsync(int sourcePostId, string appliesFrom, CancellationToken ct = default)
+    {
+        var result = await _inner.CreateEditionAsync(sourcePostId, appliesFrom, ct);
+        await InvalidateAsync(ct);
+        return result;
+    }
+
     public async Task DeleteAsync(int postId, CancellationToken ct = default)
     {
         await _inner.DeleteAsync(postId, ct);
@@ -94,15 +101,21 @@ public class CachedPostService : IPostService
 
     public Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
-        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null, CancellationToken ct = default) =>
+        int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null,
+        string? version = null, CancellationToken ct = default) =>
         _cache.GetOrCreateAsync(
-            $"post:published:{websiteId}:{postTypeSlug}:{categorySlug}:{tagSlug}:{authorSlug}:{pageIndex}:{pageSize}:{languageCode}",
+            $"post:published:{websiteId}:{postTypeSlug}:{categorySlug}:{tagSlug}:{authorSlug}:{pageIndex}:{pageSize}:{languageCode}:{version}",
             [Tag],
             _ttl,
-            () => _inner.GetPublishedAsync(websiteId, postTypeSlug, categorySlug, tagSlug, pageIndex, pageSize, languageCode, authorSlug, ct));
+            () => _inner.GetPublishedAsync(websiteId, postTypeSlug, categorySlug, tagSlug, pageIndex, pageSize, languageCode, authorSlug, version, ct));
 
     public Task<PostDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default) =>
         _inner.GetBySlugAsync(websiteId, slug, languageCode, ct);
+
+    public Task<PostDetailDto?> GetByStableKeyAsync(
+        int websiteId, string stableKey, string? version = null, string? postTypeSlug = null,
+        string? languageCode = null, CancellationToken ct = default) =>
+        _inner.GetByStableKeyAsync(websiteId, stableKey, version, postTypeSlug, languageCode, ct);
 
     public Task<bool> RecordViewAsync(int websiteId, int postId, CancellationToken ct = default) =>
         _inner.RecordViewAsync(websiteId, postId, ct);
