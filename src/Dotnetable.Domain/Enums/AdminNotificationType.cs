@@ -25,4 +25,7 @@ public enum AdminNotificationType : byte
 
     /// <summary>A test taker asked for the specialist's private write-up.</summary>
     QuizPrivateReview = 15,
+
+    /// <summary>A website asked website 1 to add a product or a product category.</summary>
+    CatalogRequest = 16,
 }

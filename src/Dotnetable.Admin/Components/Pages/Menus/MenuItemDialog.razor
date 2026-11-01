@@ -35,7 +35,15 @@
                                      HelperText="@L["menus.parent_hint", "Clear for top-level. Type to search."]" />
                 </MudItem>
 
-                @if (_type != MenuItemType.Custom)
+                @if (_type == MenuItemType.ProductCategory)
+                {
+                    <MudItem xs="12">
+                        <ProductCategoryPicker WebsiteId="@(_resolvedWebsiteId > 0 ? _resolvedWebsiteId : WebsiteId)"
+                                               CategoryId="_targetId" CategoryIdChanged="OnProductCategoryPicked"
+                                               Label="@L["menus.product_category", "Product category"]" />
+                    </MudItem>
+                }
+                else if (_type != MenuItemType.Custom)
                 {
                     <MudItem xs="12" sm="6">
                         <MudNumericField T="int?" @bind-Value="_targetId"
@@ -244,6 +252,12 @@
 
     private string GetTranslation(string code) => _translations.TryGetValue(code, out var v) ? v : string.Empty;
     private void SetTranslation(string code, string value) => _translations[code] = value ?? string.Empty;
+
+    private Task OnProductCategoryPicked(int? id)
+    {
+        _targetId = id;
+        return Task.CompletedTask;
+    }
 
     private void OnTypeChanged(MenuItemType value)
     {

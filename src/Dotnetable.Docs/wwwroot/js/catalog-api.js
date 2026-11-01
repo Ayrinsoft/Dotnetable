@@ -663,8 +663,8 @@ window.DOCS_API = {
           },
           purpose: [
             {
-              en: "Admin path: Catalog → Categories. API path: `/api/ProductCategories/...`.",
-              fa: "مسیر ادمین: Catalog → Categories. مسیر API: `/api/ProductCategories/...`.",
+              en: "Admin path: Catalog → Categories. API path: `/api/ProductCategories/...`. On a platform the public tree and published products come from website 1. Inactive categories, and categories under an inactive parent, are omitted. The admin picker loads one level at a time.",
+              fa: "مسیر ادمین: Catalog → Categories. مسیر API: `/api/ProductCategories/...`. در حالت پلتفرم درخت عمومی و کالاهای منتشرشده از سایت ۱ می‌آیند. دسته‌های غیرفعال و فرزندان یک والد غیرفعال حذف می‌شوند. انتخاب‌گر ادمین هر بار یک سطح را می‌خواند.",
             },
           ],
           relatedAdmin: ["catalog-categories", "attributes"],

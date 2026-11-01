@@ -55,4 +55,24 @@ public interface IProductCategoryService
     /// </summary>
     Task<List<CategoryAttributeFilterDto>> GetFilterableAttributesBySlugAsync(
         int websiteId, string categorySlug, string? languageCode = null, CancellationToken ct = default);
+
+    /// <summary>One level of the tree. Does not load the rest of the catalog.</summary>
+    Task<IReadOnlyList<ProductCategoryPickDto>> GetChildrenAsync(
+        int websiteId, int? parentCategoryId, string? search, int take = 40, CancellationToken ct = default);
+
+    /// <summary>Name search with a breadcrumb, capped so a 5-level taxonomy stays usable.</summary>
+    Task<IReadOnlyList<ProductCategoryPickDto>> SearchAsync(
+        int websiteId, string term, int take = 25, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProductCategoryPickDto>> GetAncestorChainAsync(int productCategoryId, CancellationToken ct = default);
+
+    Task<int> CountAsync(int websiteId, bool activeOnly = true, CancellationToken ct = default);
+
+    Task SetActiveAsync(int productCategoryId, bool isActive, CancellationToken ct = default);
+
+    /// <summary>Removes the category from its parent and leaves it as its own root.</summary>
+    Task DetachFromParentAsync(int productCategoryId, CancellationToken ct = default);
+
+    /// <summary>Deletes the category and every category under it when no product uses them.</summary>
+    Task DeleteBranchAsync(int productCategoryId, CancellationToken ct = default);
 }

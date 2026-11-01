@@ -21,6 +21,12 @@ public class SetupRequest
     public string CurrencySymbol { get; set; } = "$";
     public byte CurrencyDecimalDigits { get; set; } = 2;
 
+    /// <summary>
+    /// When true, website 1 owns the product catalog. Other websites cannot add products or
+    /// change product categories; they use the shared catalog and send requests.
+    /// </summary>
+    public bool IsPlatform { get; set; }
+
     // Administrator member
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;

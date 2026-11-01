@@ -243,6 +243,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategory> ProductCategories { get; set; }
 
+    public virtual DbSet<GoogleProductTaxonomyEntry> GoogleProductTaxonomyEntries { get; set; }
+
+    public virtual DbSet<CatalogRequest> CatalogRequests { get; set; }
+
     public virtual DbSet<ProductCategoryAttribute> ProductCategoryAttributes { get; set; }
 
     public virtual DbSet<ProductCategoryMap> ProductCategoryMaps { get; set; }
@@ -3081,6 +3085,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Slug).HasMaxLength(200);
+            entity.HasIndex(e => e.GoogleProductCategoryId, "UQ_ProductCategories_GoogleProductCategoryId")
+                .IsUnique();
 
             entity.HasOne(d => d.ImageFile).WithMany(p => p.ProductCategories)
                 .HasForeignKey(d => d.ImageFileID)
@@ -3094,6 +3100,52 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductCategories_Websites");
+        });
+
+        modelBuilder.Entity<GoogleProductTaxonomyEntry>(entity =>
+        {
+            entity.HasIndex(e => e.GoogleId, "UQ_GoogleProductTaxonomyEntries_GoogleId").IsUnique();
+            entity.Property(e => e.Name).HasMaxLength(300);
+            entity.Property(e => e.FullPath).HasMaxLength(1000);
+            entity.Property(e => e.LastSeenUtc).HasColumnType("datetime");
+            entity.Property(e => e.AbsentFromLatest).HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<CatalogRequest>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_CatalogRequests_WebsiteID");
+            entity.HasIndex(e => e.RequestedByMemberID, "IX_CatalogRequests_RequestedByMemberID");
+            entity.HasIndex(e => e.ReviewedByMemberID, "IX_CatalogRequests_ReviewedByMemberID");
+            entity.HasIndex(e => e.ParentCategoryID, "IX_CatalogRequests_ParentCategoryID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Status }, "IX_CatalogRequests_WebsiteID_Status");
+
+            entity.Property(e => e.ProposedCategoryName).HasMaxLength(200);
+            entity.Property(e => e.ProductTitle).HasMaxLength(300);
+            entity.Property(e => e.Details).HasMaxLength(4000);
+            entity.Property(e => e.AdminNote).HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.ReviewedAt).HasColumnType("datetime");
+            entity.Property(e => e.Status).HasDefaultValue((byte)0);
+
+            entity.HasOne(d => d.Website).WithMany(p => p.CatalogRequests)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CatalogRequests_Websites");
+
+            entity.HasOne(d => d.RequestedByMember).WithMany()
+                .HasForeignKey(d => d.RequestedByMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CatalogRequests_Members");
+
+            entity.HasOne(d => d.ReviewedByMember).WithMany()
+                .HasForeignKey(d => d.ReviewedByMemberID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CatalogRequests_ReviewedBy");
+
+            entity.HasOne(d => d.ParentCategory).WithMany()
+                .HasForeignKey(d => d.ParentCategoryID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CatalogRequests_ProductCategories");
         });
 
         modelBuilder.Entity<ProductCategoryAttribute>(entity =>
@@ -4135,6 +4187,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .HasDefaultValue("DN")
                 .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+            entity.Property(e => e.IsPlatform)
+                .HasDefaultValue(false)
+                .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");
             entity.Property(e => e.StorePricesInUsd)
                 .HasDefaultValue(false)
                 .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");

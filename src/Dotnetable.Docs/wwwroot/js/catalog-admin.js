@@ -538,8 +538,35 @@ window.DOCS_ADMIN = {
               en: "Under **Tax & seller registration**, set tax flags and **Report offline / social orders to tax by default** (when off, Instagram/WhatsApp admin orders default to excluded from VAT filings; each order can override).",
               fa: "در **مالیات و ثبت فروشنده**، پرچم‌های مالیات و **اعلام پیش‌فرض سفارش‌های آفلاین/اجتماعی به مالیات** را تنظیم کنید (اگر خاموش باشد، سفارش‌های اینستاگرام/واتساپ ادمین پیش‌فرض از VAT خارج‌اند؛ هر سفارش override دارد).",
             },
+            {
+              en: "Changing a site from blog to store does not delete its posts or pages. Copy that data to another website from `/websites/copy-content`. The source stays.",
+              fa: "تبدیل سایت از وبلاگ به فروشگاه نوشته‌ها و صفحه‌ها را پاک نمی‌کند. همان داده را از `/websites/copy-content` روی سایت دیگر کپی کنید. مبدأ می‌ماند.",
+            },
           ],
-          related: ["website-seo", "website-languages", "website-api-key", "orders", "tax"],
+          related: ["website-seo", "website-languages", "website-api-key", "website-content-copy", "orders", "tax"],
+        },
+        {
+          id: "website-content-copy",
+          title: { en: "Copy website content", fa: "کپی محتوای وب‌سایت" },
+          adminPath: "/websites/copy-content",
+          access: { en: "Super admin / master only", fa: "فقط سوپرادمین / مستر" },
+          summary: {
+            en: "Copy posts, pages, and catalog rows from one website onto another without deleting the source.",
+            fa: "نوشته‌ها، صفحه‌ها و ردیف‌های کاتالوگ را از یک وب‌سایت به وب‌سایت دیگر کپی می‌کند و مبدأ را حذف نمی‌کند.",
+          },
+          purpose: [
+            {
+              en: "A blog can later become a store. Website 1 copies the data that was already entered.",
+              fa: "یک وبلاگ بعداً می‌تواند فروشگاه شود. سایت ۱ داده‌ای را که قبلاً وارد شده کپی می‌کند.",
+            },
+          ],
+          howTo: [
+            {
+              en: "Choose the source and the target, then copy. On a platform, products and product categories are copied only when the target is website 1.",
+              fa: "مبدأ و مقصد را انتخاب کنید و کپی کنید. در حالت پلتفرم، کالا و دسته محصول فقط وقتی کپی می‌شوند که مقصد سایت ۱ باشد.",
+            },
+          ],
+          related: ["websites", "posts", "catalog-categories"],
         },
         {
           id: "website-ips",
@@ -1408,26 +1435,66 @@ window.DOCS_ADMIN = {
           title: { en: "Product categories", fa: "دسته‌های محصول" },
           adminPath: "/catalog/categories",
           summary: {
-            en: "Hierarchical product taxonomy and attribute assignment per category.",
-            fa: "طبقه‌بندی سلسله‌مراتبی محصول و انتساب ویژگی به هر دسته.",
+            en: "Hierarchical product taxonomy and attribute assignment per category. The picker opens one level at a time so a taxonomy of several thousand categories stays usable.",
+            fa: "طبقه‌بندی سلسله‌مراتبی محصول و انتساب ویژگی به هر دسته. انتخاب‌گر هر بار یک سطح را باز می‌کند تا چند هزار دسته قابل استفاده بماند.",
           },
           purpose: {
-            en: "Organize the shop catalog and control which attributes appear for products in a category.",
-            fa: "سازمان‌دهی کاتالوگ فروشگاه و کنترل اینکه کدام ویژگی‌ها برای محصولات یک دسته ظاهر شوند.",
+            en: "Organize the shop catalog and control which attributes appear for products in a category. On a platform, only website 1 adds categories. Other sites send a catalog request.",
+            fa: "سازمان‌دهی کاتالوگ فروشگاه و کنترل اینکه کدام ویژگی‌ها برای محصولات یک دسته ظاهر شوند. در حالت پلتفرم فقط سایت ۱ دسته اضافه می‌کند. بقیه سایت‌ها درخواست کاتالوگ می‌فرستند.",
           },
           howTo: [
             {
-              en: "Create categories (tree if supported), then attach attribute definitions used at product edit time.",
-              fa: "دسته بسازید (درختی اگر هست)، سپس تعریف ویژگی‌های لازم برای ویرایش محصول را وصل کنید.",
+              en: "Open one level, or search by name. Attach attribute definitions used at product edit time. Deactivate a category to hide it and its children. Detach removes it from its parent and leaves it as a root. Delete branch removes an unused subtree.",
+              fa: "یک سطح را باز کنید یا با نام جستجو کنید. ویژگی‌های لازم برای ویرایش محصول را وصل کنید. غیرفعال کردن، دسته و فرزندانش را پنهان می‌کند. جدا کردن از والد، آن را ریشه می‌کند. حذف شاخه، زیردرخت بدون کالا را برمی‌دارد.",
             },
           ],
           tips: [
             {
-              en: "Different from Content → Categories (`/content/categories`).",
-              fa: "متفاوت از Content → Categories (`/content/categories`).",
+              en: "Different from Content → Categories (`/content/categories`). Google import, diff, and translation live at `/catalog/categories/taxonomy`.",
+              fa: "متفاوت از Content → Categories (`/content/categories`). ورود گوگل، مقایسه و ترجمه در `/catalog/categories/taxonomy` است.",
             },
           ],
-          related: ["products", "attributes"],
+          related: ["products", "attributes", "catalog-taxonomy", "catalog-requests"],
+        },
+        {
+          id: "catalog-taxonomy",
+          title: { en: "Google product taxonomy", fa: "طبقه‌بندی محصول گوگل" },
+          adminPath: "/catalog/categories/taxonomy",
+          summary: {
+            en: "Website 1 stores every Google product-category id, imports the missing ones, and round-trips names through an xlsx file for translation.",
+            fa: "سایت ۱ همه شناسه‌های دسته محصول گوگل را نگه می‌دارد، موارد واردنشده را می‌سازد، و نام‌ها را با فایل xlsx برای ترجمه رفت و برگشت می‌دهد.",
+          },
+          purpose: {
+            en: "Keep a diff of Google's taxonomy file and translate category names without renaming the workbook columns.",
+            fa: "مقایسه فایل طبقه‌بندی گوگل و ترجمه نام دسته‌ها بدون تغییر نام ستون‌های اکسل.",
+          },
+          howTo: [
+            {
+              en: "Sync the Google file, import the new ids you want, export xlsx, fill TranslatedName, and import the same columns back. A blank TranslatedName is skipped.",
+              fa: "فایل گوگل را همگام کنید، شناسه‌های تازه را وارد کنید، xlsx بگیرید، TranslatedName را پر کنید و همان ستون‌ها را برگردانید. TranslatedName خالی رد می‌شود.",
+            },
+          ],
+          related: ["catalog-categories"],
+        },
+        {
+          id: "catalog-requests",
+          title: { en: "Catalog requests", fa: "درخواست‌های کاتالوگ" },
+          adminPath: "/catalog/requests",
+          summary: {
+            en: "On a platform, sites other than website 1 ask for a product, or a new category plus a product. Saving the request emails website 1.",
+            fa: "در حالت پلتفرم، سایت‌های غیر از سایت ۱ برای یک کالا، یا یک دسته تازه به‌همراه کالا، درخواست می‌فرستند. با ذخیره درخواست به سایت ۱ ایمیل می‌رود.",
+          },
+          purpose: {
+            en: "Keep one shared catalog. Approval records the decision. Website 1 still creates the product with its brand, variant, and price.",
+            fa: "یک کاتالوگ مشترک بماند. تأیید فقط تصمیم را ثبت می‌کند. سایت ۱ هنوز کالا را با برند، واریانت و قیمت می‌سازد.",
+          },
+          howTo: [
+            {
+              en: "Choose an existing category or propose a new one, enter the product title, and send. Website 1 reviews the queue.",
+              fa: "یک دسته موجود را انتخاب کنید یا دسته تازه پیشنهاد دهید، عنوان کالا را بنویسید و بفرستید. سایت ۱ صف را بررسی می‌کند.",
+            },
+          ],
+          related: ["catalog-categories", "products"],
         },
         {
           id: "attributes",

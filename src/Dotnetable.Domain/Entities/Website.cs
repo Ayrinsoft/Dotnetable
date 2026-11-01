@@ -37,6 +37,13 @@ public partial class Website
     public bool IsHub { get; set; }
 
     /// <summary>
+    /// Meaningful on website 1 only. When true, this installation is a shared catalog platform:
+    /// only website 1 may add products or change product categories. Other websites sell that
+    /// catalog and send a catalog request when they need a new product or category.
+    /// </summary>
+    public bool IsPlatform { get; set; }
+
+    /// <summary>
     /// show in title of pages
     /// </summary>
     public string BrandName { get; set; } = null!;
@@ -232,6 +239,8 @@ public partial class Website
     public virtual ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
 
     public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+
+    public virtual ICollection<CatalogRequest> CatalogRequests { get; set; } = new List<CatalogRequest>();
 
     public virtual ICollection<ProductQuestion> ProductQuestions { get; set; } = new List<ProductQuestion>();
 

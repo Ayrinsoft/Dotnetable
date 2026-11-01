@@ -1,0 +1,87 @@
+@page "/websites/copy-content"
+@attribute [Authorize(Policy = AdminPolicies.SuperAdminOnly)]
+@inject IWebsiteContentCopyService CopyService
+@inject IWebsiteService WebsiteService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["websites.copy.title", "Copy website content"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["websites.copy.title", "Copy website content"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["websites.copy.subtitle", "A site can stay a blog and later become a store. Copy its posts, pages, and catalog onto another website. The source rows stay where they are."]
+    </MudText>
+</MudStack>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+    @L["websites.copy.explain", "Changing Website type on the website edit page does not delete posts, pages, or products. This page copies that data. On a platform, product categories and products are copied only when the target is website 1, because the other sites use website 1's catalog. Google category ids are not copied, so the same Google id is not stored twice."]
+</MudAlert>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6">
+            <MudSelect T="int" @bind-Value="_sourceId" Label="@L["websites.copy.source", "Source website"]" Variant="Variant.Outlined">
+                @foreach (var site in _websites)
+                {
+                    <MudSelectItem T="int" Value="@site.WebsiteID">@site.TradeName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudSelect T="int" @bind-Value="_targetId" Label="@L["websites.copy.target", "Target website"]" Variant="Variant.Outlined">
+                @foreach (var site in _websites)
+                {
+                    <MudSelectItem T="int" Value="@site.WebsiteID">@site.TradeName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_busy || _sourceId <= 0 || _targetId <= 0)" OnClick="CopyAsync">
+                @L["websites.copy.run", "Copy"]
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    @if (_result is not null)
+    {
+        <MudText Typo="Typo.body2" Class="mt-4">@_result.Note</MudText>
+        <MudText Typo="Typo.body2">
+            @string.Format(L["websites.copy.counts", "Post types {0}. Content categories {1}. Tags {2}. Posts {3}. Pages {4}. Brands {5}. Product categories {6}. Products {7}."],
+                _result.PostTypes, _result.Categories, _result.Tags, _result.Posts, _result.Pages, _result.Brands, _result.ProductCategories, _result.Products)
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    private bool _busy;
+    private int _sourceId;
+    private int _targetId;
+    private List<Website> _websites = new();
+    private WebsiteContentCopyResult? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _websites = (await WebsiteService.GetAllAsync()).OrderBy(w => w.WebsiteID).ToList();
+        if (_websites.Count > 0)
+            _sourceId = _websites[0].WebsiteID;
+        if (_websites.Count > 1)
+            _targetId = _websites[1].WebsiteID;
+    }
+
+    private async Task CopyAsync()
+    {
+        _busy = true;
+        try
+        {
+            _result = await CopyService.CopyAsync(_sourceId, _targetId);
+            Snackbar.Add(L["websites.copy.done", "Copy finished. The source website was not changed."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+}

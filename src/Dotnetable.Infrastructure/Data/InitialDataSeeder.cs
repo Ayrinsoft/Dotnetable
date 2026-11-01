@@ -65,6 +65,7 @@ public class InitialDataSeeder : IInitialDataSeeder
                 Active = true,
                 AllowAllIP = true,
                 WebsiteType = (byte)WebsiteType.Corporate,
+                IsPlatform = request.IsPlatform,
             };
             // Single-currency by default; dual USD is an explicit website setting later.
             website.StorePricesInUsd = false;

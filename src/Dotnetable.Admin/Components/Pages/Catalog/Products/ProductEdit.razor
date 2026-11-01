@@ -4,6 +4,7 @@
 @attribute [Authorize(Policy = RoleKeys.ProductsView)]
 @inject IProductService ProductService
 @inject IProductCategoryService CategoryService
+@inject IPlatformCatalogService PlatformCatalog
 @inject IBrandService BrandService
 @inject IAttributeDefinitionService AttributeDefinitionService
 @inject ICurrencyConversionService CurrencyConversion
@@ -50,7 +51,7 @@ else
                     @L["products.preview", "Preview"]
                 </MudButton>
             }
-            @if (_canEdit)
+            @if (_canEdit && !(_catalogLocked && _isNew))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
                            Disabled="@(_saving || _prerequisites.Count > 0)"
@@ -61,6 +62,13 @@ else
         </MudStack>
     </MudStack>
 
+    @if (_catalogLocked)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+            @L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]
+            <MudLink Href="/catalog/requests" Class="ms-1">@L["catalog.requests.open", "Catalog requests"]</MudLink>
+        </MudAlert>
+    }
     <DNPrerequisiteAlert Items="_prerequisites" />
     <DNValidationSummary Errors="_formErrors" />
 
@@ -155,12 +163,9 @@ else
                                              Clearable="false" ResetValueOnEmptyText="true" CoerceText="false"
                                              Required="true" Margin="Margin.Dense" Dense="true"
                                              HelperText="@L["products.brand_required_hint", "Required. Type to search brands."]" />
-                            <MudAutocomplete T="ProductCategory" Value="_selectedCategory" ValueChanged="OnCategoryChanged"
-                                             Label="@L["products.category", "Category"]" Variant="Variant.Outlined"
-                                             SearchFunc="SearchCategories" ToStringFunc="CategoryPath"
-                                             Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
-                                             Margin="Margin.Dense" Dense="true"
-                                             HelperText="@L["products.category_hint", "Pick one category. Type to search by name or path."]" />
+                            <ProductCategoryPicker WebsiteId="_websiteId" CategoryId="_categoryId" CategoryIdChanged="OnCategoryPicked"
+                                                   Disabled="@_catalogLocked"
+                                                   Label="@L["products.category", "Category"]" />
                         </MudPaper>
                     </MudItem>
                 </MudGrid>
@@ -711,7 +716,7 @@ else
                         @L["products.attributes_hint", "Category attributes are listed first. Leave a value empty to skip storing that attribute for this product. If an attribute is unlinked from the category, any value already saved on this product stays as “Product-only” until you remove it here. Use “Add attribute” for extra product-only fields."]
                     </DNDismissibleAlert>
 
-                    @if (_selectedCategory is null)
+                    @if (_categoryId is null)
                     {
                         <MudText Color="Color.Secondary" Class="mb-3">@L["products.attributes_pick_category", "Select a category to load its default attributes."]</MudText>
                     }
@@ -1043,7 +1048,8 @@ else
     private string _defaultLanguageCode = "en";
     private (string Code, string Label)[] _languages = Array.Empty<(string, string)>();
     private Brand? _selectedBrand;
-    private ProductCategory? _selectedCategory;
+    private int? _categoryId;
+    private bool _catalogLocked;
     private Product Model { get; set; } = new() { IsActive = true, ProductType = (byte)ProductType.Physical, RequiresShipping = true };
     private FileRecord? _featuredImage;
     private bool _slugManuallyEdited;
@@ -1054,7 +1060,6 @@ else
             (_featuredImage is null ? 0 : 1) + _gallery.Count);
 
     private List<Brand> _brands = new();
-    private List<ProductCategory> _categories = new();
     private List<ProductVariant> _variants = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
     private string _displayCurrency = "USD";
@@ -1238,8 +1243,9 @@ else
         _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
+        _catalogLocked = await PlatformCatalog.IsPlatformAsync() && _websiteId != AppConstants.MasterWebsiteId;
         _brands = await BrandService.GetAllAsync(_websiteId);
-        _categories = await CategoryService.GetAllAsync(_websiteId);
+        var categoryCount = await CategoryService.CountAsync(_websiteId);
         // Load all plans so inactive ones already linked to the product still resolve in the autocomplete.
         _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: false);
         if (_vendorId is null)
@@ -1258,13 +1264,13 @@ else
             var primaryMap = Model.ProductCategoryMaps.FirstOrDefault(m => m.IsPrimary)
                              ?? Model.ProductCategoryMaps.FirstOrDefault();
             if (primaryMap is not null)
-                _selectedCategory = _categories.FirstOrDefault(c => c.ProductCategoryID == primaryMap.ProductCategoryID);
+                _categoryId = primaryMap.ProductCategoryID;
         }
 
         await LoadCurrencyAsync();
         SyncVariantLocalPrices();
 
-        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, _brands.Count, _categories.Count, _hasRate ? 1 : 0);
+        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, _brands.Count, categoryCount, _hasRate ? 1 : 0);
 
         var allAttrs = await AttributeDefinitionService.GetAllAsync(_websiteId);
         var productLevel = new List<AttributeDefinition>();
@@ -1299,10 +1305,10 @@ else
     private async Task ReloadCategoryAttributesAsync()
     {
         _categoryAttributeIds.Clear();
-        if (_selectedCategory is null) return;
+        if (_categoryId is not int selectedCategoryId) return;
 
         var defs = await CategoryService.GetAttributesForCategoryAsync(
-            _selectedCategory.ProductCategoryID, includeAncestors: true);
+            selectedCategoryId, includeAncestors: true);
         _categoryAttributeIds = defs.Select(d => d.AttributeDefinitionID).ToList();
 
         // Ensure full option sets for category defs (service may already include them).
@@ -1604,39 +1610,9 @@ else
             _variantTitleManual.Add(v);
     }
 
-    private Task<IEnumerable<ProductCategory>> SearchCategories(string value, CancellationToken ct)
+    private async Task OnCategoryPicked(int? categoryId)
     {
-        IEnumerable<ProductCategory> q = _categories
-            .Where(c => c.IsActive || (_selectedCategory is not null && c.ProductCategoryID == _selectedCategory.ProductCategoryID))
-            .OrderBy(c => CategoryPath(c), StringComparer.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            var needle = value.Trim();
-            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
-                             || c.Slug.Contains(needle, StringComparison.OrdinalIgnoreCase)
-                             || CategoryPath(c).Contains(needle, StringComparison.OrdinalIgnoreCase));
-        }
-        return Task.FromResult(q);
-    }
-
-    private string CategoryPath(ProductCategory? category)
-    {
-        if (category is null) return string.Empty;
-        var byId = _categories.ToDictionary(c => c.ProductCategoryID);
-        var parts = new List<string> { category.Name };
-        var current = category;
-        var guard = 0;
-        while (current.ParentCategoryID is int pid && byId.TryGetValue(pid, out var parent) && guard++ < 64)
-        {
-            parts.Insert(0, parent.Name);
-            current = parent;
-        }
-        return string.Join(" / ", parts);
-    }
-
-    private async Task OnCategoryChanged(ProductCategory? category)
-    {
-        _selectedCategory = category;
+        _categoryId = categoryId;
         await ReloadCategoryAttributesAsync();
         // Keep product-only extras; drop ones that are now covered by the new category mapping.
         var categorySet = _categoryAttributeIds.ToHashSet();
@@ -2696,7 +2672,10 @@ else
         if (_selectedBrand is null)
             errors.Add(L["products.brand_required", "Brand is required. Select a brand before saving."]);
 
-        if (_selectedCategory is null)
+        if (_catalogLocked && _isNew)
+            errors.Add(L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]);
+
+        if (_categoryId is null)
             errors.Add(L["products.category_required", "Category is required. Select one category before saving."]);
 
         if (!_hasRate)
@@ -2827,7 +2806,7 @@ else
                     Content = NormalizeEmptyRichText(kv.Value.Content),
                     ExpertReview = NormalizeEmptyRichText(kv.Value.ExpertReview),
                 }).ToList());
-            var categoryId = _selectedCategory!.ProductCategoryID;
+            var categoryId = _categoryId!.Value;
             await ProductService.SetCategoriesAsync(Model.ProductID, new[] { categoryId }, categoryId);
 
             // Capture stock by SKU before replace-all variants (new rows get IDs after save).

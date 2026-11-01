@@ -1,5 +1,4 @@
 @inject IPriceListService PriceListService
-@inject IProductCategoryService CategoryService
 @inject IBrandService BrandService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -62,15 +61,12 @@
                 else
                 {
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int?" @bind-Value="Model.ProductCategoryID" Clearable="true"
-                                   Label="@L["price_lists.category", "Product category (optional)"]" Variant="Variant.Outlined"
-                                   HelperText="@L["price_lists.category_help", "Empty = every published product. A parent includes its children."]">
-                            <MudSelectItem T="int?" Value="@((int?)null)">@L["price_lists.all_categories", "All categories"]</MudSelectItem>
-                            @foreach (var c in _categories)
-                            {
-                                <MudSelectItem T="int?" Value="@c.ProductCategoryID">@c.Name</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <ProductCategoryPicker WebsiteId="Model.WebsiteID" CategoryId="Model.ProductCategoryID"
+                                               CategoryIdChanged="OnCategoryPicked"
+                                               Label="@L["price_lists.category", "Product category (optional)"]" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["price_lists.category_help", "Empty = every published product. A parent includes its children."]
+                        </MudText>
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudSelect T="int?" @bind-Value="Model.BrandID" Clearable="true"
@@ -118,7 +114,6 @@
     private MudForm _form = null!;
     private bool _saving;
     private string[]? _formErrors;
-    private List<ProductCategory> _categories = new();
     private List<Brand> _brands = new();
 
     protected override async Task OnInitializedAsync() => await LoadFiltersAsync();
@@ -149,15 +144,18 @@
     {
         if (Model.WebsiteID <= 0)
         {
-            _categories = new();
             _brands = new();
             return;
         }
-        _categories = (await CategoryService.GetAllAsync(Model.WebsiteID))
-            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name).ToList();
         _brands = (await BrandService.GetAllAsync(Model.WebsiteID))
             .Where(b => b.IsActive)
             .OrderBy(b => b.Name).ToList();
+    }
+
+    private Task OnCategoryPicked(int? id)
+    {
+        Model.ProductCategoryID = id;
+        return Task.CompletedTask;
     }
 
     private void Cancel() => MudDialog.Cancel();

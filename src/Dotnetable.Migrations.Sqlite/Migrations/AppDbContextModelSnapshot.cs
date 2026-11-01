@@ -15,7 +15,7 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.AdminNotification", b =>
                 {
@@ -1295,6 +1295,70 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .IsUnique();
 
                     b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CatalogRequest", b =>
+                {
+                    b.Property<int>("CatalogRequestID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ParentCategoryID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ProductTitle")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProposedCategoryName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RequestedByMemberID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("ReviewedByMemberID")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("CatalogRequestID");
+
+                    b.HasIndex(new[] { "ParentCategoryID" }, "IX_CatalogRequests_ParentCategoryID");
+
+                    b.HasIndex(new[] { "RequestedByMemberID" }, "IX_CatalogRequests_RequestedByMemberID");
+
+                    b.HasIndex(new[] { "ReviewedByMemberID" }, "IX_CatalogRequests_ReviewedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_CatalogRequests_WebsiteID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Status" }, "IX_CatalogRequests_WebsiteID_Status");
+
+                    b.ToTable("CatalogRequests");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Category", b =>
@@ -3276,6 +3340,47 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.HasIndex(new[] { "FormResponseID" }, "IX_FormResponseValues_FormResponseID");
 
                     b.ToTable("FormResponseValues");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.GoogleProductTaxonomyEntry", b =>
+                {
+                    b.Property<int>("GoogleProductTaxonomyEntryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AbsentFromLatest")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<byte>("Depth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FullPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GoogleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ParentGoogleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("GoogleProductTaxonomyEntryID");
+
+                    b.HasIndex(new[] { "GoogleId" }, "UQ_GoogleProductTaxonomyEntries_GoogleId")
+                        .IsUnique();
+
+                    b.ToTable("GoogleProductTaxonomyEntries");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.InventoryItem", b =>
@@ -5725,6 +5830,9 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("GoogleProductCategoryId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("ImageFileID")
                         .HasColumnType("INTEGER");
 
@@ -5757,6 +5865,9 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.HasIndex(new[] { "ParentCategoryID" }, "IX_ProductCategories_ParentCategoryID");
 
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ProductCategories_WebsiteID");
+
+                    b.HasIndex(new[] { "GoogleProductCategoryId" }, "UQ_ProductCategories_GoogleProductCategoryId")
+                        .IsUnique();
 
                     b.ToTable("ProductCategories");
                 });
@@ -8624,6 +8735,12 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Property<bool>("IsHub")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsPlatform")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");
+
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("INTEGER");
 
@@ -9989,6 +10106,39 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Navigation("ProductVariant");
 
                     b.Navigation("VendorProduct");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.CatalogRequest", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ParentCategory")
+                        .WithMany()
+                        .HasForeignKey("ParentCategoryID")
+                        .HasConstraintName("FK_CatalogRequests_ProductCategories");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "RequestedByMember")
+                        .WithMany()
+                        .HasForeignKey("RequestedByMemberID")
+                        .IsRequired()
+                        .HasConstraintName("FK_CatalogRequests_Members");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "ReviewedByMember")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByMemberID")
+                        .HasConstraintName("FK_CatalogRequests_ReviewedBy");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("CatalogRequests")
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_CatalogRequests_Websites");
+
+                    b.Navigation("ParentCategory");
+
+                    b.Navigation("RequestedByMember");
+
+                    b.Navigation("ReviewedByMember");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Category", b =>
@@ -14302,6 +14452,8 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Navigation("Brands");
 
                     b.Navigation("Carts");
+
+                    b.Navigation("CatalogRequests");
 
                     b.Navigation("Categories");
 

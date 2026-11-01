@@ -190,6 +190,8 @@
                               Validation="@(new Func<string, string?>(ValidateEmail))"
                               Required="true"
                               RequiredError="@_s.Required" />
+                <MudCheckBox T="bool" @bind-Value="_req.IsPlatform" Label="@_s.PlatformLabel" Color="Color.Primary" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">@_s.PlatformHint</MudText>
                 <MudTextField T="string"
                               @bind-Value="_req.DefaultLanguageCode"
                               Label="@_s.DefaultLanguageCode"

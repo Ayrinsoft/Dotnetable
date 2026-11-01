@@ -1,0 +1,255 @@
+@page "/catalog/categories/taxonomy"
+@attribute [Authorize(Policy = RoleKeys.CatalogTaxonomyView)]
+@using Dotnetable.Application.Catalog
+@using Dotnetable.Infrastructure.Services
+@inject IGoogleProductTaxonomyService Taxonomy
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["catalog.taxonomy.title", "Google product taxonomy"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["catalog.taxonomy.title", "Google product taxonomy"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["catalog.taxonomy.subtitle", "Website 1 imports Google's category file, then translates the names."]</MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="@(() => Nav.NavigateTo("/catalog/categories"))">
+        @L["catalog.categories", "Product Categories"]
+    </MudButton>
+</MudStack>
+
+@if (!_isMaster)
+{
+    <MudAlert Severity="Severity.Warning">@L["catalog.taxonomy.master_only", "Only website 1 can sync, diff, and translate the shared product categories."]</MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+        <MudText Typo="Typo.body2" Class="mb-2">
+            @L["catalog.taxonomy.explain", "Sync stores every Google id, including ones you have not imported yet, so a later file can be compared. Import creates website 1 categories from the ids that are still missing. Export an xlsx, send it to a translation tool, and import the same file back. Do not rename the columns. A blank TranslatedName is skipped. If LanguageCode is website 1's default language, the category name itself is updated. Any other language is stored as a translation."]
+        </MudText>
+        <MudText Typo="Typo.caption">
+            @string.Join(", ", ProductCategoryTranslationSheet.Headers)
+        </MudText>
+    </MudAlert>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+        <MudStack Spacing="2">
+            <MudTextField @bind-Value="_url" Label="@L["catalog.taxonomy.url", "Taxonomy file URL"]"
+                          Variant="Variant.Outlined" />
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SyncAsync">
+                    @L["catalog.taxonomy.sync", "Sync Google file"]
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Disabled="_busy" OnClick="ImportAllAsync">
+                    @L["catalog.taxonomy.import_all", "Import every missing id"]
+                </MudButton>
+            </MudStack>
+            @if (_sync is not null)
+            {
+                <MudText Typo="Typo.body2">
+                    @string.Format(L["catalog.taxonomy.sync_result", "Parsed {0}. Added {1}. Updated {2}. Absent {3}. Not imported yet {4}."],
+                        _sync.Parsed, _sync.Added, _sync.Updated, _sync.MarkedAbsent, _sync.NotYetImported)
+                </MudText>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["catalog.taxonomy.diff", "Ids not imported yet"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            @L["catalog.taxonomy.diff_hint", "These Google ids are stored. Import the ones you want as product categories. Deactivate or detach a category later from the category tree if it should not be shown."]
+        </MudText>
+        @if (_loadingDiff)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-2" />
+        }
+        <MudTable Items="_diff" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>@L["catalog.taxonomy.google_id", "Google id"]</MudTh>
+                <MudTh>@L["name", "Name"]</MudTh>
+                <MudTh>@L["catalog.taxonomy.path", "Path"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudCheckBox T="bool" Value="@_selected.Contains(context.GoogleId)"
+                                 ValueChanged="@(v => Toggle(context.GoogleId, v))" Dense="true" />
+                </MudTd>
+                <MudTd>@context.GoogleId</MudTd>
+                <MudTd>@context.Name</MudTd>
+                <MudTd>@context.FullPath</MudTd>
+            </RowTemplate>
+        </MudTable>
+        <MudStack Row="true" Spacing="2" Class="mt-3" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_busy || _selected.Count == 0)" OnClick="ImportSelectedAsync">
+                @string.Format(L["catalog.taxonomy.import_selected", "Import selected ({0})"], _selected.Count)
+            </MudButton>
+            <MudButton Disabled="@(_skip == 0 || _busy)" OnClick="PrevAsync">@L["previous", "Previous"]</MudButton>
+            <MudButton Disabled="@(_skip + _diff.Count >= _diffTotal || _busy)" OnClick="NextAsync">@L["next", "Next"]</MudButton>
+            <MudText Typo="Typo.caption">@_diffTotal</MudText>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">@L["catalog.taxonomy.translate", "Translate with Excel"]</MudText>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End" Style="flex-wrap:wrap;">
+            <MudTextField @bind-Value="_language" Label="@L["catalog.taxonomy.language", "Language code"]"
+                          Variant="Variant.Outlined" Style="max-width:160px;" HelperText="fa" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy" OnClick="ExportAsync"
+                       StartIcon="@Icons.Material.Filled.Download">
+                @L["catalog.taxonomy.export", "Export xlsx"]
+            </MudButton>
+            <MudFileUpload T="IBrowserFile" FilesChanged="ImportFileAsync" Accept=".xlsx" Class="d-inline-flex">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Disabled="_busy"
+                               StartIcon="@Icons.Material.Filled.UploadFile">
+                        @L["catalog.taxonomy.import_file", "Import translated xlsx"]
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private const int PageSize = 50;
+    private const long MaxBytes = 20 * 1024 * 1024;
+
+    private bool _isMaster;
+    private bool _busy;
+    private bool _loadingDiff;
+    private string _url = GoogleProductTaxonomyService.DefaultUrl;
+    private string _language = "fa";
+    private GoogleTaxonomySyncResult? _sync;
+    private List<GoogleTaxonomyDiffItem> _diff = new();
+    private int _diffTotal;
+    private int _skip;
+    private readonly HashSet<int> _selected = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        if (_isMaster)
+            await LoadDiffAsync();
+    }
+
+    private async Task SyncAsync()
+    {
+        _busy = true;
+        try
+        {
+            _sync = await Taxonomy.SyncAsync(string.IsNullOrWhiteSpace(_url) ? null : _url.Trim());
+            _skip = 0;
+            _selected.Clear();
+            await LoadDiffAsync();
+            Snackbar.Add(L["catalog.taxonomy.synced", "Google ids are stored."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LoadDiffAsync()
+    {
+        _loadingDiff = true;
+        var page = await Taxonomy.GetDiffAsync(onlyMissing: true, _skip, PageSize);
+        _diff = page.Items.ToList();
+        _diffTotal = page.TotalCount;
+        _loadingDiff = false;
+    }
+
+    private void Toggle(int googleId, bool on)
+    {
+        if (on) _selected.Add(googleId);
+        else _selected.Remove(googleId);
+    }
+
+    private async Task ImportSelectedAsync() => await ImportAsync(_selected.ToList());
+
+    private async Task ImportAllAsync() => await ImportAsync(null);
+
+    private async Task ImportAsync(IReadOnlyList<int>? ids)
+    {
+        _busy = true;
+        try
+        {
+            var result = await Taxonomy.ImportMissingAsync(ids);
+            _selected.Clear();
+            await LoadDiffAsync();
+            Snackbar.Add(string.Format(L["catalog.taxonomy.imported", "Created {0}. Already present {1}. Skipped {2}."],
+                result.Created, result.AlreadyPresent, result.Skipped), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task PrevAsync()
+    {
+        _skip = Math.Max(0, _skip - PageSize);
+        await LoadDiffAsync();
+    }
+
+    private async Task NextAsync()
+    {
+        _skip += PageSize;
+        await LoadDiffAsync();
+    }
+
+    private async Task ExportAsync()
+    {
+        _busy = true;
+        try
+        {
+            var bytes = await Taxonomy.ExportTranslationsAsync(_language);
+            var name = $"product-categories-{_language.Trim()}.xlsx";
+            await JS.InvokeVoidAsync("dotnetableFile.download", name, Convert.ToBase64String(bytes),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ImportFileAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        if (file.Size > MaxBytes)
+        {
+            Snackbar.Add(L["catalog.taxonomy.file_too_large", "The workbook is larger than 20 MB."], Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+            var result = await Taxonomy.ImportTranslationsAsync(buffer);
+            if (result.Errors.Count > 0)
+                Snackbar.Add(string.Join(" ", result.Errors.Take(3)), Severity.Warning);
+            Snackbar.Add(string.Format(L["catalog.taxonomy.translation_imported", "Updated {0}. Skipped {1}."],
+                result.Updated, result.Skipped), Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+}

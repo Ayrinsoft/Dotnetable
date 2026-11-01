@@ -21,6 +21,9 @@ public partial class ProductCategory
 
     public bool IsActive { get; set; }
 
+    /// <summary>Google product taxonomy id, when this row was imported from the Google taxonomy file.</summary>
+    public int? GoogleProductCategoryId { get; set; }
+
     public virtual FileRecord? ImageFile { get; set; }
 
     public virtual ICollection<ProductCategory> InverseParentCategory { get; set; } = new List<ProductCategory>();

@@ -1,6 +1,5 @@
 @inject IProductService ProductService
 @inject IBrandService BrandService
-@inject IProductCategoryService CategoryService
 @inject IVendorProductService VendorProductService
 @inject IPageLocalizer L
 
@@ -18,10 +17,8 @@
         {
             <MudGrid Spacing="2" Class="mb-3">
                 <MudItem xs="12" sm="6">
-                    <MudAutocomplete T="ProductCategory" Value="_selectedCategory" ValueChanged="OnCategoryPicked"
-                                     Label="@L["category", "Category"]" Variant="Variant.Outlined" Dense="true"
-                                     SearchFunc="SearchCategories" ToStringFunc="@(c => c?.Name ?? string.Empty)"
-                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" />
+                    <ProductCategoryPicker WebsiteId="WebsiteId" CategoryId="_categoryId" CategoryIdChanged="OnCategoryPicked"
+                                           Label="@L["category", "Category"]" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudAutocomplete T="Brand" Value="_selectedBrand" ValueChanged="OnBrandPicked"
@@ -149,11 +146,9 @@
 
     private bool _loading = true, _variantsLoading;
     private int? _categoryId, _brandId;
-    private ProductCategory? _selectedCategory;
     private Brand? _selectedBrand;
 
     private List<ProductListItemDto> _items = new();
-    private List<ProductCategory> _categories = new();
     private List<Brand> _brands = new();
     private GridViewHeaderParameters _productGrid = new();
     private GridViewHeaderParameters _variantGrid = new();
@@ -184,7 +179,6 @@
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
-        _categories = await CategoryService.GetAllAsync(WebsiteId);
         _brands = await BrandService.GetAllAsync(WebsiteId);
 
         _productGrid = new GridViewHeaderParameters
@@ -216,10 +210,9 @@
         await ReloadProductsAsync();
     }
 
-    private async Task OnCategoryPicked(ProductCategory? category)
+    private async Task OnCategoryPicked(int? categoryId)
     {
-        _selectedCategory = category;
-        _categoryId = category?.ProductCategoryID;
+        _categoryId = categoryId;
         _productGrid.Pagination.PageIndex = 1;
         await ReloadProductsAsync();
     }
@@ -230,17 +223,6 @@
         _brandId = brand?.BrandID;
         _productGrid.Pagination.PageIndex = 1;
         await ReloadProductsAsync();
-    }
-
-    private Task<IEnumerable<ProductCategory>> SearchCategories(string value, CancellationToken ct)
-    {
-        IEnumerable<ProductCategory> q = _categories.OrderBy(c => c.Name);
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            var needle = value.Trim();
-            q = q.Where(c => c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase));
-        }
-        return Task.FromResult(q.Take(25));
     }
 
     private Task<IEnumerable<Brand>> SearchBrands(string value, CancellationToken ct)

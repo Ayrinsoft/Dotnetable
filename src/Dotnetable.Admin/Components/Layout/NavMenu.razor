@@ -116,6 +116,9 @@
                     <MudNavLink Href="/websites" Icon="@Icons.Material.Filled.Public">
                         @L["websites", "Websites"]
                     </MudNavLink>
+                    <MudNavLink Href="/websites/copy-content" Icon="@Icons.Material.Filled.ContentCopy">
+                        @L["websites.copy.title", "Copy website content"]
+                    </MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
                     <MudNavLink Href="/website/ips" Icon="@Icons.Material.Filled.Security">
@@ -350,6 +353,8 @@
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
                     <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
+                    <MudNavLink Href="/catalog/categories/taxonomy" Icon="@Icons.Material.Filled.AccountTree">@L["catalog.taxonomy.open", "Google taxonomy"]</MudNavLink>
+                    <MudNavLink Href="/catalog/requests" Icon="@Icons.Material.Filled.MarkEmailUnread">@L["catalog.requests.open", "Catalog requests"]</MudNavLink>
                     <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>
                     <MudNavLink Href="/catalog/brands" Icon="@Icons.Material.Filled.BrandingWatermark">@L["brands", "Brands"]</MudNavLink>
                     <MudNavLink Href="/catalog/warranties" Icon="@Icons.Material.Filled.VerifiedUser">@L["warranties", "Warranties"]</MudNavLink>

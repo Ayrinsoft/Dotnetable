@@ -1,0 +1,147 @@
+@inject IProductCategoryService CategoryService
+@inject IPageLocalizer L
+
+<MudStack Spacing="1" Class="@Class">
+    @if (!string.IsNullOrWhiteSpace(Label))
+    {
+        <MudText Typo="Typo.subtitle2">@Label</MudText>
+    }
+    <MudText Typo="Typo.caption" Color="Color.Secondary">
+        @L["catalog.categories.picker_hint", "Open one level at a time, or search. A category can be several levels deep; the list never loads the whole tree."]
+    </MudText>
+
+    <MudAutocomplete T="ProductCategoryPickDto" Value="_searchHit" ValueChanged="OnSearchHit"
+                     SearchFunc="SearchAll" ToStringFunc="@(h => h?.Path ?? "")"
+                     Label="@L["catalog.categories.search", "Search categories…"]"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                     Disabled="Disabled" />
+
+    @if (!string.IsNullOrWhiteSpace(_path))
+    {
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" OnClose="ClearAsync" Disabled="Disabled">@_path</MudChip>
+    }
+
+    @for (var level = 0; level < _levels.Count; level++)
+    {
+        var index = level;
+        <MudAutocomplete T="ProductCategoryPickDto" Value="_levels[index].Selected" ValueChanged="hit => OnLevelPicked(index, hit)"
+                         SearchFunc="(text, ct) => SearchLevel(index, text, ct)"
+                         ToStringFunc="@(h => h?.Name ?? "")"
+                         Label="@string.Format(L["catalog.categories.level", "Level {0}"], index + 1)"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                         Clearable="true" ResetValueOnEmptyText="true" CoerceText="false"
+                         Disabled="Disabled" />
+    }
+</MudStack>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public int? CategoryId { get; set; }
+    [Parameter] public EventCallback<int?> CategoryIdChanged { get; set; }
+    [Parameter] public int? ExcludeCategoryId { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private readonly List<LevelState> _levels = new();
+    private ProductCategoryPickDto? _searchHit;
+    private string? _path;
+    private int _loadedFor;
+    private int _loadedWebsite;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (WebsiteId <= 0) return;
+        if (_loadedWebsite == WebsiteId && _loadedFor == (CategoryId ?? 0) && _levels.Count > 0) return;
+        _loadedWebsite = WebsiteId;
+        _loadedFor = CategoryId ?? 0;
+        await RebuildAsync();
+    }
+
+    private async Task RebuildAsync()
+    {
+        _levels.Clear();
+        _searchHit = null;
+        _path = null;
+        if (CategoryId is int id && id > 0)
+        {
+            var chain = await CategoryService.GetAncestorChainAsync(id);
+            ProductCategoryPickDto? previous = null;
+            foreach (var node in chain)
+            {
+                _levels.Add(new LevelState { ParentId = previous?.ProductCategoryID, Selected = node });
+                previous = node;
+            }
+            _path = chain.LastOrDefault()?.Path;
+            if (previous?.ProductCategoryID is int leaf)
+            {
+                var children = await CategoryService.GetChildrenAsync(WebsiteId, leaf, null, 1);
+                if (children.Count > 0)
+                    _levels.Add(new LevelState { ParentId = leaf });
+            }
+        }
+
+        if (_levels.Count == 0)
+            _levels.Add(new LevelState());
+    }
+
+    private async Task<IEnumerable<ProductCategoryPickDto>> SearchAll(string text, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Trim().Length < 2) return Array.Empty<ProductCategoryPickDto>();
+        var hits = await CategoryService.SearchAsync(WebsiteId, text.Trim(), 25, ct);
+        return Exclude(hits);
+    }
+
+    private async Task<IEnumerable<ProductCategoryPickDto>> SearchLevel(int index, string text, CancellationToken ct)
+    {
+        if (index < 0 || index >= _levels.Count) return Array.Empty<ProductCategoryPickDto>();
+        var hits = await CategoryService.GetChildrenAsync(WebsiteId, _levels[index].ParentId, text, 40, ct);
+        return Exclude(hits);
+    }
+
+    private IEnumerable<ProductCategoryPickDto> Exclude(IReadOnlyList<ProductCategoryPickDto> hits) =>
+        ExcludeCategoryId is int blocked ? hits.Where(h => h.ProductCategoryID != blocked) : hits;
+
+    private async Task OnSearchHit(ProductCategoryPickDto? hit)
+    {
+        _searchHit = null;
+        if (hit is null || Disabled) return;
+        await SelectAsync(hit.ProductCategoryID);
+    }
+
+    private async Task OnLevelPicked(int index, ProductCategoryPickDto? hit)
+    {
+        if (Disabled) return;
+        if (hit is null)
+        {
+            if (index == 0)
+            {
+                await ClearAsync();
+                return;
+            }
+            var parent = _levels[index].ParentId;
+            while (_levels.Count > index) _levels.RemoveAt(_levels.Count - 1);
+            await SelectAsync(parent);
+            return;
+        }
+
+        await SelectAsync(hit.ProductCategoryID);
+    }
+
+    private async Task SelectAsync(int? id)
+    {
+        _loadedFor = id ?? 0;
+        CategoryId = id;
+        await RebuildAsync();
+        await CategoryIdChanged.InvokeAsync(id);
+    }
+
+    private Task ClearAsync() => SelectAsync(null);
+
+    private sealed class LevelState
+    {
+        public int? ParentId { get; set; }
+        public ProductCategoryPickDto? Selected { get; set; }
+    }
+}

@@ -150,6 +150,10 @@ public static class ServiceCollectionExtensions
 
         // E-commerce: catalog (categories, attributes, brands, vendors, products+variants).
         services.AddScoped<IProductCategoryService, ProductCategoryService>();
+        services.AddScoped<IPlatformCatalogService, PlatformCatalogService>();
+        services.AddScoped<IGoogleProductTaxonomyService, GoogleProductTaxonomyService>();
+        services.AddScoped<ICatalogRequestService, CatalogRequestService>();
+        services.AddScoped<IWebsiteContentCopyService, WebsiteContentCopyService>();
         services.AddScoped<IAttributeDefinitionService, AttributeDefinitionService>();
         services.AddScoped<IBrandService, BrandService>();
         services.AddScoped<IWarrantyService, WarrantyService>();

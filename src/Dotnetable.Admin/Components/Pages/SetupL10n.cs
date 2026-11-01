@@ -59,7 +59,9 @@ public record SetupStrings(
     string InvalidEmail,
     string TestOk,
     string TestFail,
-    string SetupFail
+    string SetupFail,
+    string PlatformLabel,
+    string PlatformHint
 );
 
 public static class SetupL10n
@@ -128,7 +130,9 @@ public static class SetupL10n
         InvalidEmail: "Enter a valid email address.",
         TestOk: "Connection successful!",
         TestFail: "Connection failed",
-        SetupFail: "Setup failed"
+        SetupFail: "Setup failed",
+        PlatformLabel: "This installation is a platform",
+        PlatformHint: "Only website 1 can add products or change product categories. Other websites use that shared catalog and send a request when they need a new product or category."
     );
 
     public static readonly SetupStrings De = new(
@@ -184,7 +188,9 @@ public static class SetupL10n
         InvalidEmail: "Gültige E-Mail-Adresse eingeben.",
         TestOk: "Verbindung erfolgreich!",
         TestFail: "Verbindung fehlgeschlagen",
-        SetupFail: "Einrichtung fehlgeschlagen"
+        SetupFail: "Einrichtung fehlgeschlagen",
+        PlatformLabel: "Diese Installation ist eine Plattform",
+        PlatformHint: "Nur Website 1 darf Produkte anlegen oder Produktkategorien ändern. Andere Websites nutzen diesen Katalog und senden eine Anfrage."
     );
 
     public static readonly SetupStrings Fr = new(
@@ -240,7 +246,9 @@ public static class SetupL10n
         InvalidEmail: "Entrez une adresse e-mail valide.",
         TestOk: "Connexion réussie !",
         TestFail: "Échec de la connexion",
-        SetupFail: "Échec de la configuration"
+        SetupFail: "Échec de la configuration",
+        PlatformLabel: "Cette installation est une plateforme",
+        PlatformHint: "Seul le site 1 peut ajouter des produits ou modifier les catégories. Les autres sites utilisent ce catalogue et envoient une demande."
     );
 
     public static readonly SetupStrings Ru = new(
@@ -296,7 +304,9 @@ public static class SetupL10n
         InvalidEmail: "Введите действительный адрес электронной почты.",
         TestOk: "Подключение успешно!",
         TestFail: "Ошибка подключения",
-        SetupFail: "Ошибка настройки"
+        SetupFail: "Ошибка настройки",
+        PlatformLabel: "Эта установка — платформа",
+        PlatformHint: "Только сайт 1 может добавлять товары и менять категории. Остальные сайты используют этот каталог и отправляют запрос."
     );
 
     public static readonly SetupStrings Zh = new(
@@ -352,7 +362,9 @@ public static class SetupL10n
         InvalidEmail: "请输入有效的电子邮件地址。",
         TestOk: "连接成功！",
         TestFail: "连接失败",
-        SetupFail: "设置失败"
+        SetupFail: "设置失败",
+        PlatformLabel: "此安装作为平台",
+        PlatformHint: "只有网站 1 可以添加商品或更改商品分类。其他网站使用该目录，并在需要新品或新分类时提交申请。"
     );
 
     public static readonly SetupStrings Fa = new(
@@ -408,7 +420,9 @@ public static class SetupL10n
         InvalidEmail: "یک آدرس ایمیل معتبر وارد کنید.",
         TestOk: "اتصال موفق!",
         TestFail: "اتصال ناموفق",
-        SetupFail: "راه‌اندازی ناموفق"
+        SetupFail: "راه‌اندازی ناموفق",
+        PlatformLabel: "این مجموعه پلتفرم است",
+        PlatformHint: "فقط سایت ۱ می‌تواند کالا اضافه کند یا دسته‌بندی محصول را تغییر دهد. سایت‌های دیگر از همین کاتالوگ استفاده می‌کنند و برای کالای تازه یا دسته تازه درخواست می‌فرستند."
     );
 
     public static readonly SetupStrings Ar = new(
@@ -464,6 +478,8 @@ public static class SetupL10n
         InvalidEmail: "أدخل عنوان بريد إلكتروني صحيحاً.",
         TestOk: "تم الاتصال بنجاح!",
         TestFail: "فشل الاتصال",
-        SetupFail: "فشل الإعداد"
+        SetupFail: "فشل الإعداد",
+        PlatformLabel: "هذا التثبيت منصة",
+        PlatformHint: "الموقع 1 فقط يستطيع إضافة المنتجات أو تغيير تصنيفاتها. المواقع الأخرى تستخدم هذا الكتالوج وترسل طلبا عند الحاجة."
     );
 }

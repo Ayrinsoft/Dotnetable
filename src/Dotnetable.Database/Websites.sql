@@ -13,6 +13,7 @@
     [DefaultLanguageCode]           CHAR (2)         NOT NULL,
     [WebsiteType]                   TINYINT          NOT NULL,
     [IsHub]                         BIT              NOT NULL,
+    [IsPlatform]                    BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
     [BrandName]                     NVARCHAR (60)    NOT NULL,
     [LogoFileID]                    INT              NULL,
     [FaveIconFileID]                INT              NULL,
@@ -55,6 +56,9 @@
 
 GO
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'show in title of pages', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'BrandName';
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Website 1 only. When true, other websites use website 1''s product catalog and cannot add products or change product categories.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'IsPlatform';
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_DefaultCurrencyCode]

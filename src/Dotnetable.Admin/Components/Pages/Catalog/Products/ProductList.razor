@@ -3,6 +3,7 @@
 @inject IProductService ProductService
 @inject IBrandService BrandService
 @inject IProductCategoryService CategoryService
+@inject IPlatformCatalogService PlatformCatalog
 @inject ICurrencyConversionService CurrencyConversion
 @inject IVendorProductService VendorProductService
 @inject IWebsiteService WebsiteService
@@ -43,12 +44,19 @@
                 </ActivatorContent>
             </MudFileUpload>
         }
-        @if (_canInsert)
+        @if (_canInsert && !_catalogLocked)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@(() => Nav.NavigateTo("/catalog/products/new"))"
                        Disabled="@(_prerequisites.Count > 0)">
                 @L["products.new", "New Product"]
+            </MudButton>
+        }
+        @if (_catalogLocked)
+        {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MarkEmailUnread"
+                       OnClick="@(() => Nav.NavigateTo("/catalog/requests"))">
+                @L["catalog.requests.open", "Catalog requests"]
             </MudButton>
         }
     </MudStack>
@@ -59,6 +67,13 @@
     <DNDismissibleAlert StorageKey="products.price-stock-excel-hint">
         @L["products.price_stock_excel_hint", "Export seller listings (price & stock) for the current website. Sellers only get their own rows. Edit Price/Stock in Excel, keep VendorProductID unchanged, then import. File name ends with today’s date."]
     </DNDismissibleAlert>
+}
+
+@if (_catalogLocked)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+        @L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]
+    </MudAlert>
 }
 
 <DNPrerequisiteAlert Items="_prerequisites" />
@@ -117,6 +132,8 @@
     private bool _loading = true;
     private bool _excelBusy;
     private bool _isMaster;
+    private bool _platform;
+    private bool _catalogLocked;
     private bool _canInsert, _canDelete, _canEdit;
     private int _websiteId;
     private int? _vendorMemberId;
@@ -176,8 +193,10 @@
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
 
+        _platform = await PlatformCatalog.IsPlatformAsync();
+        _catalogLocked = _platform && _websiteId != AppConstants.MasterWebsiteId;
         var brands = await BrandService.GetAllAsync(_websiteId);
-        var categories = await CategoryService.GetAllAsync(_websiteId);
+        var categoryCount = await CategoryService.CountAsync(_websiteId);
         var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
         var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();
         if (rate is null)
@@ -194,7 +213,7 @@
             _isUsdSite = string.Equals(_displayCurrency, "USD", StringComparison.OrdinalIgnoreCase);
             _localDigits = rate.CurrencyCodeNavigation?.DecimalDigits ?? 0;
         }
-        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categories.Count, rates.Count);
+        _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categoryCount, rates.Count);
 
         _loading = false;
     }

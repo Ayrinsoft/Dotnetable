@@ -52,6 +52,7 @@ public static class AdminSearchCatalog
         new AdminSearchPage("login_logs", "Login Logs", "/login-logs", Icons.Material.Filled.History, "nav.user_management", "User Management", RoleKeys.LoginLogsView, NavArea: AdminNavArea.Users, VendorMemberAllowed: false),
 
         new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Public, "website", "Website", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("websites.copy.title", "Copy website content", "/websites/copy-content", Icons.Material.Filled.ContentCopy, "website", "Website", null, SuperAdminOnly: true, VendorMemberAllowed: false),
         new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
@@ -85,6 +86,8 @@ public static class AdminSearchCatalog
         new AdminSearchPage("booking", "Appointments", "/booking", Icons.Material.Filled.EventAvailable, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("price_lists", "Price lists", "/catalog/price-lists", Icons.Material.Filled.RequestQuote, "nav.catalog", "Catalog", RoleKeys.PriceListsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("categories", "Categories", "/catalog/categories", Icons.Material.Filled.Category, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("catalog.taxonomy.open", "Google taxonomy", "/catalog/categories/taxonomy", Icons.Material.Filled.AccountTree, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
+        new AdminSearchPage("catalog.requests.open", "Catalog requests", "/catalog/requests", Icons.Material.Filled.MarkEmailUnread, "nav.catalog", "Catalog", RoleKeys.ProductsView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("attributes", "Attributes", "/catalog/attributes", Icons.Material.Filled.Tune, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("brands", "Brands", "/catalog/brands", Icons.Material.Filled.BrandingWatermark, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),
         new AdminSearchPage("warranties", "Warranties", "/catalog/warranties", Icons.Material.Filled.VerifiedUser, "nav.catalog", "Catalog", RoleKeys.CatalogTaxonomyView, NavArea: AdminNavArea.Catalog, VendorMemberAllowed: false),

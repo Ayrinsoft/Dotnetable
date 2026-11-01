@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[ProductCategories] (
     [ImageFileID]       INT            NULL,
     [SortOrder]         INT NOT NULL,
     [IsActive]          BIT NOT NULL,
+    [GoogleProductCategoryId] INT NULL,
     CONSTRAINT [PK_ProductCategories] PRIMARY KEY CLUSTERED ([ProductCategoryID] ASC),
     CONSTRAINT [FK_ProductCategories_FileRecords] FOREIGN KEY ([ImageFileID]) REFERENCES [dbo].[FileRecords] ([FileRecordID]),
     CONSTRAINT [FK_ProductCategories_ProductCategories] FOREIGN KEY ([ParentCategoryID]) REFERENCES [dbo].[ProductCategories] ([ProductCategoryID]),
@@ -24,3 +25,8 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_ProductCategories_WebsiteID]
     ON [dbo].[ProductCategories] ([WebsiteID] ASC);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UQ_ProductCategories_GoogleProductCategoryId]
+    ON [dbo].[ProductCategories] ([GoogleProductCategoryId] ASC)
+    WHERE [GoogleProductCategoryId] IS NOT NULL;

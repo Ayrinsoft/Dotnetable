@@ -104,7 +104,21 @@ else if (_website is not null)
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.MedicalBooking)">@L["website.type.medical_booking", "Medical Appointment Booking"]</MudSelectItem>
                                 <MudSelectItem T="byte" Value="@((byte)WebsiteType.BeautyBooking)">@L["website.type.beauty_booking", "Beauty / Salon Appointment Booking"]</MudSelectItem>
                             </MudSelect>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                                @L["website.type_keeps_data", "Changing the type, including from a blog to a store, does not delete posts, pages, or products."]
+                            </MudText>
+                            <MudLink Href="/websites/copy-content" Typo="Typo.caption">@L["website.copy_content_link", "Copy this site's data to another website without deleting it"]</MudLink>
                         </MudItem>
+                        @if (_website.WebsiteID == AppConstants.MasterWebsiteId)
+                        {
+                            <MudItem xs="12">
+                                <MudSwitch T="bool" @bind-Value="_website.IsPlatform" Color="Color.Primary"
+                                           Label="@L["website.platform", "This installation is a platform"]" />
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @L["website.platform_hint", "Only website 1 can add products or change product categories. Other websites use this catalog and send a request for anything new. Choose this when website 1 is created if the collection will be a platform."]
+                                </MudText>
+                            </MudItem>
+                        }
                         <MudItem xs="12">
                             <MudSwitch T="bool" Value="_includeSales" ValueChanged="OnIncludeSalesChanged" Color="Color.Primary"
                                        Label="@L["website.sells", "This site sells, or will sell"]" />

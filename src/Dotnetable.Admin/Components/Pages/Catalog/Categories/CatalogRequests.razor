@@ -1,0 +1,257 @@
+@page "/catalog/requests"
+@attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@inject ICatalogRequestService Requests
+@inject IPlatformCatalogService PlatformCatalog
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["catalog.requests.title", "Catalog requests"] />
+
+<MudStack Spacing="0" Class="mb-4">
+    <MudText Typo="Typo.h5" Class="fw-bold">@L["catalog.requests.title", "Catalog requests"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["catalog.requests.subtitle", "Ask website 1 to add a product, or a category and a product. Saving a request emails website 1."]
+    </MudText>
+</MudStack>
+
+@if (!_platform)
+{
+    <MudAlert Severity="Severity.Info">@L["catalog.requests.not_platform", "Catalog requests are used when website 1 is a platform. Other sites then use the shared categories and products."]</MudAlert>
+}
+else
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+        @L["catalog.requests.review_hint", "Approving a request records the decision. It does not create the product. Website 1 still adds the brand, variant, and price in the catalog."]
+    </MudAlert>
+
+    @if (!_isMaster)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="CatalogRequestKind" @bind-Value="_kind" Label="@L["catalog.requests.kind", "Request"]" Variant="Variant.Outlined">
+                        <MudSelectItem T="CatalogRequestKind" Value="CatalogRequestKind.Product">@L["catalog.requests.kind_product", "Product in an existing category"]</MudSelectItem>
+                        <MudSelectItem T="CatalogRequestKind" Value="CatalogRequestKind.CategoryAndProduct">@L["catalog.requests.kind_category", "New category and a product"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_title" Label="@L["catalog.requests.product_title", "Product title"]" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                @if (_kind == CatalogRequestKind.CategoryAndProduct)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_categoryName" Label="@L["catalog.requests.category_name", "Proposed category name"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                }
+                <MudItem xs="12">
+                    <ProductCategoryPicker WebsiteId="AppConstants.MasterWebsiteId" CategoryId="_parentId" CategoryIdChanged="OnParentPicked"
+                                           Label="@L["catalog.requests.parent", "Parent category on website 1"]" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_details" Label="@L["catalog.requests.details", "Details"]" Variant="Variant.Outlined" Lines="3" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SubmitAsync">
+                        @L["catalog.requests.submit", "Send request"]
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-2" />
+        }
+        <MudTable Items="_items" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>@L["website", "Website"]</MudTh>
+                <MudTh>@L["catalog.requests.product_title", "Product title"]</MudTh>
+                <MudTh>@L["catalog.requests.kind", "Request"]</MudTh>
+                <MudTh>@L["status", "Status"]</MudTh>
+                <MudTh>@L["catalog.requests.note", "Note"]</MudTh>
+                @if (_isMaster)
+                {
+                    <MudTh></MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@(context.Website?.TradeName ?? context.WebsiteID.ToString())</MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2">@context.ProductTitle</MudText>
+                    @if (!string.IsNullOrWhiteSpace(context.ProposedCategoryName))
+                    {
+                        <MudText Typo="Typo.caption">@context.ProposedCategoryName</MudText>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(context.Details))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Details</MudText>
+                    }
+                </MudTd>
+                <MudTd>@KindLabel(context.Kind)</MudTd>
+                <MudTd>@StatusLabel(context.Status)</MudTd>
+                <MudTd>
+                    @if (_isMaster && context.Status == (byte)CatalogRequestStatus.Pending)
+                    {
+                        <MudTextField T="string" Value="@Note(context.CatalogRequestID)" ValueChanged="@(v => SetNote(context.CatalogRequestID, v))"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    }
+                    else
+                    {
+                        @context.AdminNote
+                    }
+                </MudTd>
+                @if (_isMaster)
+                {
+                    <MudTd>
+                        @if (context.Status == (byte)CatalogRequestStatus.Pending)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Success" Disabled="_busy"
+                                       OnClick="@(() => ReviewAsync(context.CatalogRequestID, CatalogRequestStatus.Approved))">
+                                @L["catalog.requests.approve", "Approve"]
+                            </MudButton>
+                            <MudButton Size="Size.Small" Color="Color.Error" Disabled="_busy"
+                                       OnClick="@(() => ReviewAsync(context.CatalogRequestID, CatalogRequestStatus.Rejected))">
+                                @L["catalog.requests.reject", "Reject"]
+                            </MudButton>
+                        }
+                    </MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+        <MudStack Row="true" Spacing="2" Class="mt-3">
+            <MudButton Disabled="@(_page <= 1 || _busy)" OnClick="PrevAsync">@L["previous", "Previous"]</MudButton>
+            <MudButton Disabled="@(_page * PageSize >= _total || _busy)" OnClick="NextAsync">@L["next", "Next"]</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private const int PageSize = 20;
+
+    private bool _platform;
+    private bool _isMaster;
+    private bool _loading = true;
+    private bool _busy;
+    private int _websiteId;
+    private int _memberId;
+    private int _page = 1;
+    private int _total;
+    private CatalogRequestKind _kind = CatalogRequestKind.Product;
+    private string _title = "";
+    private string? _categoryName;
+    private string? _details;
+    private int? _parentId;
+    private List<CatalogRequest> _items = new();
+    private readonly Dictionary<int, string> _notes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out _memberId);
+        _platform = await PlatformCatalog.IsPlatformAsync();
+        if (_platform)
+            await LoadAsync();
+        else
+            _loading = false;
+    }
+
+    private Task OnParentPicked(int? id)
+    {
+        _parentId = id;
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var query = new GridQuery { PageIndex = _page, PageSize = PageSize };
+        var page = await Requests.GetPagedAsync(_isMaster ? null : _websiteId, query);
+        _items = page.Items.ToList();
+        _total = page.TotalCount;
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_memberId <= 0)
+        {
+            Snackbar.Add(L["catalog.requests.member_required", "Sign in again before sending a request."], Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await Requests.SubmitAsync(new CatalogRequest
+            {
+                WebsiteID = _websiteId,
+                RequestedByMemberID = _memberId,
+                Kind = (byte)_kind,
+                ProductTitle = _title,
+                ProposedCategoryName = _kind == CatalogRequestKind.CategoryAndProduct ? _categoryName : null,
+                ParentCategoryID = _parentId,
+                Details = _details,
+            });
+            _title = "";
+            _categoryName = null;
+            _details = null;
+            _parentId = null;
+            Snackbar.Add(L["catalog.requests.sent", "Request saved. Website 1 was emailed."], Severity.Success);
+            _page = 1;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private string Note(int id) => _notes.TryGetValue(id, out var note) ? note : "";
+
+    private void SetNote(int id, string? value) => _notes[id] = value ?? "";
+
+    private async Task ReviewAsync(int id, CatalogRequestStatus status)
+    {
+        _busy = true;
+        try
+        {
+            await Requests.ReviewAsync(id, status, Note(id), _memberId);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task PrevAsync()
+    {
+        _page = Math.Max(1, _page - 1);
+        await LoadAsync();
+    }
+
+    private async Task NextAsync()
+    {
+        _page++;
+        await LoadAsync();
+    }
+
+    private string KindLabel(byte kind) => kind == (byte)CatalogRequestKind.CategoryAndProduct
+        ? L["catalog.requests.kind_category", "New category and a product"]
+        : L["catalog.requests.kind_product", "Product in an existing category"];
+
+    private string StatusLabel(byte status) => status switch
+    {
+        (byte)CatalogRequestStatus.Approved => L["catalog.requests.approved", "Approved"],
+        (byte)CatalogRequestStatus.Rejected => L["catalog.requests.rejected", "Rejected"],
+        _ => L["catalog.requests.pending", "Pending"],
+    };
+}

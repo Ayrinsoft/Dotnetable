@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -141,6 +142,7 @@ public class ProductService : IProductService
 
         NormalizeProductFulfillment(product);
         NormalizeProductRichText(product);
+        await PlatformCatalog.EnsureOwnerAsync(_context, product.WebsiteID, ct);
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Add(product);
         await _context.SaveChangesAsync(ct);
@@ -327,6 +329,17 @@ public class ProductService : IProductService
 
         var existing = await _context.ProductCategoryMaps.Where(m => m.ProductID == productId).ToListAsync(ct);
         var wanted = categoryIds.Distinct().ToList();
+        var unchanged = existing.Count == wanted.Count
+            && existing.All(m => wanted.Contains(m.ProductCategoryID) && m.IsPrimary == (primaryCategoryId == m.ProductCategoryID));
+        if (unchanged)
+            return;
+
+        var ownerWebsiteId = await _context.Products.AsNoTracking()
+            .Where(p => p.ProductID == productId)
+            .Select(p => (int?)p.WebsiteID)
+            .FirstOrDefaultAsync(ct);
+        if (ownerWebsiteId is int owner)
+            await PlatformCatalog.EnsureOwnerAsync(_context, owner, ct);
 
         _context.ProductCategoryMaps.RemoveRange(existing.Where(m => !wanted.Contains(m.ProductCategoryID)));
 
@@ -863,8 +876,11 @@ public class ProductService : IProductService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
-        // Own products of the host site (include inventory for availability).
-        IQueryable<Product> q = PublishedQuery(_context, websiteId)
+        var storeWebsiteId = websiteId;
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+
+        // Own products of the host site, or website 1's catalog when this installation is a platform.
+        IQueryable<Product> q = PublishedQuery(_context, catalogWebsiteId)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
 
         if (!string.IsNullOrWhiteSpace(categorySlug))
@@ -886,14 +902,19 @@ public class ProductService : IProductService
             .ToListAsync(ct);
 
         // Site-linked vendors: only products owned by the linked website (never re-shared imports).
-        var linked = await LoadLinkedSiteProductsAsync(_context, websiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
+        var linked = await LoadLinkedSiteProductsAsync(_context, storeWebsiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
+        if (catalogWebsiteId != storeWebsiteId)
+        {
+            var localIds = localProducts.Select(p => p.ProductID).ToHashSet();
+            linked = linked.Where(x => !localIds.Contains(x.Product.ProductID)).ToList();
+        }
 
         var combined = new List<(Product Product, Vendor? Vendor)>(localProducts.Count + linked.Count);
         combined.AddRange(localProducts.Select(p => ((Product Product, Vendor? Vendor))(p, null)));
         combined.AddRange(linked.Select(x => ((Product Product, Vendor? Vendor))(x.Product, x.Vendor)));
 
         // Availability totals for filtering and summary projection.
-        var stockByKey = await ResolveListingStockBulkAsync(websiteId, combined, ct);
+        var stockByKey = await ResolveListingStockBulkAsync(storeWebsiteId, combined, ct);
         if (inStock is bool wantInStock)
         {
             combined = combined
@@ -936,14 +957,15 @@ public class ProductService : IProductService
     public async Task<ProductDetailDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
 
         // Product code URL: /product/DN-42 (prefix from owning site; id is ProductID, not variant).
         if (Domain.ProductCode.TryParse(slug, out var codePrefix, out var codeProductId))
         {
-            var hostPrefix = await GetProductCodePrefixAsync(_context, websiteId, ct);
+            var hostPrefix = await GetProductCodePrefixAsync(_context, catalogWebsiteId, ct);
             if (string.Equals(hostPrefix, codePrefix, StringComparison.OrdinalIgnoreCase))
             {
-                var byCode = await DetailQuery(_context, websiteId)
+                var byCode = await DetailQuery(_context, catalogWebsiteId)
                     .FirstOrDefaultAsync(p => p.ProductID == codeProductId, ct);
                 if (byCode is not null)
                     return await ProjectDetailAsync(_context, byCode, languageCode, currencyCode, ct, null, websiteId);
@@ -965,8 +987,8 @@ public class ProductService : IProductService
             }
         }
 
-        // Prefer host-owned product.
-        var product = await DetailQuery(_context, websiteId)
+        // Prefer the catalog owned by this storefront (website 1 when the installation is a platform).
+        var product = await DetailQuery(_context, catalogWebsiteId)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
         Vendor? vendor = null;
 
@@ -1009,6 +1031,7 @@ public class ProductService : IProductService
     public async Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        websiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
 
         var product = await PublishedQuery(_context, websiteId)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
