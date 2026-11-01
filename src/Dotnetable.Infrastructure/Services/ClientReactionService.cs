@@ -2,6 +2,7 @@ using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -80,6 +81,7 @@ public class ClientReactionService : IClientReactionService
             .Include(p => p.PageTranslations)
             .ToDictionaryAsync(p => p.PageID, ct);
 
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, websiteId, ct);
         var items = new List<ClientReactionItemDto>();
         foreach (var r in rows)
         {
@@ -96,7 +98,7 @@ public class ClientReactionService : IClientReactionService
             {
                 var t = Translation(p.ProductTranslations, x => x.LanguageCode);
                 return Item(ReactionTargetType.Product, p.ProductID, Pick(t?.Title, p.Title), Pick(t?.Slug, p.Slug),
-                    p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl, Pick(t?.ShortDescription, p.ShortDescription));
+                    PlatformProductImage.ForViewer(p.FeaturedImageFile, imageAudience, thumbnail: true), Pick(t?.ShortDescription, p.ShortDescription));
             }
             ClientReactionItemDto FromPost(Post p)
             {

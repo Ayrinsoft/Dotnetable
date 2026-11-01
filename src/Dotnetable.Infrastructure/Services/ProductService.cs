@@ -932,11 +932,12 @@ public class ProductService : IProductService
         var skip = (pageIndex < 1 ? 0 : pageIndex - 1) * take;
         var page = combined.Skip(skip).Take(take).ToList();
 
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, storeWebsiteId, ct);
         var items = new List<ProductSummaryDto>(page.Count);
         foreach (var (p, vendor) in page)
         {
             var available = stockByKey.GetValueOrDefault(ListingKey(_context, p.ProductID, vendor?.VendorID));
-            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available);
+            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available, imageAudience);
             items.Add(dto);
         }
 
@@ -1031,9 +1032,11 @@ public class ProductService : IProductService
     public async Task<List<ProductRefDto>> GetRelatedAsync(int websiteId, string slug, int take, string? languageCode = null, string? currencyCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
-        websiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+        var storeWebsiteId = websiteId;
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, storeWebsiteId, ct);
 
-        var product = await PublishedQuery(_context, websiteId)
+        var product = await PublishedQuery(_context, catalogWebsiteId)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.ProductVariants)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
@@ -1047,7 +1050,7 @@ public class ProductService : IProductService
 
         var result = new List<ProductRefDto>(relations.Count);
         foreach (var r in relations)
-            result.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, languageCode, currencyCode, ct));
+            result.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, languageCode, currencyCode, ct, imageAudience));
         return result;
     }
 
@@ -1239,7 +1242,8 @@ public class ProductService : IProductService
     // ── Projection helpers ──────────────────────────────────────────
 
     private async Task<ProductSummaryDto> ProjectSummaryAsync(
-        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? availableStock = null)
+        Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? availableStock = null,
+        PlatformImageAudience imageAudience = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -1270,7 +1274,7 @@ public class ProductService : IProductService
             ProductID = p.ProductID,
             ProductCode = Domain.ProductCode.Format(codePrefix, p.ProductID),
             Slug = slug, Title = title, ShortDescription = shortDescription,
-            FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
+            FeaturedImageUrl = PlatformProductImage.ForViewer(p.FeaturedImageFile, imageAudience, thumbnail: true),
             BrandName = p.Brand?.Name,
             DefaultSku = defaultVariant?.Sku,
             MinPrice = minPrice!,
@@ -1286,7 +1290,9 @@ public class ProductService : IProductService
         };
     }
 
-    private async Task<ProductRefDto> ProjectRefAsync(Product p, byte relationType, string? lang, string? currencyCode, CancellationToken ct)
+    private async Task<ProductRefDto> ProjectRefAsync(
+        Product p, byte relationType, string? lang, string? currencyCode, CancellationToken ct,
+        PlatformImageAudience imageAudience = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -1309,7 +1315,7 @@ public class ProductService : IProductService
             ProductID = p.ProductID,
             ProductCode = Domain.ProductCode.Format(codePrefix, p.ProductID),
             Slug = slug, Title = title,
-            ImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
+            ImageUrl = PlatformProductImage.ForViewer(p.FeaturedImageFile, imageAudience, thumbnail: true),
             MinPrice = minPrice, RelationType = relationType,
         };
     }
@@ -1319,6 +1325,9 @@ public class ProductService : IProductService
     {
         var priceWebsiteId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
         var hostId = hostWebsiteId ?? vendor?.WebsiteID ?? p.WebsiteID;
+        var imageAudience = adminPreview
+            ? PlatformImageAudience.Direct
+            : await PlatformProductImage.LoadAsync(_context, hostId, ct);
 
         var categories = p.ProductCategoryMaps
             .Where(m => m.ProductCategory is not null)
@@ -1440,7 +1449,7 @@ public class ProductService : IProductService
             variants.Add(new ProductVariantDto
             {
                 ProductVariantID = v.ProductVariantID, Sku = v.Sku, Title = v.Title, IsDefault = v.IsDefault,
-                ImageUrl = v.ImageFile?.ThumbnailCDN ?? v.ImageFile?.CNDUrl,
+                ImageUrl = PlatformProductImage.ForViewer(v.ImageFile, imageAudience, thumbnail: true),
                 Price = price,
                 CompareAtPrice = compareAt,
                 Weight = v.Weight, Barcode = v.Barcode, IsActive = v.IsActive,
@@ -1466,7 +1475,7 @@ public class ProductService : IProductService
             variants.Count == 0 ? 0 : StockDisplay.Aggregate(variants.Select(v => v.StockQuantity)),
             sellers.Count == 0 ? 0 : StockDisplay.Aggregate(sellers.Select(s => s.StockQuantity)));
 
-        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor, productStock);
+        var summary = await ProjectSummaryAsync(p, lang, currencyCode, ct, vendor, productStock, imageAudience);
 
         var attributes = p.ProductAttributeValues.OrderBy(a => a.SortOrder).Select(a => new ProductAttributeValueDto
         {
@@ -1493,12 +1502,12 @@ public class ProductService : IProductService
 
         var related = new List<ProductRefDto>();
         foreach (var r in p.ProductRelationProducts.Where(r => adminPreview || r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder))
-            related.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, lang, currencyCode, ct));
+            related.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, lang, currencyCode, ct, imageAudience));
 
         var gallery = p.ProductMedia
             .OrderBy(m => m.SortOrder)
             .SelectMany(m => m.MediaSet.MediaSetItems.OrderBy(i => i.SortOrder))
-            .Select(i => i.File?.ThumbnailCDN ?? i.File?.CNDUrl)
+            .Select(i => PlatformProductImage.ForViewer(i.File, imageAudience, thumbnail: true))
             .Where(u => !string.IsNullOrEmpty(u))
             .Select(u => u!)
             .ToList();

@@ -122,6 +122,31 @@ app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthorization();
 
+// Subsidiary storefronts request a platform catalog image here. The clean CDN address is never
+// written into the page; this route proxies the destination site's key and returns stamped bytes.
+app.MapGet("/media/i/{fileId:int}", async (int fileId, HttpContext http, IHttpClientFactory httpClientFactory, IConfiguration config, CancellationToken ct) =>
+{
+    var baseUrl = config["Api:BaseUrl"];
+    var websiteKey = config["Api:WebsiteKey"];
+    if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(websiteKey))
+    {
+        http.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    var target = $"{baseUrl.TrimEnd('/')}/api/media/platform-image/{fileId}{http.Request.QueryString}";
+    var client = httpClientFactory.CreateClient();
+    using var request = new HttpRequestMessage(HttpMethod.Get, target);
+    request.Headers.TryAddWithoutValidation("X-Website-Key", websiteKey);
+    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+    http.Response.StatusCode = (int)response.StatusCode;
+    if (response.Content.Headers.ContentType is { } contentType)
+        http.Response.ContentType = contentType.ToString();
+    http.Response.Headers.CacheControl = response.Headers.CacheControl?.ToString() ?? "private, max-age=120";
+    if (!response.IsSuccessStatusCode) return;
+    await response.Content.CopyToAsync(http.Response.Body, ct);
+});
+
 // After routing: any GET that still 404s is offered to the redirect-rule resolver.
 app.UseMiddleware<Dotnetable.Web.Infrastructure.RedirectMiddleware>();
 

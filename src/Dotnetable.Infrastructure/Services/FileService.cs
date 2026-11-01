@@ -1,8 +1,10 @@
+using Dotnetable.Application;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Text;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Dotnetable.Infrastructure.Storage;
@@ -128,41 +130,31 @@ public class FileService : IFileService
         // well-compressed JPEG/PNG (e.g. 300 KB → multi‑MB lossless WebP).
         Stream uploadSource = buffer;
         var webpApplied = false;
+        var sourceExt = ext;
+        var sourceMime = mime;
         var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
+        ImageProcessingOptions? processingOptions = null;
         if (isRasterProcessable)
         {
-            var options = await BuildProcessingOptionsAsync(
+            processingOptions = await BuildProcessingOptionsAsync(
             _context, request.WebsiteID, request.Crop, request.ResizeWidth, request.ResizeHeight,
             request.Grayscale, request.ApplyWatermark, ct);
             var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase);
             // Re-encode when transforming, or when converting another format to WebP.
             // Already-WebP files with no transforms are stored as uploaded.
-            if (options.HasWork || !alreadyWebp)
+            if (processingOptions.HasWork || !alreadyWebp)
             {
-                buffer.Position = 0;
-                var originalLength = buffer.Length;
-                var processed = await ImageProcessor.TryProcessAsync(
-                    buffer, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
+                var processed = await TryProcessWebpAsync(buffer, processingOptions, ct);
                 if (processed is not null)
                 {
-                    // Graphics-heavy PNGs (QR codes, icons) often re-encode larger as WebP.
-                    // Keep the original bytes whenever we only converted format and grew the file.
-                    // When the user applied crop/resize/etc., always keep the processed result.
-                    if (!options.HasWork && processed.Length >= originalLength)
+                    uploadSource = processed;
+                    sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                    if (!alreadyWebp)
                     {
-                        await processed.DisposeAsync();
-                    }
-                    else
-                    {
-                        uploadSource = processed;
-                        sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
-                        if (!alreadyWebp)
-                        {
-                            mime = "image/webp";
-                            ext = ".webp";
-                            storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
-                            webpApplied = true;
-                        }
+                        mime = "image/webp";
+                        ext = ".webp";
+                        storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
+                        webpApplied = true;
                     }
                 }
             }
@@ -204,6 +196,36 @@ public class FileService : IFileService
             }
         }
 
+        // Platform catalog images keep a clean sibling so subsidiary sites do not inherit website 1's mark.
+        string? rawStorage = null, rawCdn = null, rawThumbStorage = null, rawThumbCdn = null;
+        var storeClean = isRasterProcessable
+            && request.WebsiteID == AppConstants.MasterWebsiteId
+            && await PlatformCatalog.IsPlatformAsync(_context, ct);
+        if (storeClean && processingOptions?.Watermark is not null && !ReferenceEquals(uploadSource, buffer))
+        {
+            var cleanOptions = WithoutWatermark(processingOptions);
+            var cleanProcessed = await TryProcessWebpAsync(buffer, cleanOptions, ct);
+            var clean = cleanProcessed ?? await CopyBufferAsync(buffer, ct);
+            await using (clean)
+            {
+                var cleanExt = cleanProcessed is not null ? ".webp" : sourceExt;
+                var cleanMime = cleanProcessed is not null ? "image/webp" : sourceMime;
+                var stored = await UploadCleanObjectAsync(
+                    provider, ctx, clean, cleanExt, cleanMime, setting.AutoGenerateThumbnails, StorageCacheControl.Immutable, ct);
+                rawStorage = stored.Storage;
+                rawCdn = stored.Cdn;
+                rawThumbStorage = stored.ThumbStorage;
+                rawThumbCdn = stored.ThumbCdn;
+            }
+        }
+        else if (storeClean)
+        {
+            rawStorage = uploaded.StoragePath;
+            rawCdn = uploaded.CdnUrl;
+            rawThumbStorage = thumbStorage;
+            rawThumbCdn = thumbCdn;
+        }
+
         if (!ReferenceEquals(uploadSource, buffer))
             await uploadSource.DisposeAsync();
 
@@ -228,6 +250,10 @@ public class FileService : IFileService
             ThumbnailStorage = thumbStorage,
             ThumbnailCDN = thumbCdn,
             ThumbnailCheckedAt = thumbCheckedAt,
+            RawStoragePath = rawStorage,
+            RawCdnUrl = rawCdn,
+            RawThumbnailStorage = rawThumbStorage,
+            RawThumbnailCDN = rawThumbCdn,
             CacheControlSetAt = DateTime.UtcNow,
             IsDeleted = false,
             UploadDate = DateTime.UtcNow,
@@ -278,8 +304,30 @@ public class FileService : IFileService
         if (!options.HasWork)
             return record;
 
-        var sourceBytes = await DownloadStoredAsync(record.CNDUrl, ct)
+        // Prefer the clean sibling so a second edit does not stamp website 1's mark onto an already stamped file.
+        var hadClean = PlatformProductImage.HasClean(record);
+        var sourceUrl = hadClean && !string.IsNullOrWhiteSpace(record.RawCdnUrl) ? record.RawCdnUrl : record.CNDUrl;
+        var sourceBytes = await DownloadStoredAsync(sourceUrl, ct)
             ?? throw new InvalidOperationException("Could not read the stored image.");
+
+        var storeClean = record.WebsiteID == AppConstants.MasterWebsiteId
+            && await PlatformCatalog.IsPlatformAsync(_context, ct);
+        // A legacy file with no clean copy is already watermarked. Do not invent a clean sibling from those bytes.
+        var canWriteClean = storeClean && (hadClean || options.Watermark is null);
+
+        MemoryStream? clean = null;
+        var aliasClean = false;
+        if (canWriteClean && options.Watermark is not null)
+        {
+            var cleanOptions = WithoutWatermark(options);
+            await using var cleanSource = new MemoryStream(sourceBytes);
+            clean = await ImageProcessor.TryProcessAsync(cleanSource, cleanOptions, format, maxOutputBytes: null, ct)
+                ?? new MemoryStream(sourceBytes);
+        }
+        else if (canWriteClean)
+        {
+            aliasClean = true;
+        }
 
         await using var source = new MemoryStream(sourceBytes);
         var processed = await ImageProcessor.TryProcessAsync(source, options, format, maxOutputBytes: null, ct)
@@ -289,12 +337,14 @@ public class FileService : IFileService
         {
             processed.Position = 0;
             return await OverwriteContentAsync(
-                id, processed, record.OriginalFileName, record.MimeType, validateNewExtension: false, processRaster: false, ct);
+                id, processed, record.OriginalFileName, record.MimeType, validateNewExtension: false, processRaster: false, ct,
+                clean, aliasClean);
         }
     }
 
     private async Task<FileRecord> OverwriteContentAsync(int id, Stream content, string originalFileName,
-        string? mimeType, bool validateNewExtension, bool processRaster, CancellationToken ct)
+        string? mimeType, bool validateNewExtension, bool processRaster, CancellationToken ct,
+        Stream? separateClean = null, bool aliasCleanToMain = false)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -332,35 +382,28 @@ public class FileService : IFileService
             && incomingExt is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".tif" or ".tiff")
             category = FileCategory.Image;
         var isRasterProcessable = processRaster && category == FileCategory.Image && incomingExt is not (".svg" or ".gif");
+        var sourceExt = string.IsNullOrEmpty(incomingExt) ? Path.GetExtension(record.StoredFileName) : incomingExt;
+        var sourceMime = mime;
+        ImageProcessingOptions? processingOptions = null;
         if (isRasterProcessable)
         {
-            var options = await BuildProcessingOptionsAsync(
+            processingOptions = await BuildProcessingOptionsAsync(
                 _context, setting.WebsiteID, crop: null, resizeWidth: null, resizeHeight: null,
                 grayscale: false, applyWatermark: null, ct);
             var alreadyWebp = string.Equals(mime, "image/webp", StringComparison.OrdinalIgnoreCase)
                 || incomingExt == ".webp";
-            if (options.HasWork || !alreadyWebp)
+            if (processingOptions.HasWork || !alreadyWebp)
             {
-                buffer.Position = 0;
-                var originalLength = buffer.Length;
-                var processed = await ImageProcessor.TryProcessAsync(
-                    buffer, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
+                var processed = await TryProcessWebpAsync(buffer, processingOptions, ct);
                 if (processed is not null)
                 {
-                    if (!options.HasWork && processed.Length >= originalLength)
+                    uploadSource = processed;
+                    sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
+                    if (!alreadyWebp)
                     {
-                        await processed.DisposeAsync();
-                    }
-                    else
-                    {
-                        uploadSource = processed;
-                        sizeKb = (int)Math.Ceiling(processed.Length / 1024d);
-                        if (!alreadyWebp)
-                        {
-                            mime = "image/webp";
-                            storedName = Path.GetFileNameWithoutExtension(record.StoredFileName) + ".webp";
-                            originalFileName = WithExtension(originalFileName, ".webp");
-                        }
+                        mime = "image/webp";
+                        storedName = Path.GetFileNameWithoutExtension(record.StoredFileName) + ".webp";
+                        originalFileName = WithExtension(originalFileName, ".webp");
                     }
                 }
             }
@@ -414,6 +457,59 @@ public class FileService : IFileService
                 await DeleteFromStorageAsync(provider, ctx, thumbKey, ct);
         }
 
+        var oldRawStorage = record.RawStoragePath;
+        var oldRawThumb = record.RawThumbnailStorage;
+        var oldMainStorage = record.StoragePath;
+        var oldMainThumb = record.ThumbnailStorage;
+        string? rawStorage = null, rawCdn = null, rawThumbStorage = null, rawThumbCdn = null;
+        var platformMaster = record.WebsiteID == AppConstants.MasterWebsiteId
+            && await PlatformCatalog.IsPlatformAsync(_context, ct);
+        if (isRasterProcessable && platformMaster && processingOptions?.Watermark is not null && !ReferenceEquals(uploadSource, buffer))
+        {
+            var cleanOptions = WithoutWatermark(processingOptions);
+            var cleanProcessed = await TryProcessWebpAsync(buffer, cleanOptions, ct);
+            var clean = cleanProcessed ?? await CopyBufferAsync(buffer, ct);
+            await using (clean)
+            {
+                var stored = await UploadCleanObjectAsync(
+                    provider, ctx, clean,
+                    cleanProcessed is not null ? ".webp" : sourceExt,
+                    cleanProcessed is not null ? "image/webp" : sourceMime,
+                    setting.AutoGenerateThumbnails, StorageCacheControl.Immutable, ct);
+                rawStorage = stored.Storage;
+                rawCdn = stored.Cdn;
+                rawThumbStorage = stored.ThumbStorage;
+                rawThumbCdn = stored.ThumbCdn;
+            }
+        }
+        else if ((isRasterProcessable && platformMaster)
+            || (!processRaster && aliasCleanToMain && platformMaster && category == FileCategory.Image))
+        {
+            rawStorage = uploaded.StoragePath;
+            rawCdn = uploaded.CdnUrl;
+            rawThumbStorage = thumbStorage;
+            rawThumbCdn = thumbCdn;
+        }
+        else if (!processRaster && separateClean is not null && platformMaster)
+        {
+            await using (separateClean)
+            {
+                var cleanExt = Path.GetExtension(storedName);
+                if (string.IsNullOrEmpty(cleanExt)) cleanExt = ".webp";
+                var stored = await UploadCleanObjectAsync(
+                    provider, ctx, separateClean, cleanExt,
+                    cleanExt.Equals(".webp", StringComparison.OrdinalIgnoreCase) ? "image/webp" : mime,
+                    setting.AutoGenerateThumbnails, StorageCacheControl.Immutable, ct);
+                rawStorage = stored.Storage;
+                rawCdn = stored.Cdn;
+                rawThumbStorage = stored.ThumbStorage;
+                rawThumbCdn = stored.ThumbCdn;
+            }
+        }
+
+        await DeleteKeyIfUnkeptAsync(provider, ctx, oldRawStorage, ct, oldMainStorage, uploaded.StoragePath, rawStorage);
+        await DeleteKeyIfUnkeptAsync(provider, ctx, oldRawThumb, ct, oldMainThumb, thumbStorage, rawThumbStorage, oldMainStorage, uploaded.StoragePath, oldRawStorage, rawStorage);
+
         record.StoredFileName = storedName;
         record.StoragePath = uploaded.StoragePath;
         record.CNDUrl = uploaded.CdnUrl;
@@ -424,6 +520,10 @@ public class FileService : IFileService
         record.OriginalFileName = FileNameSanitizer.Normalize(originalFileName, 120);
         record.ThumbnailStorage = thumbStorage;
         record.ThumbnailCDN = thumbCdn;
+        record.RawStoragePath = rawStorage;
+        record.RawCdnUrl = rawCdn;
+        record.RawThumbnailStorage = rawThumbStorage;
+        record.RawThumbnailCDN = rawThumbCdn;
         // Thumbnails off for this storage: leave it pending so the backfill covers it if they are turned on.
         record.ThumbnailCheckedAt = !setting.AutoGenerateThumbnails && category == FileCategory.Image
             && ImageThumbnailer.Supports(storedName) ? null : thumbCheckedAt;
@@ -554,6 +654,10 @@ public class FileService : IFileService
             {
                 await DeleteFromStorageAsync(provider, ctx, thumbKey, ct);
             }
+
+            await DeleteKeyIfUnkeptAsync(provider, ctx, record.RawStoragePath, ct, record.StoragePath, mainKey);
+            await DeleteKeyIfUnkeptAsync(provider, ctx, record.RawThumbnailStorage, ct,
+                record.ThumbnailStorage, record.StoragePath, mainKey, thumbKey, record.RawStoragePath);
         }
 
         await ClearFileReferencesAsync(_context, id, ct);
@@ -831,6 +935,88 @@ public class FileService : IFileService
     }
 
     // ── Image processing ────────────────────────────────────────
+
+    /// <summary>WebP pass that keeps the original bytes when a format-only re-encode would grow the file.</summary>
+    private static async Task<MemoryStream?> TryProcessWebpAsync(Stream source, ImageProcessingOptions options, CancellationToken ct)
+    {
+        if (source.CanSeek) source.Position = 0;
+        var originalLength = source.CanSeek ? source.Length : (long?)null;
+        var processed = await ImageProcessor.TryProcessAsync(
+            source, options, SKEncodedImageFormat.Webp, maxOutputBytes: originalLength, ct);
+        if (processed is null) return null;
+        if (!options.HasWork && originalLength is long budget && processed.Length >= budget)
+        {
+            await processed.DisposeAsync();
+            return null;
+        }
+        return processed;
+    }
+
+    private static async Task<MemoryStream> CopyBufferAsync(Stream source, CancellationToken ct)
+    {
+        if (source.CanSeek) source.Position = 0;
+        var copy = new MemoryStream();
+        await source.CopyToAsync(copy, ct);
+        copy.Position = 0;
+        return copy;
+    }
+
+    private static ImageProcessingOptions WithoutWatermark(ImageProcessingOptions options) => new()
+    {
+        Crop = options.Crop,
+        ResizeWidth = options.ResizeWidth,
+        ResizeHeight = options.ResizeHeight,
+        Grayscale = options.Grayscale,
+    };
+
+    private async Task<(string? Storage, string? Cdn, string? ThumbStorage, string? ThumbCdn)> UploadCleanObjectAsync(
+        IFileStorageProvider provider, StorageSettingContext ctx, Stream body, string extension, string mime,
+        bool autoThumbs, string cacheControl, CancellationToken ct)
+    {
+        var ext = string.IsNullOrWhiteSpace(extension) ? ".webp" : extension;
+        if (!ext.StartsWith('.')) ext = "." + ext;
+        var name = "clean-" + Guid.NewGuid().ToString("N") + ext.ToLowerInvariant();
+        body.Position = 0;
+        var uploaded = await provider.UploadAsync(ctx, body, name, mime, cacheControl, ct);
+
+        string? thumbStorage = null, thumbCdn = null;
+        if (autoThumbs && ImageThumbnailer.Supports(name))
+        {
+            try
+            {
+                body.Position = 0;
+                await using var thumb = await ImageThumbnailer.TryCreateAsync(body, ct);
+                if (thumb is not null)
+                {
+                    var thumbResult = await provider.UploadAsync(
+                        ctx, thumb, ImageThumbnailer.NameFor(name), "image/webp", cacheControl, ct);
+                    thumbStorage = thumbResult.StoragePath;
+                    thumbCdn = thumbResult.CdnUrl;
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // A missing clean thumbnail falls back to the clean original at read time.
+            }
+        }
+
+        return (uploaded.StoragePath, uploaded.CdnUrl, thumbStorage, thumbCdn);
+    }
+
+    /// <summary>Deletes a previous clean object unless that key is still the public file or the new clean file.</summary>
+    private static async Task DeleteKeyIfUnkeptAsync(
+        IFileStorageProvider provider, StorageSettingContext ctx, string? key, CancellationToken ct, params string?[] keep)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return;
+        foreach (var kept in keep)
+        {
+            if (string.Equals(kept, key, StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
+        await DeleteFromStorageAsync(provider, ctx, key, ct);
+    }
+
     private async Task<ImageProcessingOptions> BuildProcessingOptionsAsync(
         AppDbContext _context, int websiteId, ImageCropRect? crop, int? resizeWidth, int? resizeHeight,
         bool grayscale, bool? applyWatermark, CancellationToken ct)

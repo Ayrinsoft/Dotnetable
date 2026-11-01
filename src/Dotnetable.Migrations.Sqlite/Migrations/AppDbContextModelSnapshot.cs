@@ -2849,6 +2849,22 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RawCdnUrl")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawStoragePath")
+                        .HasMaxLength(350)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawThumbnailCDN")
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RawThumbnailStorage")
+                        .HasMaxLength(350)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
                         .HasColumnType("TEXT");

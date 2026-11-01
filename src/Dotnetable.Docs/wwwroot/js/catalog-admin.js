@@ -3294,13 +3294,13 @@ window.DOCS_ADMIN = {
             fa: "قوانین واترمارک خودکار تصاویر (حفاظت برند).",
           },
           purpose: {
-            en: "Apply logo/text overlays on uploaded images when enabled.",
-            fa: "در صورت فعال بودن، لوگو/متن را روی تصاویر آپلودی بنشاند.",
+            en: "Apply the site watermark when an image is uploaded. On a platform, website 1 also keeps a clean copy: subsidiary sites show that copy, or /media/i when they have their own watermark. The clean file is stamped on request and its CDN address is not given to the visitor.",
+            fa: "هنگام آپلود، واترمارک سایت روی تصویر می‌نشیند. در حالت پلتفرم سایت ۱ یک نسخه خام هم نگه می‌دارد: سایت‌های زیرمجموعه همان را می‌بینند، یا اگر واترمارک خودشان روشن باشد آدرس /media/i می‌گیرند. فایل خام در لحظه مهر می‌شود و آدرس CDN آن به بازدیدکننده داده نمی‌شود.",
           },
           howTo: [
             {
-              en: "Configure watermark image/position/opacity; verify on a sample upload.",
-              fa: "تصویر/موقعیت/شفافیت واترمارک را تنظیم کنید؛ روی آپلود نمونه تست کنید.",
+              en: "Configure watermark image/position/opacity; verify on a sample upload. Platform mode only changes catalog images owned by website 1. Older files that have no clean copy stay as they were stored.",
+              fa: "تصویر/موقعیت/شفافیت واترمارک را تنظیم کنید؛ روی آپلود نمونه تست کنید. حالت پلتفرم فقط عکس‌های کاتالوگ سایت ۱ را عوض می‌کند. فایل‌های قدیمی که نسخه خام ندارند همان‌طور که ذخیره شده‌اند می‌مانند.",
             },
           ],
           related: ["media-library", "storage"],

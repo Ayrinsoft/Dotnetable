@@ -370,10 +370,11 @@ public class ProductCategoryService : IProductCategoryService
     public async Task<List<ProductCategoryDto>> GetTreeAsync(int websiteId, string? languageCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
-        websiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, websiteId, ct);
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
 
         var categories = await _context.ProductCategories.AsNoTracking()
-            .Where(c => c.WebsiteID == websiteId && c.IsActive)
+            .Where(c => c.WebsiteID == catalogWebsiteId && c.IsActive)
             .Include(c => c.ProductCategoryTranslations)
             .Include(c => c.ImageFile)
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
@@ -381,20 +382,21 @@ public class ProductCategoryService : IProductCategoryService
 
         var byParent = categories.ToLookup(c => c.ParentCategoryID);
 
-        return BuildChildren(null, byParent, languageCode);
+        return BuildChildren(null, byParent, languageCode, imageAudience);
     }
 
     public async Task<ProductCategoryDto?> GetBySlugAsync(int websiteId, string slug, string? languageCode = null, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
-        websiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, websiteId, ct);
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
 
         var category = await _context.ProductCategories.AsNoTracking()
             .Include(c => c.ProductCategoryTranslations)
             .Include(c => c.ImageFile)
-            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.IsActive &&
+            .FirstOrDefaultAsync(c => c.WebsiteID == catalogWebsiteId && c.IsActive &&
                 (c.Slug == slug || c.ProductCategoryTranslations.Any(t => t.Slug == slug)), ct);
-        return category is null ? null : Project(category, Array.Empty<ProductCategoryDto>(), languageCode);
+        return category is null ? null : Project(category, Array.Empty<ProductCategoryDto>(), languageCode, imageAudience);
     }
 
     // ── Projection helpers ──────────────────────────────────────────
@@ -402,14 +404,16 @@ public class ProductCategoryService : IProductCategoryService
     private static List<ProductCategoryDto> BuildChildren(
         int? parentId,
         ILookup<int?, ProductCategory> byParent,
-        string? languageCode)
+        string? languageCode,
+        PlatformImageAudience imageAudience)
     {
         return byParent[parentId]
-            .Select(c => Project(c, BuildChildren(c.ProductCategoryID, byParent, languageCode), languageCode))
+            .Select(c => Project(c, BuildChildren(c.ProductCategoryID, byParent, languageCode, imageAudience), languageCode, imageAudience))
             .ToList();
     }
 
-    private static ProductCategoryDto Project(ProductCategory c, IReadOnlyList<ProductCategoryDto> children, string? languageCode)
+    private static ProductCategoryDto Project(
+        ProductCategory c, IReadOnlyList<ProductCategoryDto> children, string? languageCode, PlatformImageAudience imageAudience)
     {
         var (name, slug) = Localized(c, languageCode);
         return new ProductCategoryDto
@@ -418,7 +422,7 @@ public class ProductCategoryService : IProductCategoryService
             ParentCategoryID = c.ParentCategoryID,
             Name = name,
             Slug = slug,
-            ImageUrl = c.ImageFile?.ThumbnailCDN ?? c.ImageFile?.CNDUrl,
+            ImageUrl = PlatformProductImage.ForViewer(c.ImageFile, imageAudience, thumbnail: true),
             SortOrder = c.SortOrder,
             Children = children,
         };

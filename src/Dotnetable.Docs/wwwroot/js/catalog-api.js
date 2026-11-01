@@ -489,8 +489,8 @@ window.DOCS_API = {
           },
           purpose: [
             {
-              en: "This is what the shop UI calls to show the catalog. Admin creates/edits products; API only **reads published** data.",
-              fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند.",
+              en: "This is what the shop UI calls to show the catalog. Admin creates/edits products; API only **reads published** data. On a platform, image URLs are chosen for the website in X-Website-Key: website 1 gets its watermarked file, a child with no watermark gets the clean file, and a child with its own watermark gets an absolute /media/i link instead of the clean CDN URL.",
+              fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند. در پلتفرم، آدرس عکس برای وب‌سایت X-Website-Key انتخاب می‌شود: سایت ۱ فایل واترمارک‌خورده را می‌گیرد، سایت زیرمجموعه بدون واترمارک فایل خام را می‌گیرد، و سایت زیرمجموعه با واترمارک خودش به‌جای CDN خام لینک مطلق /media/i می‌گیرد.",
             },
           ],
           relatedAdmin: ["products", "price-lists", "catalog-categories", "brands"],
@@ -2193,6 +2193,24 @@ window.DOCS_API = {
               response: {
                 status: 200,
                 body: "(binary file stream)",
+              },
+            },
+            {
+              title: { en: "Platform catalog image", fa: "عکس کاتالوگ پلتفرم" },
+              method: "GET",
+              path: "/api/media/platform-image/{fileId}?s=t|f",
+              auth: "website",
+              summary: {
+                en: "Returns a website-1 catalog image for the destination site. s=t is the thumbnail and s=f is full size. When that site has a watermark, the bytes are stamped in the response. There is no redirect to the clean file. Cache-Control is private, max-age=120. The storefront exposes this as /media/i/{fileId}.",
+                fa: "عکس کاتالوگ سایت ۱ را برای سایت مقصد برمی‌گرداند. s=t بندانگشتی و s=f اندازه کامل است. اگر آن سایت واترمارک داشته باشد، بایت‌ها در همین پاسخ مهر می‌شوند. به فایل خام ریدایرکت نمی‌شود. Cache-Control برابر private, max-age=120 است. ویترین این را با /media/i/{fileId} نشان می‌دهد.",
+              },
+              headers: [
+                { name: "X-Website-Key", desc: { en: "Destination website AuthCode", fa: "کلید وب‌سایت مقصد" } },
+              ],
+              request: { body: "GET /api/media/platform-image/42?s=t" },
+              response: {
+                status: 200,
+                body: "(image bytes)",
               },
             },
           ],

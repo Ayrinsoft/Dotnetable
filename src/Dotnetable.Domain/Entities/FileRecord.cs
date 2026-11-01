@@ -37,6 +37,16 @@ public partial class FileRecord
 
     public string? ThumbnailCDN { get; set; }
 
+    /// <summary>Unwatermarked original object. Set for website-1 rasters when the installation is a platform. May alias <see cref="StoragePath"/> when no watermark was burned in.</summary>
+    public string? RawStoragePath { get; set; }
+
+    /// <summary>Public URL of <see cref="RawStoragePath"/>. Storefronts must not receive this when the viewer site stamps its own watermark.</summary>
+    public string? RawCdnUrl { get; set; }
+
+    public string? RawThumbnailStorage { get; set; }
+
+    public string? RawThumbnailCDN { get; set; }
+
     /// <summary>When the thumbnail pass last settled this file (made one, or decided none applies). Null = still pending.</summary>
     public DateTime? ThumbnailCheckedAt { get; set; }
 

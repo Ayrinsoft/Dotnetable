@@ -2965,6 +2965,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<string>("RawCdnUrl")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RawStoragePath")
+                        .HasMaxLength(350)
+                        .HasColumnType("nvarchar(350)");
+
+                    b.Property<string>("RawThumbnailCDN")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RawThumbnailStorage")
+                        .HasMaxLength(350)
+                        .HasColumnType("nvarchar(350)");
+
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
                         .HasColumnType("nvarchar(350)");

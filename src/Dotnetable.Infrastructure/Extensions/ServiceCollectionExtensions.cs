@@ -138,6 +138,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExcelExporterRegistry, Excel.ExcelExporterRegistry>();
         services.AddScoped<IStorageSettingService, StorageSettingService>();
         services.AddScoped<IFileService, FileService>();
+        services.AddScoped<IPlatformProductImageRenderer, PlatformProductImageRenderer>();
         services.AddScoped<ILocationService, LocationService>();
         services.AddScoped<IWebsiteSettingService, WebsiteSettingService>();
         services.AddScoped<IContactMessageService, ContactMessageService>();

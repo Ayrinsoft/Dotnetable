@@ -1,8 +1,11 @@
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Infrastructure.Catalog;
+using Dotnetable.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.API.Controllers;
 
@@ -12,12 +15,16 @@ public class WishlistController : BaseController
     private readonly IWishlistService _wishlist;
     private readonly IWebsiteService _websiteService;
     private readonly ICurrencyConversionService _currency;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public WishlistController(IWishlistService wishlist, IWebsiteService websiteService, ICurrencyConversionService currency)
+    public WishlistController(
+        IWishlistService wishlist, IWebsiteService websiteService, ICurrencyConversionService currency,
+        IDbContextFactory<AppDbContext> contextFactory)
     {
         _wishlist = wishlist;
         _websiteService = websiteService;
         _currency = currency;
+        _contextFactory = contextFactory;
     }
 
     [HttpGet]
@@ -28,6 +35,12 @@ public class WishlistController : BaseController
         var storeUsd = websiteId > 0 && await _currency.GetStorePricesInUsdAsync(websiteId, ct);
 
         var items = await _wishlist.GetItemsAsync(CurrentClientId, ct);
+        var imageAudience = PlatformImageAudience.Direct;
+        if (websiteId > 0)
+        {
+            await using var db = await _contextFactory.CreateDbContextAsync(ct);
+            imageAudience = await PlatformProductImage.LoadAsync(db, websiteId, ct);
+        }
         var result = new List<object>();
         foreach (var i in items)
         {
@@ -57,7 +70,7 @@ public class WishlistController : BaseController
                 ProductID = v.ProductID,
                 Title = v.Product.Title,
                 Sku = v.Sku,
-                ImageUrl = v.ImageFile?.ThumbnailCDN ?? v.ImageFile?.CNDUrl,
+                ImageUrl = PlatformProductImage.ForViewer(v.ImageFile, imageAudience, thumbnail: true),
                 price,
                 // Backward-compatible.
                 PriceUsd = price.AmountUsd,

@@ -1,6 +1,7 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -60,6 +61,7 @@ public class CartService : ICartService
             .FirstOrDefaultAsync(c => c.CartID == cartId, ct);
         if (cart is null) return new CartViewDto { CartID = cartId };
 
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, websiteId, ct);
         var items = new List<CartItemViewDto>();
         decimal subtotalUsd = 0;
         decimal totalWeight = 0;
@@ -122,7 +124,7 @@ public class CartService : ICartService
                     ? variant.Product.Title
                     : $"{variant.Product.Title} — {variant.Title}",
                 Sku = variant.Sku,
-                ImageUrl = variant.ImageFile?.ThumbnailCDN ?? variant.ImageFile?.CNDUrl,
+                ImageUrl = PlatformProductImage.ForViewer(variant.ImageFile, imageAudience, thumbnail: true),
                 Quantity = item.Quantity,
                 UnitPrice = unitPrice,
                 LineTotal = lineTotal,

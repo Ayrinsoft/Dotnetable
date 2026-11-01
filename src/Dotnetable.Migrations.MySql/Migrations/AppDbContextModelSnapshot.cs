@@ -2851,6 +2851,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("varchar(120)");
 
+                    b.Property<string>("RawCdnUrl")
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<string>("RawStoragePath")
+                        .HasMaxLength(350)
+                        .HasColumnType("varchar(350)");
+
+                    b.Property<string>("RawThumbnailCDN")
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<string>("RawThumbnailStorage")
+                        .HasMaxLength(350)
+                        .HasColumnType("varchar(350)");
+
                     b.Property<string>("StoragePath")
                         .HasMaxLength(350)
                         .HasColumnType("varchar(350)");

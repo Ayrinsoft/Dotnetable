@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,6 +70,7 @@ public sealed class MarketplaceProductSource : IMarketplaceProductSource
             .ToDictionaryAsync(x => x.VariantId, x => x.Available, ct);
 
         var baseUrl = BuildBaseUrl(website.WebsiteAddress);
+        var imageAudience = await PlatformProductImage.LoadAsync(_context, website.WebsiteID, ct);
         var items = new List<MarketplaceProductItem>();
 
         foreach (var product in products)
@@ -87,7 +89,7 @@ public sealed class MarketplaceProductSource : IMarketplaceProductSource
             foreach (var variant in product.ProductVariants.Where(v => v.IsActive))
             {
                 var available = stock.GetValueOrDefault(variant.ProductVariantID);
-                var imageUrl = ImageUrl(variant.ImageFile) ?? ImageUrl(product.FeaturedImageFile);
+                var imageUrl = ImageUrl(variant.ImageFile, imageAudience) ?? ImageUrl(product.FeaturedImageFile, imageAudience);
 
                 items.Add(new MarketplaceProductItem
                 {
@@ -135,12 +137,8 @@ public sealed class MarketplaceProductSource : IMarketplaceProductSource
     }
 
     /// <summary>Feeds want the full-size image, not the thumbnail — Google rejects images under 250px.</summary>
-    private static string? ImageUrl(Domain.Entities.FileRecord? file)
-    {
-        if (file is null || file.IsDeleted) return null;
-        var url = !string.IsNullOrWhiteSpace(file.CNDUrl) ? file.CNDUrl : file.ThumbnailCDN;
-        return string.IsNullOrWhiteSpace(url) ? null : url.Trim();
-    }
+    private static string? ImageUrl(Domain.Entities.FileRecord? file, PlatformImageAudience audience) =>
+        PlatformProductImage.ForViewer(file, audience, thumbnail: false);
 
     /// <summary>Website addresses are stored bare (<c>shop.example.com</c>), but feeds need absolute URLs.</summary>
     private static string BuildBaseUrl(string websiteAddress)
