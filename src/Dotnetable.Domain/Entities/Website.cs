@@ -44,6 +44,12 @@ public partial class Website
     public bool IsPlatform { get; set; }
 
     /// <summary>
+    /// When true, this website's storefront lists only the product categories in
+    /// <see cref="WebsiteVisibleProductCategories"/>. When false, every active category is shown.
+    /// </summary>
+    public bool LimitVisibleCategories { get; set; }
+
+    /// <summary>
     /// show in title of pages
     /// </summary>
     public string BrandName { get; set; } = null!;
@@ -239,6 +245,8 @@ public partial class Website
     public virtual ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
 
     public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();
+
+    public virtual ICollection<WebsiteVisibleProductCategory> WebsiteVisibleProductCategories { get; set; } = new List<WebsiteVisibleProductCategory>();
 
     public virtual ICollection<CatalogRequest> CatalogRequests { get; set; } = new List<CatalogRequest>();
 

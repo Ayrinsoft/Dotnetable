@@ -247,6 +247,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CatalogRequest> CatalogRequests { get; set; }
 
+    public virtual DbSet<WebsiteVisibleProductCategory> WebsiteVisibleProductCategories { get; set; }
+
     public virtual DbSet<ProductCategoryAttribute> ProductCategoryAttributes { get; set; }
 
     public virtual DbSet<ProductCategoryMap> ProductCategoryMaps { get; set; }
@@ -3152,6 +3154,22 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_CatalogRequests_ProductCategories");
         });
 
+        modelBuilder.Entity<WebsiteVisibleProductCategory>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.ProductCategoryID }, "UQ_WebsiteVisibleProductCategories_Website_Category")
+                .IsUnique();
+
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteVisibleProductCategories)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_WebsiteVisibleProductCategories_Websites");
+
+            entity.HasOne(d => d.ProductCategory).WithMany(p => p.WebsiteVisibleProductCategories)
+                .HasForeignKey(d => d.ProductCategoryID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_WebsiteVisibleProductCategories_ProductCategories");
+        });
+
         modelBuilder.Entity<ProductCategoryAttribute>(entity =>
         {
             entity.HasKey(e => new { e.ProductCategoryID, e.AttributeDefinitionID });
@@ -4194,6 +4212,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsPlatform)
                 .HasDefaultValue(false)
                 .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");
+            entity.Property(e => e.LimitVisibleCategories)
+                .HasDefaultValue(false)
+                .HasComment("When true, the storefront shows only WebsiteVisibleProductCategories. Ancestors stay in the menu.");
             entity.Property(e => e.StorePricesInUsd)
                 .HasDefaultValue(false)
                 .HasComment("When true, also persist USD dual columns; default site currency is always operational authority.");

@@ -1,5 +1,11 @@
 namespace Dotnetable.Application.DTOs;
 
+public sealed class WebsiteCategoryVisibilityDto
+{
+    public bool LimitToSelection { get; init; }
+    public IReadOnlyList<int> CategoryIds { get; init; } = Array.Empty<int>();
+}
+
 public sealed class ProductCategoryPickDto
 {
     public int ProductCategoryID { get; set; }

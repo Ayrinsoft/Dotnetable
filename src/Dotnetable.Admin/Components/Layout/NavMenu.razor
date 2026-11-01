@@ -353,6 +353,7 @@
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.CatalogTaxonomyView" Context="pcat">
                     <MudNavLink Href="/catalog/categories" Icon="@Icons.Material.Filled.Category">@L["categories", "Categories"]</MudNavLink>
+                    <MudNavLink Href="/catalog/categories/visibility" Icon="@Icons.Material.Filled.Visibility">@L["catalog.visibility", "Visible categories"]</MudNavLink>
                     <MudNavLink Href="/catalog/categories/taxonomy" Icon="@Icons.Material.Filled.AccountTree">@L["catalog.taxonomy.open", "Google taxonomy"]</MudNavLink>
                     <MudNavLink Href="/catalog/requests" Icon="@Icons.Material.Filled.MarkEmailUnread">@L["catalog.requests.open", "Catalog requests"]</MudNavLink>
                     <MudNavLink Href="/catalog/attributes" Icon="@Icons.Material.Filled.Tune">@L["attributes", "Attributes"]</MudNavLink>

@@ -663,8 +663,8 @@ window.DOCS_API = {
           },
           purpose: [
             {
-              en: "Admin path: Catalog → Categories. API path: `/api/ProductCategories/...`. On a platform the public tree and published products come from website 1. Inactive categories, and categories under an inactive parent, are omitted. The admin picker loads one level at a time.",
-              fa: "مسیر ادمین: Catalog → Categories. مسیر API: `/api/ProductCategories/...`. در حالت پلتفرم درخت عمومی و کالاهای منتشرشده از سایت ۱ می‌آیند. دسته‌های غیرفعال و فرزندان یک والد غیرفعال حذف می‌شوند. انتخاب‌گر ادمین هر بار یک سطح را می‌خواند.",
+              en: "Admin path: Catalog → Categories. API path: `/api/ProductCategories/...`. On a platform the public tree and published products come from website 1. Inactive categories, and categories under an inactive parent, are omitted. When the calling website has limited its visible categories, the tree and the product list contain only that selection. A parent of a selected category stays in the tree; products are returned only when they sit in a selected category. The admin picker loads one level at a time.",
+              fa: "مسیر ادمین: Catalog → Categories. مسیر API: `/api/ProductCategories/...`. در حالت پلتفرم درخت عمومی و کالاهای منتشرشده از سایت ۱ می‌آیند. دسته‌های غیرفعال و فرزندان یک والد غیرفعال حذف می‌شوند. اگر وب‌سایت فراخوان دسته‌های قابل نمایش را محدود کرده باشد، درخت و فهرست کالا فقط همان انتخاب است. والد یک دسته انتخاب‌شده در درخت می‌ماند؛ کالا فقط وقتی برمی‌گردد که در یک دسته انتخاب‌شده باشد. انتخاب‌گر ادمین هر بار یک سطح را می‌خواند.",
             },
           ],
           relatedAdmin: ["catalog-categories", "attributes"],

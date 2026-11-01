@@ -1,0 +1,264 @@
+@page "/catalog/categories/visibility"
+@attribute [Authorize(Policy = RoleKeys.CatalogTaxonomyView)]
+@inject IProductCategoryService ProductCategoryService
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["catalog.visibility", "Visible categories"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["catalog.visibility", "Visible categories"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @L["catalog.visibility.subtitle", "Choose which catalog categories this website shows."]
+        </MudText>
+    </MudStack>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="@(() => Nav.NavigateTo("/catalog/categories"))">
+        @L["catalog.categories", "Product Categories"]
+    </MudButton>
+</MudStack>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+    @L["catalog.visibility.help", "Until you limit this website, its shop shows the whole catalog. After you save a selection, only the checked categories are shown. Checking a category does not check the branches under it. A parent stays in the menu when one of its branches is checked, but that parent's own products stay hidden unless the parent is checked too."]
+</MudAlert>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+    }
+    else
+    {
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:220px" Class="mb-3" />
+        }
+
+        <MudSwitch T="bool" Value="_limit" ValueChanged="OnLimitChanged" Color="Color.Primary" Class="mb-2"
+                   Disabled="@(!_canEdit)">
+            @L["catalog.visibility.limit", "Only show selected categories"]
+        </MudSwitch>
+
+        @if (_limit)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                @string.Format(L["catalog.visibility.count", "{0} categories selected"], _selected.Count)
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Style="flex-wrap:wrap;">
+                <MudTextField @bind-Value="_search" Immediate="true"
+                              Placeholder="@L["catalog.categories.search", "Search categories…"]"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Style="min-width:220px; max-width:360px;" />
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="@(!_canEdit || string.IsNullOrWhiteSpace(_search))"
+                           OnClick="SearchAsync">
+                    @L["search", "Search"]
+                </MudButton>
+            </MudStack>
+
+            @if (_hits.Count > 0)
+            {
+                <MudList T="ProductCategoryPickDto" Dense="true" Class="mb-3">
+                    @foreach (var hit in _hits)
+                    {
+                        <MudListItem T="ProductCategoryPickDto">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudCheckBox T="bool" Value="_selected.Contains(hit.ProductCategoryID)"
+                                             ValueChanged="@(v => Toggle(hit.ProductCategoryID, v))"
+                                             Disabled="@(!_canEdit)" />
+                                <MudText Typo="Typo.body2">@hit.Path</MudText>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@(!_canEdit)"
+                                           OnClick="@(() => IncludeBranchAsync(hit.ProductCategoryID))">
+                                    @L["catalog.visibility.branch_on", "Show branch"]
+                                </MudButton>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            @if (_roots.Count == 0)
+            {
+                <MudText Color="Color.Secondary">@L["catalog.categories.empty", "No categories yet."]</MudText>
+            }
+            else
+            {
+                <ul class="dn-tree dn-tree-root">
+                    @foreach (var node in _roots)
+                    {
+                        @RenderNode(node, 0)
+                    }
+                </ul>
+            }
+        }
+
+        @if (_canEdit)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Disabled="_saving" OnClick="SaveAsync">
+                @L["save", "Save"]
+            </MudButton>
+        }
+    }
+</MudPaper>
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _isMaster;
+    private bool _canEdit;
+    private bool _limit;
+    private int _websiteId;
+    private string? _search;
+    private List<Website> _websites = new();
+    private List<VisNode> _roots = new();
+    private List<ProductCategoryPickDto> _hits = new();
+    private readonly HashSet<int> _selected = new();
+
+    private sealed class VisNode
+    {
+        public ProductCategoryPickDto Item { get; set; } = new();
+        public List<VisNode>? Children { get; set; }
+        public bool Open { get; set; }
+        public bool Loading { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        _canEdit = AdminPolicies.Allows(user, RoleKeys.CatalogTaxonomyEdit);
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster)
+        {
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+            if (_websiteId == 0 && _websites.Count > 0) _websiteId = _websites[0].WebsiteID;
+        }
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int websiteId)
+    {
+        _websiteId = websiteId;
+        _search = null;
+        _hits.Clear();
+        await LoadAsync();
+    }
+
+    private Task OnLimitChanged(bool value)
+    {
+        _limit = value;
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _selected.Clear();
+        _roots.Clear();
+        if (_websiteId > 0)
+        {
+            var visibility = await ProductCategoryService.GetVisibilityAsync(_websiteId);
+            _limit = visibility.LimitToSelection;
+            foreach (var id in visibility.CategoryIds) _selected.Add(id);
+            var roots = await ProductCategoryService.GetChildrenAsync(_websiteId, null, null, 100);
+            _roots = roots.Select(c => new VisNode { Item = c }).ToList();
+        }
+        _loading = false;
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_search)) { _hits.Clear(); return; }
+        _hits = (await ProductCategoryService.SearchAsync(_websiteId, _search.Trim(), 25)).ToList();
+    }
+
+    private void Toggle(int id, bool on)
+    {
+        if (on) _selected.Add(id);
+        else _selected.Remove(id);
+    }
+
+    private async Task IncludeBranchAsync(int id)
+    {
+        foreach (var branchId in await ProductCategoryService.GetBranchIdsAsync(_websiteId, id))
+            _selected.Add(branchId);
+    }
+
+    private async Task HideBranchAsync(int id)
+    {
+        foreach (var branchId in await ProductCategoryService.GetBranchIdsAsync(_websiteId, id))
+            _selected.Remove(branchId);
+    }
+
+    private async Task ToggleOpenAsync(VisNode node)
+    {
+        node.Open = !node.Open;
+        if (!node.Open || node.Children is not null || !node.Item.HasChildren) return;
+        node.Loading = true;
+        var children = await ProductCategoryService.GetChildrenAsync(_websiteId, node.Item.ProductCategoryID, null, 100);
+        node.Children = children.Select(c => new VisNode { Item = c }).ToList();
+        node.Loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_websiteId <= 0) return;
+        _saving = true;
+        await ProductCategoryService.SetVisibilityAsync(_websiteId, _limit, _limit ? _selected.ToList() : Array.Empty<int>());
+        _saving = false;
+        Snackbar.Add(L["catalog.visibility.saved", "Visible categories saved."], Severity.Success);
+    }
+
+    private RenderFragment RenderNode(VisNode node, int depth) => __builder =>
+    {
+        <li class="dn-tree-item">
+            <div class="d-flex align-center" style="@($"padding-inline-start:{depth * 16}px")">
+                @if (node.Item.HasChildren)
+                {
+                    <MudIconButton Icon="@(node.Open ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)"
+                                   Size="Size.Small" OnClick="@(() => ToggleOpenAsync(node))" />
+                }
+                else
+                {
+                    <span style="width:34px"></span>
+                }
+                <MudCheckBox T="bool" Value="_selected.Contains(node.Item.ProductCategoryID)"
+                             ValueChanged="@(v => Toggle(node.Item.ProductCategoryID, v))"
+                             Disabled="@(!_canEdit)" />
+                <MudText Typo="Typo.body2">@node.Item.Name</MudText>
+                @if (node.Item.HasChildren && _canEdit)
+                {
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Class="ms-1"
+                               OnClick="@(() => IncludeBranchAsync(node.Item.ProductCategoryID))">
+                        @L["catalog.visibility.branch_on", "Show branch"]
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Size="Size.Small"
+                               OnClick="@(() => HideBranchAsync(node.Item.ProductCategoryID))">
+                        @L["catalog.visibility.branch_off", "Hide branch"]
+                    </MudButton>
+                }
+                @if (node.Loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ms-2" />
+                }
+            </div>
+            @if (node.Open && node.Children is not null)
+            {
+                <ul class="dn-tree">
+                    @foreach (var child in node.Children)
+                    {
+                        @RenderNode(child, depth + 1)
+                    }
+                </ul>
+            }
+        </li>
+    };
+}

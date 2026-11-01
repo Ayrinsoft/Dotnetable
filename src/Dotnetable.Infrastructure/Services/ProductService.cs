@@ -883,6 +883,9 @@ public class ProductService : IProductService
         IQueryable<Product> q = PublishedQuery(_context, catalogWebsiteId)
             .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
 
+        var visibleCategories = await WebsiteCategoryVisibility.SelectionAsync(_context, storeWebsiteId, ct);
+        q = ApplyVisibleCategories(q, visibleCategories);
+
         if (!string.IsNullOrWhiteSpace(categorySlug))
             q = q.Where(p => p.ProductCategoryMaps.Any(m =>
                 m.ProductCategory.Slug == categorySlug || m.ProductCategory.ProductCategoryTranslations.Any(t => t.Slug == categorySlug)));
@@ -902,7 +905,7 @@ public class ProductService : IProductService
             .ToListAsync(ct);
 
         // Site-linked vendors: only products owned by the linked website (never re-shared imports).
-        var linked = await LoadLinkedSiteProductsAsync(_context, storeWebsiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, ct);
+        var linked = await LoadLinkedSiteProductsAsync(_context, storeWebsiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, visibleCategories, ct);
         if (catalogWebsiteId != storeWebsiteId)
         {
             var localIds = localProducts.Select(p => p.ProductID).ToHashSet();
@@ -959,6 +962,9 @@ public class ProductService : IProductService
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
         var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
+        var visibleCategories = await WebsiteCategoryVisibility.SelectionAsync(_context, websiteId, ct);
+        bool Shown(Product product) =>
+            visibleCategories is null || product.ProductCategoryMaps.Any(m => visibleCategories.Contains(m.ProductCategoryID));
 
         // Product code URL: /product/DN-42 (prefix from owning site; id is ProductID, not variant).
         if (Domain.ProductCode.TryParse(slug, out var codePrefix, out var codeProductId))
@@ -968,7 +974,7 @@ public class ProductService : IProductService
             {
                 var byCode = await DetailQuery(_context, catalogWebsiteId)
                     .FirstOrDefaultAsync(p => p.ProductID == codeProductId, ct);
-                if (byCode is not null)
+                if (byCode is not null && Shown(byCode))
                     return await ProjectDetailAsync(_context, byCode, languageCode, currencyCode, ct, null, websiteId);
             }
 
@@ -983,7 +989,7 @@ public class ProductService : IProductService
 
                 var linked = await DetailQuery(_context, lid)
                     .FirstOrDefaultAsync(p => p.ProductID == codeProductId && p.WebsiteID == lid, ct);
-                if (linked is not null)
+                if (linked is not null && Shown(linked))
                     return await ProjectDetailAsync(_context, linked, languageCode, currencyCode, ct, v, websiteId);
             }
         }
@@ -1016,7 +1022,7 @@ public class ProductService : IProductService
             }
         }
 
-        if (product is null) return null;
+        if (product is null || !Shown(product)) return null;
         return await ProjectDetailAsync(_context, product, languageCode, currencyCode, ct, vendor, websiteId);
     }
 
@@ -1035,6 +1041,7 @@ public class ProductService : IProductService
         var storeWebsiteId = websiteId;
         var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
         var imageAudience = await PlatformProductImage.LoadAsync(_context, storeWebsiteId, ct);
+        var visibleCategories = await WebsiteCategoryVisibility.SelectionAsync(_context, storeWebsiteId, ct);
 
         var product = await PublishedQuery(_context, catalogWebsiteId)
             .Include(p => p.ProductRelationProducts).ThenInclude(r => r.RelatedProduct).ThenInclude(rp => rp.FeaturedImageFile)
@@ -1047,6 +1054,7 @@ public class ProductService : IProductService
             .OrderBy(r => r.SortOrder)
             .Take(take < 1 ? 8 : take)
             .ToList();
+        relations = await KeepVisibleRelationsAsync(_context, relations, visibleCategories, ct);
 
         var result = new List<ProductRefDto>(relations.Count);
         foreach (var r in relations)
@@ -1099,6 +1107,7 @@ public class ProductService : IProductService
         int hostWebsiteId, string? categorySlug, string? brandSlug, string? search,
         decimal? minPriceUsd, decimal? maxPriceUsd,
         IReadOnlyList<int>? attributeOptionIds,
+        IReadOnlyList<int>? visibleCategories,
         CancellationToken ct)
     {
         var siteVendors = await _vendors.GetActiveSiteLinksAsync(hostWebsiteId, ct);
@@ -1110,6 +1119,7 @@ public class ProductService : IProductService
                 .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
             // Ownership guard: only source-owned products.
             q = q.Where(p => p.WebsiteID == lid);
+            q = ApplyVisibleCategories(q, visibleCategories);
 
             if (!string.IsNullOrWhiteSpace(categorySlug))
                 q = q.Where(p => p.ProductCategoryMaps.Any(m =>
@@ -1328,6 +1338,9 @@ public class ProductService : IProductService
         var imageAudience = adminPreview
             ? PlatformImageAudience.Direct
             : await PlatformProductImage.LoadAsync(_context, hostId, ct);
+        var visibleCategories = adminPreview
+            ? null
+            : await WebsiteCategoryVisibility.SelectionAsync(_context, hostId, ct);
 
         var categories = p.ProductCategoryMaps
             .Where(m => m.ProductCategory is not null)
@@ -1501,7 +1514,9 @@ public class ProductService : IProductService
             .ToList();
 
         var related = new List<ProductRefDto>();
-        foreach (var r in p.ProductRelationProducts.Where(r => adminPreview || r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder))
+        var relatedRows = p.ProductRelationProducts.Where(r => adminPreview || r.RelatedProduct.IsActive).OrderBy(r => r.SortOrder).ToList();
+        relatedRows = await KeepVisibleRelationsAsync(_context, relatedRows, visibleCategories, ct);
+        foreach (var r in relatedRows)
             related.Add(await ProjectRefAsync(r.RelatedProduct, r.RelationType, lang, currencyCode, ct, imageAudience));
 
         var gallery = p.ProductMedia
@@ -1532,6 +1547,28 @@ public class ProductService : IProductService
             DigitalServiceUrl = p.DigitalServiceUrl,
             DigitalDeliveryNote = p.DigitalDeliveryNote,
         };
+    }
+
+    /// <summary>Null selection means the whole catalog. An empty selection matches no product.</summary>
+    private static IQueryable<Product> ApplyVisibleCategories(IQueryable<Product> query, IReadOnlyList<int>? selected)
+    {
+        if (selected is null) return query;
+        var ids = selected as List<int> ?? selected.ToList();
+        return query.Where(p => p.ProductCategoryMaps.Any(m => ids.Contains(m.ProductCategoryID)));
+    }
+
+    private static async Task<List<ProductRelation>> KeepVisibleRelationsAsync(
+        AppDbContext context, List<ProductRelation> relations, IReadOnlyList<int>? selected, CancellationToken ct)
+    {
+        if (selected is null || relations.Count == 0) return relations;
+        var ids = relations.Select(r => r.RelatedProductID).ToList();
+        var allowedIds = selected as List<int> ?? selected.ToList();
+        var allowed = await context.ProductCategoryMaps.AsNoTracking()
+            .Where(m => ids.Contains(m.ProductID) && allowedIds.Contains(m.ProductCategoryID))
+            .Select(m => m.ProductID)
+            .ToListAsync(ct);
+        var ok = allowed.ToHashSet();
+        return relations.Where(r => ok.Contains(r.RelatedProductID)).ToList();
     }
 
     /// <summary>Maps internal available stock (int.MaxValue for unlimited) to public -1 convention.</summary>

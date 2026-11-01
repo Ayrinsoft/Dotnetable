@@ -103,6 +103,7 @@
     <Build Include="ProductCategoryMaps.sql" />
     <Build Include="ProductCategoryAttributes.sql" />
     <Build Include="ProductCategories.sql" />
+    <Build Include="WebsiteVisibleProductCategories.sql" />
     <Build Include="GoogleProductTaxonomyEntries.sql" />
     <Build Include="CatalogRequests.sql" />
     <Build Include="ProductAttributeValueTranslations.sql" />

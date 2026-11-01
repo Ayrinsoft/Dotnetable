@@ -44,5 +44,7 @@ public partial class ProductCategory
 
     public virtual ICollection<ProductCategoryTranslation> ProductCategoryTranslations { get; set; } = new List<ProductCategoryTranslation>();
 
+    public virtual ICollection<WebsiteVisibleProductCategory> WebsiteVisibleProductCategories { get; set; } = new List<WebsiteVisibleProductCategory>();
+
     public virtual Website Website { get; set; } = null!;
 }

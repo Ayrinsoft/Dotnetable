@@ -299,13 +299,15 @@ public class ProductCategoryService : IProductCategoryService
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
         if (string.IsNullOrWhiteSpace(categorySlug)) return new List<CategoryAttributeFilterDto>();
+        var viewerWebsiteId = websiteId;
         websiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, websiteId, ct);
 
         var category = await _context.ProductCategories.AsNoTracking()
             .Include(c => c.ProductCategoryTranslations)
             .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.IsActive &&
                 (c.Slug == categorySlug || c.ProductCategoryTranslations.Any(t => t.Slug == categorySlug)), ct);
-        if (category is null) return new List<CategoryAttributeFilterDto>();
+        if (category is null || !await IsShownAsync(_context, viewerWebsiteId, websiteId, category.ProductCategoryID, ct))
+            return new List<CategoryAttributeFilterDto>();
 
         var defs = await GetAttributesForCategoryAsync(category.ProductCategoryID, includeAncestors: true, ct);
         return defs
@@ -380,6 +382,14 @@ public class ProductCategoryService : IProductCategoryService
             .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
             .ToListAsync(ct);
 
+        var selection = await WebsiteCategoryVisibility.SelectionAsync(_context, websiteId, ct);
+        if (selection is not null)
+        {
+            var keep = WebsiteCategoryVisibility.KeepWithAncestors(
+                categories.Select(c => (c.ProductCategoryID, c.ParentCategoryID)), selection);
+            categories = categories.Where(c => keep.Contains(c.ProductCategoryID)).ToList();
+        }
+
         var byParent = categories.ToLookup(c => c.ParentCategoryID);
 
         return BuildChildren(null, byParent, languageCode, imageAudience);
@@ -396,7 +406,9 @@ public class ProductCategoryService : IProductCategoryService
             .Include(c => c.ImageFile)
             .FirstOrDefaultAsync(c => c.WebsiteID == catalogWebsiteId && c.IsActive &&
                 (c.Slug == slug || c.ProductCategoryTranslations.Any(t => t.Slug == slug)), ct);
-        return category is null ? null : Project(category, Array.Empty<ProductCategoryDto>(), languageCode, imageAudience);
+        if (category is null || !await IsShownAsync(_context, websiteId, catalogWebsiteId, category.ProductCategoryID, ct))
+            return null;
+        return Project(category, Array.Empty<ProductCategoryDto>(), languageCode, imageAudience);
     }
 
     // ── Projection helpers ──────────────────────────────────────────
@@ -687,4 +699,92 @@ public class ProductCategoryService : IProductCategoryService
     }
 
     private sealed record Node(int Id, int? ParentId, string Name, bool Active);
+
+    private static async Task<bool> IsShownAsync(
+        AppDbContext context, int viewerWebsiteId, int catalogWebsiteId, int categoryId, CancellationToken ct)
+    {
+        var selection = await WebsiteCategoryVisibility.SelectionAsync(context, viewerWebsiteId, ct);
+        if (selection is null) return true;
+        if (selection.Count == 0) return false;
+
+        var links = await context.ProductCategories.AsNoTracking()
+            .Where(c => c.WebsiteID == catalogWebsiteId && c.IsActive)
+            .Select(c => new { c.ProductCategoryID, c.ParentCategoryID })
+            .ToListAsync(ct);
+        var keep = WebsiteCategoryVisibility.KeepWithAncestors(
+            links.Select(c => (c.ProductCategoryID, c.ParentCategoryID)), selection);
+        return keep.Contains(categoryId);
+    }
+
+    public async Task<WebsiteCategoryVisibilityDto> GetVisibilityAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var limit = await context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId)
+            .Select(w => (bool?)w.LimitVisibleCategories)
+            .FirstOrDefaultAsync(ct) == true;
+        var ids = limit
+            ? await context.WebsiteVisibleProductCategories.AsNoTracking()
+                .Where(v => v.WebsiteID == websiteId)
+                .Select(v => v.ProductCategoryID)
+                .ToListAsync(ct)
+            : new List<int>();
+        return new WebsiteCategoryVisibilityDto { LimitToSelection = limit, CategoryIds = ids };
+    }
+
+    public async Task SetVisibilityAsync(int websiteId, bool limitToSelection, IReadOnlyList<int> categoryIds, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var website = await context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == websiteId, ct)
+            ?? throw new InvalidOperationException("Website not found.");
+
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(context, websiteId, ct);
+        var wanted = categoryIds.Distinct().ToList();
+        if (limitToSelection && wanted.Count > 0)
+        {
+            wanted = await context.ProductCategories.AsNoTracking()
+                .Where(c => c.WebsiteID == catalogWebsiteId && wanted.Contains(c.ProductCategoryID))
+                .Select(c => c.ProductCategoryID)
+                .ToListAsync(ct);
+        }
+
+        website.LimitVisibleCategories = limitToSelection;
+        await context.WebsiteVisibleProductCategories.Where(v => v.WebsiteID == websiteId).ExecuteDeleteAsync(ct);
+        if (limitToSelection)
+        {
+            foreach (var id in wanted)
+                context.WebsiteVisibleProductCategories.Add(new WebsiteVisibleProductCategory
+                {
+                    WebsiteID = websiteId,
+                    ProductCategoryID = id,
+                });
+        }
+
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<int>> GetBranchIdsAsync(int websiteId, int categoryId, CancellationToken ct = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(context, websiteId, ct);
+        var links = await context.ProductCategories.AsNoTracking()
+            .Where(c => c.WebsiteID == catalogWebsiteId && c.IsActive)
+            .Select(c => new { c.ProductCategoryID, c.ParentCategoryID })
+            .ToListAsync(ct);
+        if (links.All(c => c.ProductCategoryID != categoryId)) return Array.Empty<int>();
+
+        var children = links.Where(c => c.ParentCategoryID is int).ToLookup(c => c.ParentCategoryID!.Value, c => c.ProductCategoryID);
+        var result = new List<int>();
+        var stack = new Stack<int>();
+        stack.Push(categoryId);
+        var guard = 0;
+        while (stack.Count > 0 && guard++ < 20000)
+        {
+            var id = stack.Pop();
+            result.Add(id);
+            foreach (var child in children[id])
+                stack.Push(child);
+        }
+        return result;
+    }
 }

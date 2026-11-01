@@ -14,6 +14,7 @@
     [WebsiteType]                   TINYINT          NOT NULL,
     [IsHub]                         BIT              NOT NULL,
     [IsPlatform]                    BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
+    [LimitVisibleCategories]        BIT              DEFAULT (CONVERT([bit],(0))) NOT NULL,
     [BrandName]                     NVARCHAR (60)    NOT NULL,
     [LogoFileID]                    INT              NULL,
     [FaveIconFileID]                INT              NULL,
@@ -59,6 +60,9 @@ EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'show in tit
 GO
 
 EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Website 1 only. When true, other websites use website 1''s product catalog and cannot add products or change product categories.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'IsPlatform';
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'When true, the storefront shows only the categories listed in WebsiteVisibleProductCategories. Ancestors stay in the menu. When false, the whole active catalog is shown.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Websites', @level2type = N'COLUMN', @level2name = N'LimitVisibleCategories';
 GO
 
 CREATE NONCLUSTERED INDEX [IX_Websites_DefaultCurrencyCode]

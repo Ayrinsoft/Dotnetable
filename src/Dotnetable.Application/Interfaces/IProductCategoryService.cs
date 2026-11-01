@@ -75,4 +75,16 @@ public interface IProductCategoryService
 
     /// <summary>Deletes the category and every category under it when no product uses them.</summary>
     Task DeleteBranchAsync(int productCategoryId, CancellationToken ct = default);
+
+    /// <summary>Whether this storefront limits its catalog, and which category ids are checked.</summary>
+    Task<WebsiteCategoryVisibilityDto> GetVisibilityAsync(int websiteId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Saves the storefront allow-list. <paramref name="limitToSelection"/> false shows the whole catalog.
+    /// Ids that are not on this website's catalog are ignored.
+    /// </summary>
+    Task SetVisibilityAsync(int websiteId, bool limitToSelection, IReadOnlyList<int> categoryIds, CancellationToken ct = default);
+
+    /// <summary>The category and every active category under it, for a "show this branch" action.</summary>
+    Task<IReadOnlyList<int>> GetBranchIdsAsync(int websiteId, int categoryId, CancellationToken ct = default);
 }

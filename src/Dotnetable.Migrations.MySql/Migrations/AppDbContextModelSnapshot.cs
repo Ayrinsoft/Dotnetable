@@ -8759,6 +8759,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasDefaultValue(false)
                         .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");
 
+                    b.Property<bool>("LimitVisibleCategories")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasComment("When true, the storefront shows only WebsiteVisibleProductCategories. Ancestors stay in the menu.");
+
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("int");
 
@@ -9546,6 +9552,28 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .IsUnique();
 
                     b.ToTable("WebsiteThemes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteVisibleProductCategory", b =>
+                {
+                    b.Property<int>("WebsiteVisibleProductCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductCategoryID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WebsiteVisibleProductCategoryID");
+
+                    b.HasIndex("ProductCategoryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "ProductCategoryID" }, "UQ_WebsiteVisibleProductCategories_Website_Category")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteVisibleProductCategories");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
@@ -13609,6 +13637,27 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteVisibleProductCategory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("WebsiteVisibleProductCategories")
+                        .HasForeignKey("ProductCategoryID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteVisibleProductCategories_ProductCategories");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteVisibleProductCategories")
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteVisibleProductCategories_Websites");
+
+                    b.Navigation("ProductCategory");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
@@ -14269,6 +14318,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("ProductCategoryRelations");
 
                     b.Navigation("ProductCategoryTranslations");
+
+                    b.Navigation("WebsiteVisibleProductCategories");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductQuestion", b =>
@@ -14616,6 +14667,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Navigation("WebsiteStorageSettings");
 
                     b.Navigation("WebsiteThemes");
+
+                    b.Navigation("WebsiteVisibleProductCategories");
 
                     b.Navigation("WebsiteWalletCurrencies");
 

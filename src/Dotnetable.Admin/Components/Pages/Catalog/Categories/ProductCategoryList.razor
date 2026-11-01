@@ -37,6 +37,10 @@
                 @L["catalog.taxonomy.open", "Google taxonomy"]
             </MudButton>
         }
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility"
+                   OnClick="@(() => Nav.NavigateTo("/catalog/categories/visibility"))">
+            @L["catalog.visibility", "Visible categories"]
+        </MudButton>
         @if (_platform)
         {
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MarkEmailUnread"

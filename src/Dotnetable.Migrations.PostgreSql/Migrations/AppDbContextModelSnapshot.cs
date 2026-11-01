@@ -9088,6 +9088,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasDefaultValue(false)
                         .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");
 
+                    b.Property<bool>("LimitVisibleCategories")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasComment("When true, the storefront shows only WebsiteVisibleProductCategories. Ancestors stay in the menu.");
+
                     b.Property<int?>("LogoFileID")
                         .HasColumnType("integer");
 
@@ -9907,6 +9913,30 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .IsUnique();
 
                     b.ToTable("WebsiteThemes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteVisibleProductCategory", b =>
+                {
+                    b.Property<int>("WebsiteVisibleProductCategoryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteVisibleProductCategoryID"));
+
+                    b.Property<int>("ProductCategoryID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteVisibleProductCategoryID");
+
+                    b.HasIndex("ProductCategoryID");
+
+                    b.HasIndex(new[] { "WebsiteID", "ProductCategoryID" }, "UQ_WebsiteVisibleProductCategories_Website_Category")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteVisibleProductCategories");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
@@ -13980,6 +14010,27 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteVisibleProductCategory", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.ProductCategory", "ProductCategory")
+                        .WithMany("WebsiteVisibleProductCategories")
+                        .HasForeignKey("ProductCategoryID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteVisibleProductCategories_ProductCategories");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany("WebsiteVisibleProductCategories")
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteVisibleProductCategories_Websites");
+
+                    b.Navigation("ProductCategory");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteWalletCurrency", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Currency", "CurrencyCodeNavigation")
@@ -14640,6 +14691,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("ProductCategoryRelations");
 
                     b.Navigation("ProductCategoryTranslations");
+
+                    b.Navigation("WebsiteVisibleProductCategories");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductQuestion", b =>
@@ -14987,6 +15040,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteStorageSettings");
 
                     b.Navigation("WebsiteThemes");
+
+                    b.Navigation("WebsiteVisibleProductCategories");
 
                     b.Navigation("WebsiteWalletCurrencies");
 

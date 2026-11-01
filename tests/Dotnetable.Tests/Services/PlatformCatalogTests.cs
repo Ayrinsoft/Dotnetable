@@ -4,6 +4,7 @@ using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -201,6 +202,75 @@ public class PlatformCatalogTests
         (await check.Pages.CountAsync(p => p.WebsiteID == 3)).Should().Be(1);
         (await check.ProductCategories.CountAsync(c => c.WebsiteID == 2)).Should().Be(1);
     }
+
+    [Fact]
+    public async Task VisibleCategories_LimitEachWebsite_WithoutPullingInEveryChild()
+    {
+        using var db = new RelationalTestDb();
+        var factory = new TestDbContextFactory(db.Options);
+        SeedSites(db, platform: true);
+        int toys, cars, dolls, stationery, electronics;
+        await using (var seed = db.NewContext())
+        {
+            var toy = new ProductCategory { WebsiteID = 1, Name = "Toys", Slug = "toys", IsActive = true };
+            var paper = new ProductCategory { WebsiteID = 1, Name = "Stationery", Slug = "stationery", IsActive = true };
+            var other = new ProductCategory { WebsiteID = 1, Name = "Electronics", Slug = "electronics", IsActive = true };
+            seed.ProductCategories.AddRange(toy, paper, other);
+            await seed.SaveChangesAsync();
+            seed.ProductCategories.AddRange(
+                new ProductCategory { WebsiteID = 1, ParentCategoryID = toy.ProductCategoryID, Name = "Cars", Slug = "cars", IsActive = true },
+                new ProductCategory { WebsiteID = 1, ParentCategoryID = toy.ProductCategoryID, Name = "Dolls", Slug = "dolls", IsActive = true });
+            await seed.SaveChangesAsync();
+            toys = toy.ProductCategoryID;
+            stationery = paper.ProductCategoryID;
+            electronics = other.ProductCategoryID;
+            cars = seed.ProductCategories.Single(c => c.Slug == "cars").ProductCategoryID;
+            dolls = seed.ProductCategories.Single(c => c.Slug == "dolls").ProductCategoryID;
+
+            seed.Products.AddRange(
+                ProductIn(1, "car", cars),
+                ProductIn(1, "pen", stationery),
+                ProductIn(1, "phone", electronics));
+            await seed.SaveChangesAsync();
+        }
+
+        var categories = new ProductCategoryService(factory);
+        var branch = await categories.GetBranchIdsAsync(3, toys);
+        branch.Should().BeEquivalentTo(new[] { toys, cars, dolls });
+
+        await categories.SetVisibilityAsync(3, limitToSelection: true, new[] { toys, cars });
+        var storeTree = await categories.GetTreeAsync(3);
+        storeTree.Select(c => c.Slug).Should().Equal("toys");
+        storeTree[0].Children.Select(c => c.Slug).Should().Equal("cars");
+        (await categories.GetBySlugAsync(3, "dolls")).Should().BeNull();
+        (await categories.GetBySlugAsync(3, "toys")).Should().NotBeNull();
+
+        var vendors = new Mock<IVendorService>();
+        vendors.Setup(v => v.GetActiveSiteLinksAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Vendor>());
+        var products = new ProductService(factory, new Mock<ICurrencyConversionService>().Object, vendors.Object);
+        var listed = await products.GetPublishedAsync(3, null, null, null, null, null, 1, 20);
+        listed.Items.Select(p => p.Slug).Should().BeEquivalentTo("car");
+
+        await categories.SetVisibilityAsync(1, limitToSelection: true, new[] { toys, stationery });
+        var masterTree = await categories.GetTreeAsync(1);
+        masterTree.Select(c => c.Slug).Should().BeEquivalentTo("toys", "stationery");
+        masterTree.Single(c => c.Slug == "toys").Children.Should().BeEmpty();
+        var masterListed = await products.GetPublishedAsync(1, null, null, null, null, null, 1, 20);
+        masterListed.Items.Select(p => p.Slug).Should().BeEquivalentTo("pen");
+    }
+
+    private static Product ProductIn(int websiteId, string slug, int categoryId) => new()
+    {
+        WebsiteID = websiteId,
+        Slug = slug,
+        Title = slug,
+        Status = ProductService.PublishedStatus,
+        IsActive = true,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+        ProductCategoryMaps = { new ProductCategoryMap { ProductCategoryID = categoryId, IsPrimary = true } },
+    };
 
     private static void SeedSites(RelationalTestDb db, bool platform)
     {

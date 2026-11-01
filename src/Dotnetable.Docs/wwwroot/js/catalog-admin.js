@@ -1439,8 +1439,8 @@ window.DOCS_ADMIN = {
             fa: "طبقه‌بندی سلسله‌مراتبی محصول و انتساب ویژگی به هر دسته. انتخاب‌گر هر بار یک سطح را باز می‌کند تا چند هزار دسته قابل استفاده بماند.",
           },
           purpose: {
-            en: "Organize the shop catalog and control which attributes appear for products in a category. On a platform, only website 1 adds categories. Other sites send a catalog request.",
-            fa: "سازمان‌دهی کاتالوگ فروشگاه و کنترل اینکه کدام ویژگی‌ها برای محصولات یک دسته ظاهر شوند. در حالت پلتفرم فقط سایت ۱ دسته اضافه می‌کند. بقیه سایت‌ها درخواست کاتالوگ می‌فرستند.",
+            en: "Organize the shop catalog and control which attributes appear for products in a category. On a platform, only website 1 adds categories. Other sites send a catalog request. Each website, including website 1, can limit which of those categories its own shop shows at /catalog/categories/visibility.",
+            fa: "سازمان‌دهی کاتالوگ فروشگاه و کنترل اینکه کدام ویژگی‌ها برای محصولات یک دسته ظاهر شوند. در حالت پلتفرم فقط سایت ۱ دسته اضافه می‌کند. بقیه سایت‌ها درخواست کاتالوگ می‌فرستند. هر وب‌سایت، از جمله سایت ۱، در /catalog/categories/visibility تعیین می‌کند کدام دسته‌ها در ویترین خودش دیده شوند.",
           },
           howTo: [
             {
@@ -1454,7 +1454,27 @@ window.DOCS_ADMIN = {
               fa: "متفاوت از Content → Categories (`/content/categories`). ورود گوگل، مقایسه و ترجمه در `/catalog/categories/taxonomy` است.",
             },
           ],
-          related: ["products", "attributes", "catalog-taxonomy", "catalog-requests"],
+          related: ["products", "attributes", "catalog-taxonomy", "catalog-requests", "catalog-visibility"],
+        },
+        {
+          id: "catalog-visibility",
+          title: { en: "Visible categories", fa: "دسته‌های قابل نمایش" },
+          adminPath: "/catalog/categories/visibility",
+          summary: {
+            en: "Each website chooses which product categories its shop shows. A toy store can show Toys and a few branches, not the whole taxonomy.",
+            fa: "هر وب‌سایت انتخاب می‌کند ویترینش کدام دسته‌های محصول را نشان دهد. فروشگاه اسباب‌بازی می‌تواند فقط اسباب‌بازی و چند شاخه را نشان دهد، نه کل طبقه‌بندی را.",
+          },
+          purpose: {
+            en: "Website 1 and every subsidiary keep their own allow-list. Checking a category does not check the categories under it. Use Show branch when the whole branch should be included. Parents of a checked category stay in the menu; their own products stay hidden unless the parent is checked.",
+            fa: "سایت ۱ و هر سایت زیرمجموعه فهرست مجاز خودش را دارد. تیک یک دسته، دسته‌های زیرش را تیک نمی‌زند. برای کل یک شاخه از «نمایش شاخه» استفاده کنید. والد یک دسته انتخاب‌شده در منو می‌ماند؛ کالاهای خود والد پنهان می‌مانند مگر خود والد هم انتخاب شده باشد.",
+          },
+          howTo: [
+            {
+              en: "Open Visible categories, pick the website, turn on “Only show selected categories”, check the categories (or a whole branch), and save. Turning the switch off shows the whole catalog again.",
+              fa: "دسته‌های قابل نمایش را باز کنید، وب‌سایت را انتخاب کنید، «فقط دسته‌های انتخاب‌شده» را روشن کنید، دسته‌ها یا یک شاخه کامل را علامت بزنید و ذخیره کنید. خاموش کردن سوییچ دوباره کل کاتالوگ را نشان می‌دهد.",
+            },
+          ],
+          related: ["catalog-categories", "products"],
         },
         {
           id: "catalog-taxonomy",
