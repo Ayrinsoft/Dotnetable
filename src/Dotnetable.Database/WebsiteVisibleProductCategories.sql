@@ -8,6 +8,10 @@ CREATE TABLE [dbo].[WebsiteVisibleProductCategories] (
 );
 GO
 
+CREATE NONCLUSTERED INDEX [IX_WebsiteVisibleProductCategories_ProductCategoryID]
+    ON [dbo].[WebsiteVisibleProductCategories] ([ProductCategoryID] ASC);
+GO
+
 CREATE UNIQUE NONCLUSTERED INDEX [UQ_WebsiteVisibleProductCategories_Website_Category]
     ON [dbo].[WebsiteVisibleProductCategories] ([WebsiteID] ASC, [ProductCategoryID] ASC);
 GO
