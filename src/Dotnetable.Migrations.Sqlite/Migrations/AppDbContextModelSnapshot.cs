@@ -5682,6 +5682,12 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsPreOwned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false)
+                        .HasComment("Used item owned by one store. On a platform, other websites may create only this kind of product.");
+
                     b.Property<byte>("ProductType")
                         .HasColumnType("INTEGER");
 

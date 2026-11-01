@@ -242,6 +242,8 @@ public partial class Website
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
+    public virtual ICollection<ContentVersion> ContentVersions { get; set; } = new List<ContentVersion>();
+
     public virtual ICollection<PriceList> PriceLists { get; set; } = new List<PriceList>();
 
     public virtual ICollection<ProductCategory> ProductCategories { get; set; } = new List<ProductCategory>();

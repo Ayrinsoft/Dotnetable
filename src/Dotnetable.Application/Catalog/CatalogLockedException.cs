@@ -7,7 +7,7 @@ namespace Dotnetable.Application.Catalog;
 public sealed class CatalogLockedException : InvalidOperationException
 {
     public CatalogLockedException()
-        : base("On a platform, only website 1 can add products or change product categories. Submit a catalog request.")
+        : base("On a platform, only website 1 can add products or change product categories. A store can set prices on catalog variants, or add a used product with its own photos and description. Submit a catalog request for a new catalog product.")
     {
     }
 }

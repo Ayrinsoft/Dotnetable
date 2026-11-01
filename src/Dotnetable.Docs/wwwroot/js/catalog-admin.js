@@ -1270,8 +1270,8 @@ window.DOCS_ADMIN = {
           },
           purpose: [
             {
-              en: "Create sellable catalog items with type (physical, download, code, service).",
-              fa: "ایجاد اقلام قابل‌فروش با نوع (فیزیکی، دانلود، کد، سرویس).",
+              en: "Create sellable catalog items with type (physical, download, code, service). On a platform, only website 1 adds catalog products and categories. Other sites set their own price and stock on those variants, and may add a used product with their own photos and description.",
+              fa: "ایجاد اقلام قابل‌فروش با نوع (فیزیکی، دانلود، کد، سرویس). در حالت پلتفرم فقط سایت ۱ کالای کاتالوگ و دسته اضافه می‌کند. بقیه سایت‌ها روی همان واریانت‌ها قیمت و موجودی خودشان را می‌گذارند و می‌توانند کالای کارکرده را با عکس و توضیح خودشان اضافه کنند.",
             },
             {
               en: "Variants carry SKU and connect to inventory and vendor listings.",

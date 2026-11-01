@@ -1,7 +1,10 @@
+using Dotnetable.Application;
+using Dotnetable.Application.Catalog;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
+using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -115,7 +118,12 @@ public class VendorProductService : IVendorProductService
             .FirstOrDefaultAsync(v => v.VendorID == vendorId, ct);
         if (vendor is null) return new List<VendorVariantPickDto>();
 
-        // Site vendors list products owned by the linked website; others list host-website products.
+        // Site vendors list products owned by the linked website.
+        // On a platform, a child store's display vendor lists website 1's catalog plus that store's used goods.
+        var platform = await PlatformCatalog.IsPlatformAsync(_context, ct);
+        var listsSharedCatalog = platform
+            && vendor.VendorType == (byte)VendorType.Display
+            && vendor.WebsiteID != AppConstants.MasterWebsiteId;
         var catalogWebsiteId = vendor.VendorType == (byte)VendorType.Site && vendor.LinkedWebsiteID is int lid
             ? lid
             : vendor.WebsiteID;
@@ -127,9 +135,11 @@ public class VendorProductService : IVendorProductService
         var listed = listedIds.ToHashSet();
 
         var q = _context.ProductVariants.AsNoTracking()
-            .Where(v => v.IsActive
-                        && v.Product.IsActive
-                        && v.Product.WebsiteID == catalogWebsiteId);
+            .Where(v => v.IsActive && v.Product.IsActive);
+        q = listsSharedCatalog
+            ? q.Where(v => v.Product.WebsiteID == AppConstants.MasterWebsiteId
+                           || (v.Product.WebsiteID == vendor.WebsiteID && v.Product.IsPreOwned))
+            : q.Where(v => v.Product.WebsiteID == catalogWebsiteId);
 
         // Member sellers only pick variants from products they created (their catalog).
         if (vendor.VendorType == (byte)VendorType.Member && vendor.MemberID is int ownerId)
@@ -219,7 +229,8 @@ public class VendorProductService : IVendorProductService
             .FirstOrDefaultAsync(v => v.ProductVariantID == model.ProductVariantID, ct);
         if (variant is null) return (false, "Product variant not found.", null);
 
-        var ownershipError = ValidateOwnership(vendor, variant);
+        var platform = await PlatformCatalog.IsPlatformAsync(_context, ct);
+        var ownershipError = ValidateOwnership(vendor, variant, platform);
         if (ownershipError is not null) return (false, ownershipError, null);
 
         VendorProduct entity;
@@ -285,6 +296,126 @@ public class VendorProductService : IVendorProductService
         return (true, null, entity);
     }
 
+    public async Task<List<StoreVariantPriceDto>> GetStoreVariantPricesAsync(int storeWebsiteId, int productId, CancellationToken ct = default)
+    {
+        await using var lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var context = lease.Context;
+        var rows = await context.VendorProducts.AsNoTracking()
+            .Where(vp => vp.WebsiteID == storeWebsiteId && vp.ProductVariant.ProductID == productId && vp.IsActive)
+            .Select(vp => new StoreVariantPriceDto
+            {
+                ProductVariantID = vp.ProductVariantID,
+                ReferencePrice = vp.ReferencePrice,
+                ReferencePriceUsd = vp.ReferencePriceUsd,
+                StockQuantity = vp.StockQuantity,
+            })
+            .ToListAsync(ct);
+        return rows
+            .GroupBy(r => r.ProductVariantID)
+            .Select(g => g.OrderByDescending(r => r.ReferencePrice).First())
+            .ToList();
+    }
+
+    public async Task<(bool Success, string? Error)> SetStoreVariantPricesAsync(
+        int storeWebsiteId, int productId, IReadOnlyList<StoreVariantPriceDto> prices, CancellationToken ct = default)
+    {
+        List<int> touched;
+        await using (var lease = await DbLease.OpenAsync(_contextFactory, ct))
+        {
+            var context = lease.Context;
+
+            if (storeWebsiteId == AppConstants.MasterWebsiteId || !await PlatformCatalog.IsPlatformAsync(context, ct))
+                return (false, "Store prices are only set by a website other than website 1 while the installation is a platform.");
+
+            var owner = await context.Products.AsNoTracking()
+                .Where(p => p.ProductID == productId)
+                .Select(p => new { p.WebsiteID, p.ProductType, p.RequiresShipping })
+                .FirstOrDefaultAsync(ct);
+            if (owner is null || owner.WebsiteID != AppConstants.MasterWebsiteId)
+                return (false, "Store prices apply to website 1's catalog products.");
+
+            var variantIds = await context.ProductVariants.AsNoTracking()
+                .Where(v => v.ProductID == productId)
+                .Select(v => v.ProductVariantID)
+                .ToListAsync(ct);
+            var wanted = prices.Where(p => variantIds.Contains(p.ProductVariantID)).ToList();
+            if (wanted.Count == 0) return (false, "No variants to price.");
+
+            var vendor = await EnsureStoreVendorAsync(context, storeWebsiteId, ct);
+            var existing = await context.VendorProducts
+                .Where(vp => vp.VendorID == vendor.VendorID && variantIds.Contains(vp.ProductVariantID))
+                .ToListAsync(ct);
+            var digital = owner.ProductType != (byte)ProductType.Physical || !owner.RequiresShipping;
+
+            foreach (var price in wanted)
+            {
+                if (price.ReferencePrice <= 0 && price.ReferencePriceUsd <= 0)
+                    return (false, "Price must be greater than zero.");
+                var stock = price.StockQuantity;
+                if (stock < 0)
+                {
+                    if (!digital) return (false, "Unlimited stock (-1) is only allowed for digital products.");
+                    stock = -1;
+                }
+
+                var row = existing.FirstOrDefault(vp => vp.ProductVariantID == price.ProductVariantID);
+                if (row is null)
+                {
+                    row = new VendorProduct
+                    {
+                        WebsiteID = storeWebsiteId,
+                        VendorID = vendor.VendorID,
+                        ProductVariantID = price.ProductVariantID,
+                        DeliveryDays = 1,
+                    };
+                    context.VendorProducts.Add(row);
+                    existing.Add(row);
+                }
+
+                if (stock >= 0 && stock < row.QuantityReserved)
+                    return (false, $"Stock ({stock}) cannot be below reserved quantity ({row.QuantityReserved}).");
+
+                row.ReferencePrice = price.ReferencePrice;
+                row.ReferencePriceUsd = price.ReferencePriceUsd > 0 ? price.ReferencePriceUsd : price.ReferencePrice;
+                row.StockQuantity = stock;
+                row.IsActive = true;
+                row.WebsiteID = storeWebsiteId;
+            }
+
+            await context.SaveChangesAsync(ct);
+            touched = wanted.Select(p => p.ProductVariantID).ToList();
+        }
+
+        foreach (var variantId in touched)
+            await SyncInventoryOnHandFromListingsAsync(storeWebsiteId, variantId, ct);
+        return (true, null);
+    }
+
+    private static async Task<Vendor> EnsureStoreVendorAsync(AppDbContext context, int websiteId, CancellationToken ct)
+    {
+        var existing = await context.Vendors
+            .Where(v => v.WebsiteID == websiteId && v.IsActive && v.VendorType == (byte)VendorType.Display)
+            .OrderBy(v => v.VendorID)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null) return existing;
+
+        var name = await context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId)
+            .Select(w => w.TradeName)
+            .FirstOrDefaultAsync(ct);
+        var vendor = new Vendor
+        {
+            WebsiteID = websiteId,
+            Name = string.IsNullOrWhiteSpace(name) ? "Store" : name,
+            Slug = "store",
+            IsActive = true,
+            VendorType = (byte)VendorType.Display,
+        };
+        context.Vendors.Add(vendor);
+        await context.SaveChangesAsync(ct);
+        return vendor;
+    }
+
     public async Task<(bool Success, string? Error)> DeleteAsync(int vendorProductId, int? actingMemberId = null, CancellationToken ct = default)
     {
         await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
@@ -328,7 +459,7 @@ public class VendorProductService : IVendorProductService
             .Include(v => v.Product)
             .FirstOrDefaultAsync(v => v.ProductVariantID == productVariantId, ct);
         if (variant is null) return null;
-        if (ValidateOwnership(vendor, variant) is not null) return null;
+        if (ValidateOwnership(vendor, variant, await PlatformCatalog.IsPlatformAsync(_context, ct)) is not null) return null;
 
         // Seed from source-site store listings only (never raw warehouse). Zero ⇒ not sellable until stock is set.
         var sourceStock = await _context.VendorProducts.AsNoTracking()
@@ -897,8 +1028,11 @@ public class VendorProductService : IVendorProductService
     /// Member vendors may only list products on the host website (and preferably created by them).
     /// Display vendors may list any host product.
     /// </summary>
-    private static string? ValidateOwnership(Vendor vendor, ProductVariant variant)
+    private static string? ValidateOwnership(Vendor vendor, ProductVariant variant, bool platform)
     {
+        var sharedCatalog = platform
+            && vendor.WebsiteID != AppConstants.MasterWebsiteId
+            && variant.Product.WebsiteID == AppConstants.MasterWebsiteId;
         return (VendorType)vendor.VendorType switch
         {
             VendorType.Site when vendor.LinkedWebsiteID is int lid =>
@@ -912,7 +1046,7 @@ public class VendorProductService : IVendorProductService
                         ? "Member vendors can only list products they created."
                         : null,
             _ =>
-                variant.Product.WebsiteID == vendor.WebsiteID
+                variant.Product.WebsiteID == vendor.WebsiteID || sharedCatalog
                     ? null
                     : "Display vendors can only list products on the host website.",
         };

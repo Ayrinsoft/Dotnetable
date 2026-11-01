@@ -52,6 +52,14 @@
                 @L["products.new", "New Product"]
             </MudButton>
         }
+        @if (_canInsert && _catalogLocked)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => Nav.NavigateTo("/catalog/products/new?used=true"))"
+                       Disabled="@(_prerequisites.Count > 0)">
+                @L["products.new_used", "Used product"]
+            </MudButton>
+        }
         @if (_catalogLocked)
         {
             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MarkEmailUnread"
@@ -72,7 +80,7 @@
 @if (_catalogLocked)
 {
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
-        @L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]
+        @L["products.platform_locked", "This installation is a platform. Only website 1 adds catalog products and categories. This store sets its own price on those products, and can add a used item with its own photos and description."]
     </MudAlert>
 }
 
@@ -115,7 +123,7 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
                                        Title="@L["products.preview", "Product preview"]"
                                        OnClick="@(() => Nav.NavigateTo($"/catalog/products/{p.ProductID}/preview"))" />
-                        @if (_canDelete)
+                        @if (_canDelete && (!_catalogLocked || p.IsPreOwned))
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p.ProductID))" />
                         }
@@ -195,7 +203,8 @@
 
         _platform = await PlatformCatalog.IsPlatformAsync();
         _catalogLocked = _platform && _websiteId != AppConstants.MasterWebsiteId;
-        var brands = await BrandService.GetAllAsync(_websiteId);
+        var brandWebsiteId = _catalogLocked ? await PlatformCatalog.CatalogWebsiteIdAsync(_websiteId) : _websiteId;
+        var brands = await BrandService.GetAllAsync(brandWebsiteId);
         var categoryCount = await CategoryService.CountAsync(_websiteId);
         var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
         var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();

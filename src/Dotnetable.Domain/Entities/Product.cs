@@ -49,6 +49,12 @@ public partial class Product
 
     public bool IsCatalogOnly { get; set; }
 
+    /// <summary>
+    /// Used / pre-owned item owned by one store, with that store's photos and description.
+    /// On a platform, websites other than website 1 may create only this kind of product.
+    /// </summary>
+    public bool IsPreOwned { get; set; }
+
     public bool HasVariants { get; set; }
 
     public decimal AvgRating { get; set; }

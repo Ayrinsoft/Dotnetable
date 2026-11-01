@@ -229,6 +229,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PostType> PostTypes { get; set; }
 
+    public virtual DbSet<ContentVersion> ContentVersions { get; set; }
+
     public virtual DbSet<PriceList> PriceLists { get; set; }
 
     public virtual DbSet<PriceListItem> PriceListItems { get; set; }
@@ -2794,6 +2796,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MetaTitle).HasMaxLength(300);
             entity.Property(e => e.MetaDescription).HasMaxLength(500);
             entity.Property(e => e.MetaKeywords).HasMaxLength(500);
+            entity.Property(e => e.StableKey)
+                .HasMaxLength(80)
+                .IsUnicode(false)
+                .HasComment("Stable reference for one logical post. Null unless the post type opts in. Immutable once published.");
+            entity.Property(e => e.AppliesFrom)
+                .HasMaxLength(40)
+                .IsUnicode(false)
+                .HasComment("First content release this edition covers. Null means unversioned or every release.");
+            entity.Property(e => e.AppliesTo)
+                .HasMaxLength(40)
+                .IsUnicode(false)
+                .HasComment("Last content release this edition covers, inclusive. Null means the edition is still open.");
+            entity.HasIndex(e => new { e.WebsiteID, e.PostTypeID, e.StableKey, e.AppliesFrom }, "UQ_Posts_StableEdition")
+                .IsUnique()
+                .HasFilter("[StableKey] IS NOT NULL");
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.AuthorMember).WithMany(p => p.Posts)
@@ -2912,11 +2929,40 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Slug).HasMaxLength(100);
+            entity.Property(e => e.SupportsStableKey)
+                .HasDefaultValue(false)
+                .HasComment("Opt-in. Posts of this type may keep a stable key. Blog types leave this off.");
+            entity.Property(e => e.SupportsVersioning)
+                .HasDefaultValue(false)
+                .HasComment("Opt-in. Posts of this type may have release-scoped editions that share a stable key.");
 
             entity.HasOne(d => d.Website).WithMany(p => p.PostTypes)
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PostTypes_Websites");
+        });
+
+        modelBuilder.Entity<ContentVersion>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "IX_ContentVersions_WebsiteID");
+            entity.HasIndex(e => new { e.WebsiteID, e.Name }, "UQ_ContentVersions_Website_Name").IsUnique();
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(40)
+                .IsUnicode(false)
+                .HasComment("Content release label such as 1.2. Not an API version and not a product version.");
+            entity.Property(e => e.SortOrder).HasDefaultValue(0);
+            entity.Property(e => e.IsLatest)
+                .HasDefaultValue(false)
+                .HasComment("The release used when a reader does not ask for a version.");
+            entity.Property(e => e.IsPublished)
+                .HasDefaultValue(false)
+                .HasComment("Hidden from the public version list until published.");
+
+            entity.HasOne(d => d.Website).WithMany(p => p.ContentVersions)
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ContentVersions_Websites");
         });
 
         modelBuilder.Entity<PriceList>(entity =>
@@ -2977,6 +3023,9 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Product>(entity =>
         {
             entity.Property(e => e.FavoriteCount).HasDefaultValue(0);
+            entity.Property(e => e.IsPreOwned)
+                .HasDefaultValue(false)
+                .HasComment("Used item owned by one store. On a platform, other websites may create only this kind of product.");
 
             entity.HasIndex(e => e.BrandID, "IX_Products_BrandID");
 

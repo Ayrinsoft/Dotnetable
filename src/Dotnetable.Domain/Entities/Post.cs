@@ -51,6 +51,25 @@ public partial class Post
     /// <summary>When true, <see cref="PostLocation"/> holds this post's map point. The row is removed when this is turned off.</summary>
     public bool HasLocation { get; set; }
 
+    /// <summary>
+    /// Stable reference for this logical post. Links keep working when the slug or title changes.
+    /// Null on ordinary posts. Set only when the post type allows a stable key or versioning.
+    /// Once the post is published, the key does not change.
+    /// </summary>
+    public string? StableKey { get; set; }
+
+    /// <summary>
+    /// First content release this edition covers, such as <c>1.0</c>. Null means every release
+    /// (or an unversioned post). Several editions share <see cref="StableKey"/>; unchanged text stays one row.
+    /// </summary>
+    public string? AppliesFrom { get; set; }
+
+    /// <summary>
+    /// Last content release this edition covers, inclusive. Null means the edition is still open.
+    /// A later edition with the same <see cref="StableKey"/> wins when both match a release.
+    /// </summary>
+    public string? AppliesTo { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }

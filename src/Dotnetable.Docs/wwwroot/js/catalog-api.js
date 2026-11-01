@@ -489,8 +489,8 @@ window.DOCS_API = {
           },
           purpose: [
             {
-              en: "This is what the shop UI calls to show the catalog. Admin creates/edits products; API only **reads published** data. On a platform, image URLs are chosen for the website in X-Website-Key: website 1 gets its watermarked file, a child with no watermark gets the clean file, and a child with its own watermark gets an absolute /media/i link instead of the clean CDN URL.",
-              fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند. در پلتفرم، آدرس عکس برای وب‌سایت X-Website-Key انتخاب می‌شود: سایت ۱ فایل واترمارک‌خورده را می‌گیرد، سایت زیرمجموعه بدون واترمارک فایل خام را می‌گیرد، و سایت زیرمجموعه با واترمارک خودش به‌جای CDN خام لینک مطلق /media/i می‌گیرد.",
+              en: "This is what the shop UI calls to show the catalog. Admin creates/edits products; API only **reads published** data. On a platform the list is website 1's catalog plus that store's own used products, and a variant price is the store's price when that store has set one. Image URLs are chosen for the website in X-Website-Key: website 1 gets its watermarked file, a child with no watermark gets the clean file, and a child with its own watermark gets an absolute /media/i link instead of the clean CDN URL.",
+              fa: "همان چیزی که UI فروشگاه برای نمایش کاتالوگ صدا می‌زند. ادمین محصول می‌سازد/ویرایش می‌کند؛ API فقط **منتشرشده** را می‌خواند. در پلتفرم فهرست، کاتالوگ سایت ۱ به‌اضافه کالاهای کارکرده همان فروشگاه است و اگر فروشگاه قیمت گذاشته باشد همان قیمت واریانت برمی‌گردد. آدرس عکس برای وب‌سایت X-Website-Key انتخاب می‌شود: سایت ۱ فایل واترمارک‌خورده را می‌گیرد، سایت زیرمجموعه بدون واترمارک فایل خام را می‌گیرد، و سایت زیرمجموعه با واترمارک خودش به‌جای CDN خام لینک مطلق /media/i می‌گیرد.",
             },
           ],
           relatedAdmin: ["products", "price-lists", "catalog-categories", "brands"],

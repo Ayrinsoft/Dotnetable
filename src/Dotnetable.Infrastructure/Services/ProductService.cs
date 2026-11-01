@@ -1,3 +1,5 @@
+using Dotnetable.Application;
+using Dotnetable.Application.Catalog;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -37,8 +39,18 @@ public class ProductService : IProductService
             .Include(p => p.ProductVariants)
             .AsQueryable();
 
+        int? storePriceWebsiteId = null;
         if (websiteId is int wid)
-            q = q.Where(p => p.WebsiteID == wid);
+        {
+            var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, wid, ct);
+            if (catalogWebsiteId != wid)
+            {
+                storePriceWebsiteId = wid;
+                q = q.Where(p => p.WebsiteID == catalogWebsiteId || (p.WebsiteID == wid && p.IsPreOwned));
+            }
+            else
+                q = q.Where(p => p.WebsiteID == wid);
+        }
         if (filter.BrandID is int bid)
             q = q.Where(p => p.BrandID == bid);
         // Grid column filter for brand name (partial match).
@@ -74,6 +86,20 @@ public class ProductService : IProductService
             .Skip(query.Skip).Take(query.Take)
             .ToListAsync(ct);
 
+        var storeMinPrice = new Dictionary<int, decimal>();
+        if (storePriceWebsiteId is int priceSite && items.Count > 0)
+        {
+            var productIds = items.Select(p => p.ProductID).ToList();
+            var priceRows = await _context.VendorProducts.AsNoTracking()
+                .Where(vp => vp.WebsiteID == priceSite && vp.IsActive
+                             && productIds.Contains(vp.ProductVariant.ProductID) && vp.ReferencePrice > 0)
+                .Select(vp => new { vp.ProductVariant.ProductID, vp.ReferencePrice })
+                .ToListAsync(ct);
+            storeMinPrice = priceRows
+                .GroupBy(r => r.ProductID)
+                .ToDictionary(g => g.Key, g => g.Min(r => r.ReferencePrice));
+        }
+
         var websiteIds = items.Select(p => p.WebsiteID).Distinct().ToList();
         var prefixes = await _context.Websites.AsNoTracking()
             .Where(w => websiteIds.Contains(w.WebsiteID))
@@ -83,6 +109,7 @@ public class ProductService : IProductService
         var dtos = items.Select(p =>
         {
             prefixes.TryGetValue(p.WebsiteID, out var prefix);
+            var catalogMin = p.ProductVariants.Count == 0 ? (decimal?)null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd);
             return new ProductListItemDto
             {
                 ProductID = p.ProductID,
@@ -96,9 +123,11 @@ public class ProductService : IProductService
                 ProductType = p.ProductType,
                 RequiresShipping = p.RequiresShipping,
                 MinPriceUsd = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePriceUsd > 0 ? v.ReferencePriceUsd : 0),
-                MinPrice = p.ProductVariants.Count == 0 ? null : p.ProductVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : v.ReferencePriceUsd),
+                MinPrice = storeMinPrice.TryGetValue(p.ProductID, out var storePrice) ? storePrice : catalogMin,
                 FeaturedImageUrl = p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl,
                 UpdatedAt = p.UpdatedAt,
+                WebsiteID = p.WebsiteID,
+                IsPreOwned = p.IsPreOwned,
             };
         }).ToList();
 
@@ -142,7 +171,11 @@ public class ProductService : IProductService
 
         NormalizeProductFulfillment(product);
         NormalizeProductRichText(product);
-        await PlatformCatalog.EnsureOwnerAsync(_context, product.WebsiteID, ct);
+        if (product.WebsiteID != AppConstants.MasterWebsiteId && await PlatformCatalog.IsPlatformAsync(_context, ct))
+        {
+            if (!product.IsPreOwned)
+                throw new CatalogLockedException();
+        }
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Add(product);
         await _context.SaveChangesAsync(ct);
@@ -155,6 +188,22 @@ public class ProductService : IProductService
 
         NormalizeProductFulfillment(product);
         NormalizeProductRichText(product);
+        var current = await _context.Products.AsNoTracking()
+            .Where(p => p.ProductID == product.ProductID)
+            .Select(p => new { p.WebsiteID, p.IsPreOwned })
+            .FirstOrDefaultAsync(ct);
+        if (current is not null && await PlatformCatalog.IsPlatformAsync(_context, ct))
+        {
+            if (current.WebsiteID == AppConstants.MasterWebsiteId && product.WebsiteID != AppConstants.MasterWebsiteId)
+                throw new CatalogLockedException();
+            if (current.WebsiteID != AppConstants.MasterWebsiteId)
+            {
+                if (!current.IsPreOwned)
+                    throw new CatalogLockedException();
+                product.IsPreOwned = true;
+                product.WebsiteID = current.WebsiteID;
+            }
+        }
         product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Update(product);
         await _context.SaveChangesAsync(ct);
@@ -334,12 +383,24 @@ public class ProductService : IProductService
         if (unchanged)
             return;
 
-        var ownerWebsiteId = await _context.Products.AsNoTracking()
+        var owner = await _context.Products.AsNoTracking()
             .Where(p => p.ProductID == productId)
-            .Select(p => (int?)p.WebsiteID)
+            .Select(p => new { p.WebsiteID, p.IsPreOwned })
             .FirstOrDefaultAsync(ct);
-        if (ownerWebsiteId is int owner)
-            await PlatformCatalog.EnsureOwnerAsync(_context, owner, ct);
+        if (owner is not null)
+        {
+            var platform = await PlatformCatalog.IsPlatformAsync(_context, ct);
+            if (!(platform && owner.IsPreOwned && owner.WebsiteID != AppConstants.MasterWebsiteId))
+                await PlatformCatalog.EnsureOwnerAsync(_context, owner.WebsiteID, ct);
+            if (platform && owner.IsPreOwned)
+            {
+                var catalogWebsiteId = await PlatformCatalog.CatalogWebsiteIdAsync(_context, owner.WebsiteID, ct);
+                wanted = await _context.ProductCategories.AsNoTracking()
+                    .Where(c => c.WebsiteID == catalogWebsiteId && wanted.Contains(c.ProductCategoryID))
+                    .Select(c => c.ProductCategoryID)
+                    .ToListAsync(ct);
+            }
+        }
 
         _context.ProductCategoryMaps.RemoveRange(existing.Where(m => !wanted.Contains(m.ProductCategoryID)));
 
@@ -904,6 +965,29 @@ public class ProductService : IProductService
             .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
             .ToListAsync(ct);
 
+        if (catalogWebsiteId != storeWebsiteId)
+        {
+            IQueryable<Product> own = PublishedQuery(_context, storeWebsiteId)
+                .Where(p => p.IsPreOwned)
+                .Include(p => p.ProductVariants).ThenInclude(v => v.InventoryItems);
+            own = ApplyVisibleCategories(own, visibleCategories);
+            if (!string.IsNullOrWhiteSpace(categorySlug))
+                own = own.Where(p => p.ProductCategoryMaps.Any(m =>
+                    m.ProductCategory.Slug == categorySlug || m.ProductCategory.ProductCategoryTranslations.Any(t => t.Slug == categorySlug)));
+            if (!string.IsNullOrWhiteSpace(brandSlug))
+                own = own.Where(p => p.Brand != null && p.Brand.Slug == brandSlug);
+            if (!string.IsNullOrWhiteSpace(search))
+                own = own.Where(p => p.Title.Contains(search) || p.ProductTranslations.Any(t => t.Title.Contains(search)));
+            if (minPriceUsd is decimal ownMin)
+                own = own.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd >= ownMin));
+            if (maxPriceUsd is decimal ownMax)
+                own = own.Where(p => p.ProductVariants.Any(v => v.IsActive && v.ReferencePriceUsd <= ownMax));
+            own = ApplyAttributeOptionFilter(own, attributeOptionIds);
+            localProducts.AddRange(await own
+                .OrderByDescending(p => p.SortOrder).ThenByDescending(p => p.CreatedAt)
+                .ToListAsync(ct));
+        }
+
         // Site-linked vendors: only products owned by the linked website (never re-shared imports).
         var linked = await LoadLinkedSiteProductsAsync(_context, storeWebsiteId, categorySlug, brandSlug, search, minPriceUsd, maxPriceUsd, attributeOptionIds, visibleCategories, ct);
         if (catalogWebsiteId != storeWebsiteId)
@@ -940,7 +1024,7 @@ public class ProductService : IProductService
         foreach (var (p, vendor) in page)
         {
             var available = stockByKey.GetValueOrDefault(ListingKey(_context, p.ProductID, vendor?.VendorID));
-            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available, imageAudience);
+            var dto = await ProjectSummaryAsync(p, languageCode, currencyCode, ct, vendor, available, imageAudience, storeWebsiteId);
             items.Add(dto);
         }
 
@@ -998,6 +1082,12 @@ public class ProductService : IProductService
         var product = await DetailQuery(_context, catalogWebsiteId)
             .FirstOrDefaultAsync(p => p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug), ct);
         Vendor? vendor = null;
+
+        if (product is null && catalogWebsiteId != websiteId)
+        {
+            product = await DetailQuery(_context, websiteId)
+                .FirstOrDefaultAsync(p => p.IsPreOwned && (p.Slug == slug || p.ProductTranslations.Any(t => t.Slug == slug)), ct);
+        }
 
         if (product is null)
         {
@@ -1253,7 +1343,7 @@ public class ProductService : IProductService
 
     private async Task<ProductSummaryDto> ProjectSummaryAsync(
         Product p, string? lang, string? currencyCode, CancellationToken ct, Vendor? vendor = null, int? availableStock = null,
-        PlatformImageAudience imageAudience = default)
+        PlatformImageAudience imageAudience = default, int? listingWebsiteId = null)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -1272,6 +1362,21 @@ public class ProductService : IProductService
         {
             var minLocal = activeVariants.Min(v => v.ReferencePrice > 0 ? v.ReferencePrice : 0);
             var minUsd = activeVariants.Min(v => v.ReferencePriceUsd);
+            if (listingWebsiteId is int listSite && listSite != p.WebsiteID)
+            {
+                var variantIds = activeVariants.Select(v => v.ProductVariantID).ToList();
+                var storePrices = await _context.VendorProducts.AsNoTracking()
+                    .Where(vp => vp.WebsiteID == listSite && vp.IsActive && variantIds.Contains(vp.ProductVariantID)
+                                 && (vp.StockQuantity < 0 || vp.StockQuantity - vp.QuantityReserved > 0))
+                    .Select(vp => new { vp.ReferencePrice, vp.ReferencePriceUsd })
+                    .ToListAsync(ct);
+                if (storePrices.Count > 0)
+                {
+                    minLocal = storePrices.Min(x => x.ReferencePrice > 0 ? x.ReferencePrice : 0);
+                    minUsd = storePrices.Min(x => x.ReferencePriceUsd);
+                    priceWebsiteId = listSite;
+                }
+            }
             if (minLocal <= 0 && minUsd > 0)
                 minPrice = await _currency.ToDisplayAsync(priceWebsiteId, minUsd, currencyCode, ct);
             else
@@ -1443,6 +1548,14 @@ public class ProductService : IProductService
             // Storefront: hide OOS variants. Admin preview keeps every variant (including inactive / OOS).
             if (!adminPreview && !StockDisplay.IsInStock(stock))
                 continue;
+
+            if (listing is null && hostId != p.WebsiteID)
+            {
+                listing = sellerRows
+                    .Where(s => s.ProductVariantID == v.ProductVariantID)
+                    .OrderBy(s => s.ReferencePrice > 0 ? s.ReferencePrice : s.ReferencePriceUsd)
+                    .FirstOrDefault();
+            }
 
             var unitLocal = listing?.OverridePriceLocal
                 ?? (listing is not null && listing.ReferencePrice > 0 ? listing.ReferencePrice : (v.ReferencePrice > 0 ? v.ReferencePrice : 0));

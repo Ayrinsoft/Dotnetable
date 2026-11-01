@@ -34,6 +34,16 @@ public interface IVendorProductService
     Task<(bool Success, string? Error, VendorProduct? Item)> UpsertAsync(
         VendorProduct model, int? actingMemberId = null, CancellationToken ct = default);
 
+    /// <summary>Prices this store has set on a shared catalog product. Empty when none are saved yet.</summary>
+    Task<List<StoreVariantPriceDto>> GetStoreVariantPricesAsync(int storeWebsiteId, int productId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Saves this store's price and stock for variants of a website 1 product.
+    /// The catalog variant price is left unchanged.
+    /// </summary>
+    Task<(bool Success, string? Error)> SetStoreVariantPricesAsync(
+        int storeWebsiteId, int productId, IReadOnlyList<StoreVariantPriceDto> prices, CancellationToken ct = default);
+
     Task<(bool Success, string? Error)> DeleteAsync(int vendorProductId, int? actingMemberId = null, CancellationToken ct = default);
 
     /// <summary>

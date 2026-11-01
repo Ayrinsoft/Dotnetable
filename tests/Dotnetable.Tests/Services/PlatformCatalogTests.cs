@@ -1,4 +1,5 @@
 using Dotnetable.Application.Catalog;
+using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Services;
@@ -258,6 +259,77 @@ public class PlatformCatalogTests
         masterTree.Single(c => c.Slug == "toys").Children.Should().BeEmpty();
         var masterListed = await products.GetPublishedAsync(1, null, null, null, null, null, 1, 20);
         masterListed.Items.Select(p => p.Slug).Should().BeEquivalentTo("pen");
+    }
+
+    [Fact]
+    public async Task ChildStore_PricesCatalogVariants_AndMayAddUsedGoods()
+    {
+        using var db = new RelationalTestDb();
+        var factory = new TestDbContextFactory(db.Options);
+        SeedSites(db, platform: true);
+        var currency = new Mock<ICurrencyConversionService>();
+        currency.Setup(c => c.ToDisplayFromLocalAsync(
+                It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<decimal?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MoneyDto { Amount = 1, CurrencyCode = "USD", AmountUsd = 1 });
+        var vendors = new Mock<IVendorService>();
+        vendors.Setup(v => v.GetActiveSiteLinksAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Vendor>());
+        var products = new ProductService(factory, currency.Object, vendors.Object);
+
+        var blocked = () => products.CreateAsync(new Product
+        {
+            WebsiteID = 3, Title = "New toy", Slug = "new-toy", Status = ProductService.PublishedStatus, IsActive = true,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+        await blocked.Should().ThrowAsync<CatalogLockedException>();
+
+        var used = await products.CreateAsync(new Product
+        {
+            WebsiteID = 3, IsPreOwned = true, Title = "Used doll", Slug = "used-doll",
+            Status = ProductService.PublishedStatus, IsActive = true,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+        await using (var seed = db.NewContext())
+        {
+            seed.ProductCategories.Add(new ProductCategory { WebsiteID = 1, Name = "Toys", Slug = "toys", IsActive = true });
+            await seed.SaveChangesAsync();
+        }
+        var toys = (await new ProductCategoryService(factory).GetChildrenAsync(3, null, null)).Single().ProductCategoryID;
+        await products.SetCategoriesAsync(used.ProductID, new[] { toys }, toys);
+
+        var catalog = await products.CreateAsync(new Product
+        {
+            WebsiteID = 1, Title = "Doll", Slug = "doll", Status = ProductService.PublishedStatus, IsActive = true,
+            CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            ProductVariants =
+            {
+                new ProductVariant
+                {
+                    WebsiteID = 1, Sku = "DOLL", Title = "Doll", IsDefault = true, IsActive = true,
+                    ReferencePrice = 10, ReferencePriceUsd = 10,
+                },
+            },
+        });
+        var variantId = catalog.ProductVariants.Single().ProductVariantID;
+        var listings = new VendorProductService(factory, Mock.Of<IExcelExporterRegistry>());
+        var priced = await listings.SetStoreVariantPricesAsync(3, catalog.ProductID, new[]
+        {
+            new StoreVariantPriceDto { ProductVariantID = variantId, ReferencePrice = 25, ReferencePriceUsd = 25, StockQuantity = 2 },
+        });
+        priced.Success.Should().BeTrue(priced.Error);
+
+        await using (var check = db.NewContext())
+        {
+            (await check.ProductVariants.SingleAsync()).ReferencePrice.Should().Be(10);
+            var row = await check.VendorProducts.SingleAsync();
+            row.WebsiteID.Should().Be(3);
+            row.ReferencePrice.Should().Be(25);
+            row.StockQuantity.Should().Be(2);
+        }
+
+        var page = await products.GetPublishedAsync(3, null, null, null, null, null, 1, 20);
+        page.Items.Select(p => p.Slug).Should().BeEquivalentTo("used-doll", "doll");
+        (await products.GetBySlugAsync(3, "used-doll")).Should().NotBeNull();
     }
 
     private static Product ProductIn(int websiteId, string slug, int categoryId) => new()

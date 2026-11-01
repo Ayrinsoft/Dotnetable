@@ -257,6 +257,18 @@ public sealed class ProductListItemDto
     public decimal? MinPriceUsd { get; init; }
     public string? FeaturedImageUrl { get; init; }
     public DateTime UpdatedAt { get; init; }
+    public int WebsiteID { get; init; }
+    /// <summary>Store-owned used item. On a platform this is the only product a child website creates.</summary>
+    public bool IsPreOwned { get; init; }
+}
+
+/// <summary>A store's selling price for one catalog variant. Does not change website 1's catalog price.</summary>
+public sealed class StoreVariantPriceDto
+{
+    public int ProductVariantID { get; init; }
+    public decimal ReferencePrice { get; init; }
+    public decimal ReferencePriceUsd { get; init; }
+    public int StockQuantity { get; init; }
 }
 
 /// <summary>Optional filters applied to the admin product listing.</summary>

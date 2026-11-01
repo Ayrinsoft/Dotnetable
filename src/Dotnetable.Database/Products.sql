@@ -14,6 +14,7 @@
     [DigitalServiceUrl]   NVARCHAR (1000) NULL,
     [DigitalDeliveryNote] NVARCHAR (2000) NULL,
     [IsCatalogOnly]       BIT             NOT NULL,
+    [IsPreOwned]          BIT             CONSTRAINT [DF_Products_IsPreOwned] DEFAULT (CONVERT([bit],(0))) NOT NULL,
     [HasVariants]         BIT             NOT NULL,
     [AvgRating]           DECIMAL (3, 2)  NOT NULL,
     [RatingCount]         INT             NOT NULL,
@@ -50,3 +51,6 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_Products_WebsiteID]
     ON [dbo].[Products] ([WebsiteID] ASC);
+GO
+
+EXECUTE sp_addextendedproperty @name = N'MS_Description', @value = N'Used item owned by one store, with that store''s photos and description. On a platform, only this kind of product may be created by a website other than website 1.', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'Products', @level2type = N'COLUMN', @level2name = N'IsPreOwned';

@@ -5904,6 +5904,12 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsPreOwned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasComment("Used item owned by one store. On a platform, other websites may create only this kind of product.");
+
                     b.Property<byte>("ProductType")
                         .HasColumnType("tinyint");
 

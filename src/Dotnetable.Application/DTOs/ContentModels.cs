@@ -27,6 +27,12 @@ public class PostSummaryDto
     /// <summary>Signed-in customers who liked the post (once each).</summary>
     public int LikeCount { get; init; }
     public DateTime? PublishedAt { get; init; }
+    /// <summary>Stable reference. Null when this post type does not use one.</summary>
+    public string? StableKey { get; init; }
+    /// <summary>First content release this edition covers. Null means unversioned or every release.</summary>
+    public string? AppliesFrom { get; init; }
+    /// <summary>Last content release this edition covers, inclusive. Null means still open.</summary>
+    public string? AppliesTo { get; init; }
     public IReadOnlyList<CategoryDto> Categories { get; init; } = Array.Empty<CategoryDto>();
     public IReadOnlyList<TagDto> Tags { get; init; } = Array.Empty<TagDto>();
 }
@@ -120,6 +126,16 @@ public sealed class RedirectResultDto
 // ── Admin filters ─────────────────────────────────────────────────────────────
 
 /// <summary>Optional filters applied to the admin post listing.</summary>
+/// <summary>A website content release line, for the public version picker.</summary>
+public sealed class ContentVersionDto
+{
+    public int ContentVersionID { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
+    public bool IsLatest { get; init; }
+    public bool IsPublished { get; init; }
+}
+
 public sealed class PostFilter
 {
     public int? PostTypeID { get; set; }

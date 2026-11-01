@@ -51,7 +51,7 @@ else
                     @L["products.preview", "Preview"]
                 </MudButton>
             }
-            @if (_canEdit && !(_catalogLocked && _isNew))
+            @if (_canEdit && !(_catalogLocked && _isNew && !_usedProduct))
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
                            Disabled="@(_saving || _prerequisites.Count > 0)"
@@ -62,16 +62,64 @@ else
         </MudStack>
     </MudStack>
 
-    @if (_catalogLocked)
+    @if (_priceOnly)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
-            @L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]
+            @L["products.platform_price_only", "This store can set its own price and stock for each variant. Title, photos, and categories stay on website 1."]
+        </MudAlert>
+    }
+    else if (_usedProduct)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+            @L["products.platform_used", "This used item belongs to this store. Its photos and description are not the shared catalog."]
+        </MudAlert>
+    }
+    else if (_catalogLocked)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+            @L["products.platform_locked", "This installation is a platform. Only website 1 adds catalog products. Send a catalog request and website 1 is emailed when it is saved."]
             <MudLink Href="/catalog/requests" Class="ms-1">@L["catalog.requests.open", "Catalog requests"]</MudLink>
         </MudAlert>
     }
     <DNPrerequisiteAlert Items="_prerequisites" />
     <DNValidationSummary Errors="_formErrors" />
 
+    @if (_priceOnly)
+    {
+        <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-1">@Model.Title</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">@_productCode</MudText>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <thead>
+                    <tr>
+                        <th>@L["variants.title", "Variant"]</th>
+                        <th>@L["sku", "SKU"]</th>
+                        <th>@PriceFieldLabel</th>
+                        <th>@L["stock", "Stock"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in _variants)
+                    {
+                        <tr>
+                            <td>@v.Title</td>
+                            <td>@v.Sku</td>
+                            <td style="max-width:160px">
+                                <DNMoneyField Value="@DisplayPrice(v)" ValueChanged="@(n => SetDisplayPrice(v, n))"
+                                              Margin="Margin.Dense" />
+                            </td>
+                            <td style="max-width:120px">
+                                <MudNumericField T="int" Value="@StoreStock(v)" ValueChanged="@(n => _storeStock[v.ProductVariantID] = n)"
+                                                 Min="0" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+    else
+    {
     <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
         <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
             <MudTabPanel Text="@L["products.general", "General"]">
@@ -1031,14 +1079,20 @@ else
             </MudTabPanel>
         </MudTabs>
     </MudPaper>
+    }
 }
 
 @code {
     [Parameter] public int? ProductId { get; set; }
+    [SupplyParameterFromQuery(Name = "used")] public bool Used { get; set; }
 
     private bool _loading = true, _saving;
     private bool _isNew;
     private bool _isMaster, _canEdit;
+    private bool _usedProduct;
+    private bool _priceOnly;
+    private int _storeWebsiteId;
+    private readonly Dictionary<int, int> _storeStock = new();
     private string[]? _formErrors;
     private bool _showFieldErrors;
     private int _websiteId;
@@ -1183,6 +1237,7 @@ else
         _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
         _canEdit = AdminPolicies.Allows(user, ProductId is null ? RoleKeys.ProductsInsert : RoleKeys.ProductsEdit);
         int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _storeWebsiteId = _websiteId;
         if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
             _memberId = mid;
         if (int.TryParse(user.FindFirst(AdminClaimTypes.VendorId)?.Value, out var vendorId))
@@ -1243,8 +1298,30 @@ else
         _languages = activeLangs.Where(l => !l.IsDefault)
             .Select(x => (x.LanguageCode, x.Name)).ToArray();
 
-        _catalogLocked = await PlatformCatalog.IsPlatformAsync() && _websiteId != AppConstants.MasterWebsiteId;
-        _brands = await BrandService.GetAllAsync(_websiteId);
+        var platform = await PlatformCatalog.IsPlatformAsync();
+        _catalogLocked = platform && _storeWebsiteId != AppConstants.MasterWebsiteId;
+        _priceOnly = _catalogLocked && !_isNew && Model.WebsiteID == AppConstants.MasterWebsiteId && !Model.IsPreOwned;
+        _usedProduct = _catalogLocked && (_isNew ? Used : Model.IsPreOwned && Model.WebsiteID == _storeWebsiteId);
+        if (_isNew && _catalogLocked && !_usedProduct)
+        {
+            Nav.NavigateTo("/catalog/products");
+            return;
+        }
+        if (_catalogLocked && !_isNew && !_priceOnly && !_usedProduct)
+        {
+            Snackbar.Add(L["products.vendor_forbidden", "You can only manage your own products."], Severity.Error);
+            Nav.NavigateTo("/catalog/products");
+            return;
+        }
+        if (_usedProduct && _isNew)
+        {
+            Model.IsPreOwned = true;
+            Model.WebsiteID = _storeWebsiteId;
+        }
+        var brandWebsiteId = _usedProduct || _priceOnly
+            ? await PlatformCatalog.CatalogWebsiteIdAsync(_storeWebsiteId)
+            : _websiteId;
+        _brands = await BrandService.GetAllAsync(brandWebsiteId);
         var categoryCount = await CategoryService.CountAsync(_websiteId);
         // Load all plans so inactive ones already linked to the product still resolve in the autocomplete.
         _warrantyCatalog = await WarrantyService.GetAllAsync(_websiteId, activeOnly: false);
@@ -1269,6 +1346,18 @@ else
 
         await LoadCurrencyAsync();
         SyncVariantLocalPrices();
+        if (_priceOnly && Model.ProductID > 0)
+        {
+            var storePrices = await VendorProductService.GetStoreVariantPricesAsync(_storeWebsiteId, Model.ProductID);
+            foreach (var row in storePrices)
+            {
+                var variant = _variants.FirstOrDefault(v => v.ProductVariantID == row.ProductVariantID);
+                if (variant is null) continue;
+                _storeStock[row.ProductVariantID] = row.StockQuantity < 0 ? 0 : row.StockQuantity;
+                if (row.ReferencePrice > 0)
+                    SetDisplayPrice(variant, RoundLocal(row.ReferencePrice));
+            }
+        }
 
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, _brands.Count, categoryCount, _hasRate ? 1 : 0);
 
@@ -1340,8 +1429,9 @@ else
     {
         try
         {
-            _storePricesInUsd = await CurrencyConversion.GetStorePricesInUsdAsync(_websiteId);
-            var rates = await CurrencyConversion.GetActiveRatesAsync(_websiteId);
+            var currencyWebsiteId = _priceOnly ? _storeWebsiteId : _websiteId;
+            _storePricesInUsd = await CurrencyConversion.GetStorePricesInUsdAsync(currencyWebsiteId);
+            var rates = await CurrencyConversion.GetActiveRatesAsync(currencyWebsiteId);
             var rate = rates.FirstOrDefault(r => r.IsDefault) ?? rates.FirstOrDefault();
             if (rate is null)
             {
@@ -2672,8 +2762,8 @@ else
         if (_selectedBrand is null)
             errors.Add(L["products.brand_required", "Brand is required. Select a brand before saving."]);
 
-        if (_catalogLocked && _isNew)
-            errors.Add(L["products.platform_locked", "This installation is a platform. Only website 1 adds products. Send a catalog request and website 1 is emailed when it is saved."]);
+        if (_catalogLocked && _isNew && !_usedProduct)
+            errors.Add(L["products.platform_locked", "This installation is a platform. Only website 1 adds catalog products. Send a catalog request and website 1 is emailed when it is saved."]);
 
         if (_categoryId is null)
             errors.Add(L["products.category_required", "Category is required. Select one category before saving."]);
@@ -2735,8 +2825,55 @@ else
         return errors;
     }
 
+    private int StoreStock(ProductVariant variant) =>
+        _storeStock.TryGetValue(variant.ProductVariantID, out var qty) ? qty : 0;
+
+    private async Task SaveStorePricesAsync()
+    {
+        var errors = new List<string>();
+        if (!_hasRate)
+            errors.Add(L["products.rate_required", "Configure an exchange rate before setting product prices."]);
+        foreach (var v in _variants)
+        {
+            if (DisplayPrice(v) <= 0)
+                errors.Add(string.Format(L["variants.price_required_row", "{0}: price must be greater than zero."], v.Title));
+        }
+        if (errors.Count > 0)
+        {
+            _formErrors = errors.ToArray();
+            Snackbar.Add(L["products.fix_invalid", "Please fix the highlighted fields before saving."], Severity.Warning);
+            return;
+        }
+
+        foreach (var v in _variants)
+            SetDisplayPrice(v, DisplayPrice(v));
+
+        _saving = true;
+        var (ok, error) = await VendorProductService.SetStoreVariantPricesAsync(_storeWebsiteId, Model.ProductID,
+            _variants.Select(v => new StoreVariantPriceDto
+            {
+                ProductVariantID = v.ProductVariantID,
+                ReferencePrice = v.ReferencePrice,
+                ReferencePriceUsd = v.ReferencePriceUsd,
+                StockQuantity = StoreStock(v),
+            }).ToList());
+        _saving = false;
+        if (!ok)
+        {
+            Snackbar.Add(error ?? L["error", "Error"], Severity.Error);
+            return;
+        }
+        Snackbar.Add(L["products.store_price_saved", "Store price saved."], Severity.Success);
+    }
+
     private async Task SaveAsync()
     {
+        if (_priceOnly)
+        {
+            await SaveStorePricesAsync();
+            return;
+        }
+
         _showFieldErrors = true;
         var validation = ValidateBeforeSave();
         if (validation.Count > 0)
@@ -2773,7 +2910,8 @@ else
             _variants[0].IsDefault = true;
         }
 
-        Model.WebsiteID = _websiteId;
+        Model.WebsiteID = _usedProduct ? _storeWebsiteId : _websiteId;
+        if (_usedProduct) Model.IsPreOwned = true;
         Model.BrandID = _selectedBrand!.BrandID;
         Model.HasVariants = _variants.Count > 1;
         if (_isNew && _memberId is int creatorId)

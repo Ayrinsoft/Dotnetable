@@ -5899,6 +5899,12 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPreOwned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasComment("Used item owned by one store. On a platform, other websites may create only this kind of product.");
+
                     b.Property<byte>("ProductType")
                         .HasColumnType("smallint");
 

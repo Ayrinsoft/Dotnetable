@@ -5684,6 +5684,12 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsCatalogOnly")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("IsPreOwned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasComment("Used item owned by one store. On a platform, other websites may create only this kind of product.");
+
                     b.Property<byte>("ProductType")
                         .HasColumnType("tinyint unsigned");
 
