@@ -47,6 +47,12 @@ public sealed class PostDetailDto : PostSummaryDto
     /// <summary>Admin override for the search-result/social-preview description; falls back to <see cref="PostSummaryDto.Excerpt"/>.</summary>
     public string? MetaDescription { get; init; }
     public string? MetaKeywords { get; init; }
+
+    /// <summary>
+    /// Gallery in cover order. Empty when the post has only the featured image and no gallery rows.
+    /// More than one item is a slideshow. The first item is the cover.
+    /// </summary>
+    public IReadOnlyList<PostImageDto> Images { get; init; } = Array.Empty<PostImageDto>();
 }
 
 /// <summary>Map point returned with a post. <see cref="Address"/> and <see cref="CityName"/> follow the requested language.</summary>

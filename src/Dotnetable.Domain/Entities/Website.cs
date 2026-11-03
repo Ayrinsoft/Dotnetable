@@ -298,6 +298,8 @@ public partial class Website
 
     public virtual ICollection<WebsiteFeature> WebsiteFeatures { get; set; } = new List<WebsiteFeature>();
 
+    public virtual WebsiteInstagramAccount? WebsiteInstagramAccount { get; set; }
+
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
 
     public virtual ICollection<WebsiteRedirect> WebsiteRedirects { get; set; } = new List<WebsiteRedirect>();

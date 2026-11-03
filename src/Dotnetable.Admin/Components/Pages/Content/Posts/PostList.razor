@@ -1,6 +1,7 @@
 @page "/content/posts"
 @attribute [Authorize(Policy = RoleKeys.PostsView)]
 @inject IPostService PostService
+@inject IInstagramPublishService InstagramPublish
 @inject IPostTypeService PostTypeService
 @inject ICategoryService CategoryService
 @inject ITagService TagService
@@ -40,6 +41,17 @@
     </MudStack>
 </MudStack>
 
+<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_helpOpen" ConnectedChanged="OnInstagramConnected" />
+@if (_canEdit && !_igConnected)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" ContentAlignment="HorizontalAlignment.Start">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.body2">@L["posts.ig_not_connected", "Instagram is not connected yet. Open the steps above and save the account id and Page token."]</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => _helpOpen = true)">@L["posts.ig_open_help", "Show steps"]</MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
 <DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -69,6 +81,18 @@
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p))" />
                             }
+                            @if (_sent.ContainsKey(p.PostID))
+                            {
+                                <MudTooltip Text="@(_sent[p.PostID] ?? L["posts.ig_sent", "Already sent to Instagram"])">
+                                    <MudIconButton Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Success" Disabled="true" />
+                                </MudTooltip>
+                            }
+                            else if (_canEdit)
+                            {
+                                <MudTooltip Text="@L["posts.ig_send", "Send to Instagram"]">
+                                    <MudIconButton Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => PublishAsync(p))" />
+                                </MudTooltip>
+                            }
                         </MudStack>
                     </td>
                     <td>@p.Title @(p.IsFeatured ? "★" : "")</td>
@@ -97,6 +121,9 @@
     private List<PostType> _postTypes = new();
     private List<Website> _websites = new();
     private HashSet<int> _busy = new();
+    private Dictionary<int, string?> _sent = new();
+    private bool _helpOpen;
+    private bool _igConnected;
     private GridViewHeaderParameters _grid = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
 
@@ -172,7 +199,33 @@
         var result = await PostService.GetPagedAsync(_websiteId, filter, _grid.ToQuery());
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
+        _sent = (await InstagramPublish.GetLinksAsync(_items.Select(p => p.PostID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
         _loading = false;
+    }
+
+    private Task OnInstagramConnected(bool connected)
+    {
+        _igConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private async Task PublishAsync(Post post)
+    {
+        if (!_igConnected)
+        {
+            _helpOpen = true;
+            Snackbar.Add(L["posts.ig_connect_first", "Connect Instagram with the steps above before sending a post."], Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters { [nameof(InstagramPublishDialog.PostId)] = post.PostID };
+        var dialog = await DialogService.ShowAsync<InstagramPublishDialog>(L["posts.ig_send", "Send to Instagram"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false });
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+        {
+            _sent[post.PostID] = result.Data as string;
+        }
     }
 
     private async Task ToggleActiveAsync(Post p, bool value)

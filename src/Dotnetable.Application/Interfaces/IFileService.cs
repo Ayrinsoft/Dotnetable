@@ -41,6 +41,12 @@ public sealed class FileUploadRequest
 
     /// <summary>Overrides the website's auto-apply watermark setting for this file. Null defers to the site setting.</summary>
     public bool? ApplyWatermark { get; init; }
+
+    /// <summary>
+    /// Stores a raster image as JPEG instead of WebP. Instagram only fetches JPEG.
+    /// The caller passes <see cref="ApplyWatermark"/> false so the temporary file is not stamped.
+    /// </summary>
+    public bool KeepOriginalFormat { get; init; }
 }
 
 /// <summary>Crop, resize, grayscale, and watermark applied to an image that is already in the library.</summary>

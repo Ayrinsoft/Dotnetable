@@ -43,7 +43,40 @@
                     }
                 </div>
 
-                @if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
+                @if (Model.Images.Count > 1)
+                {
+                    var galleryId = $"post-gallery-{Model.PostID}";
+                    <div id="@galleryId" class="carousel slide site-slideshow post-gallery rounded-4 mb-4" data-bs-ride="false">
+                        <div class="carousel-indicators">
+                            @for (var i = 0; i < Model.Images.Count; i++)
+                            {
+                                <button type="button" data-bs-target="#@galleryId" data-bs-slide-to="@i" class="@(i == 0 ? "active" : null)"
+                                        aria-current="@(i == 0 ? "true" : null)" aria-label="@($"Slide {i + 1}")"></button>
+                            }
+                        </div>
+                        <div class="carousel-inner">
+                            @for (var i = 0; i < Model.Images.Count; i++)
+                            {
+                                var photo = Model.Images[i];
+                                var full = string.IsNullOrEmpty(photo.FullUrl) ? photo.Url : photo.FullUrl;
+                                <div class="carousel-item@(i == 0 ? " active" : "")">
+                                    <a href="@full" class="site-slideshow-lightbox" data-lightbox-group="@galleryId">
+                                        <img src="@MediaHtml.Placeholder" data-src="@photo.Url" class="d-block w-100 dn-lazy" alt="@Model.Title" />
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#@galleryId" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#@galleryId" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(Model.FeaturedImageUrl))
                 {
                     @* The thumbnail is what the page shows; the original is fetched only when the visitor opens it. *@
                     var featuredFull = Model.FeaturedImageFullUrl != Model.FeaturedImageUrl ? Model.FeaturedImageFullUrl : null;

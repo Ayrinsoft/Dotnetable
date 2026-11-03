@@ -5,6 +5,7 @@ using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Interfaces;
 using Dotnetable.Infrastructure.Caching;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Instagram;
 using Dotnetable.Infrastructure.Provisioning;
 using Dotnetable.Infrastructure.Repositories;
 using Dotnetable.Infrastructure.Security;
@@ -258,6 +259,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryService>(sp => new CachedCategoryService(
             sp.GetRequiredService<CategoryService>(), sp.GetRequiredService<ICacheService>(),
             sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
+
+        services.AddHttpClient<IInstagramGraph, InstagramGraphClient>();
+        services.AddScoped<IInstagramMediaHost, InstagramMediaHost>();
+        services.AddScoped<IInstagramAccountService, InstagramAccountService>();
+        services.AddScoped<IInstagramPublishService, InstagramPublishService>();
 
         services.AddScoped<PostService>();
         services.AddScoped<IPostService>(sp => new CachedPostService(

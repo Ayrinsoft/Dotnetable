@@ -5612,6 +5612,57 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("PostCategories");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostImage", b =>
+                {
+                    b.Property<int>("PostImageID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PostImageID"));
+
+                    b.Property<int>("FileRecordID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PostID")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PostImageID");
+
+                    b.HasIndex(new[] { "FileRecordID" }, "IX_PostImages_FileRecordID");
+
+                    b.HasIndex(new[] { "PostID" }, "IX_PostImages_PostID");
+
+                    b.HasIndex(new[] { "PostID", "FileRecordID" }, "UQ_PostImages_Post_File")
+                        .IsUnique();
+
+                    b.ToTable("PostImages");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostInstagramPublication", b =>
+                {
+                    b.Property<int>("PostID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IgMediaId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Permalink")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("PostID");
+
+                    b.ToTable("PostInstagramPublications");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
                 {
                     b.Property<int>("PostID")
@@ -9694,6 +9745,48 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("WebsiteIPs");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteInstagramAccount", b =>
+                {
+                    b.Property<int>("WebsiteInstagramAccountID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteInstagramAccountID"));
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IgUserId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PageId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteInstagramAccountID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteInstagramAccounts_WebsiteID")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteInstagramAccounts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteRedirect", b =>
                 {
                     b.Property<int>("WebsiteRedirectID")
@@ -12370,6 +12463,36 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostImage", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "FileRecord")
+                        .WithMany("PostImages")
+                        .HasForeignKey("FileRecordID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PostImages_FileRecords");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithMany("PostImages")
+                        .HasForeignKey("PostID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PostImages_Posts");
+
+                    b.Navigation("FileRecord");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostInstagramPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithOne("PostInstagramPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.PostInstagramPublication", "PostID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PostInstagramPublications_Posts");
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.City", "City")
@@ -14029,6 +14152,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteInstagramAccount", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithOne("WebsiteInstagramAccount")
+                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteInstagramAccount", "WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteInstagramAccounts_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteRedirect", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -14468,6 +14602,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("Payments");
 
+                    b.Navigation("PostImages");
+
                     b.Navigation("Posts");
 
                     b.Navigation("ProductCategories");
@@ -14709,6 +14845,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("MenuItems");
 
                     b.Navigation("PostCategories");
+
+                    b.Navigation("PostImages");
+
+                    b.Navigation("PostInstagramPublication");
 
                     b.Navigation("PostLocation");
 
@@ -15124,6 +15264,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteFeatures");
 
                     b.Navigation("WebsiteIPs");
+
+                    b.Navigation("WebsiteInstagramAccount");
 
                     b.Navigation("WebsiteRedirects");
 

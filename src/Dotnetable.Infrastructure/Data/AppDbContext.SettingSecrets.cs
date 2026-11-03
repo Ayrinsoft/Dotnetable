@@ -27,6 +27,7 @@ public partial class AppDbContext
         Widen(modelBuilder.Entity<PaymentGateway>().Property(e => e.ApiSecret));
         Widen(modelBuilder.Entity<PaymentGateway>().Property(e => e.SettingsJSON));
         Widen(modelBuilder.Entity<WebsiteCaptchaSetting>().Property(e => e.TurnstileSecretKey));
+        Widen(modelBuilder.Entity<WebsiteInstagramAccount>().Property(e => e.AccessToken));
 
         if (_settingKey is null) return;
 
@@ -41,6 +42,7 @@ public partial class AppDbContext
         Protect(modelBuilder.Entity<PaymentGateway>().Property(e => e.ApiSecret)!, key);
         Protect(modelBuilder.Entity<PaymentGateway>().Property(e => e.SettingsJSON)!, key);
         Protect(modelBuilder.Entity<WebsiteCaptchaSetting>().Property(e => e.TurnstileSecretKey)!, key);
+        Protect(modelBuilder.Entity<WebsiteInstagramAccount>().Property(e => e.AccessToken), key);
     }
 
     private static void Widen<T>(PropertyBuilder<T> property) => property.Metadata.SetMaxLength(null);

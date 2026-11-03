@@ -86,6 +86,10 @@ public partial class Post
 
     public virtual ICollection<PostCategory> PostCategories { get; set; } = new List<PostCategory>();
 
+    public virtual ICollection<PostImage> PostImages { get; set; } = new List<PostImage>();
+
+    public virtual PostInstagramPublication? PostInstagramPublication { get; set; }
+
     public virtual PostLocation? PostLocation { get; set; }
 
     public virtual ICollection<PostTranslation> PostTranslations { get; set; } = new List<PostTranslation>();

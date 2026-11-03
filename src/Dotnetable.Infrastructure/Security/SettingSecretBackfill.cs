@@ -82,6 +82,7 @@ public static class SettingSecretBackfill
         count += await RewriteAsync(context, "PaymentGateways", "PaymentGatewayID", "ApiSecret", ct);
         count += await RewriteAsync(context, "PaymentGateways", "PaymentGatewayID", "SettingsJSON", ct);
         count += await RewriteAsync(context, "WebsiteCaptchaSettings", "WebsiteCaptchaSettingID", "TurnstileSecretKey", ct);
+        count += await RewriteAsync(context, "WebsiteInstagramAccounts", "WebsiteInstagramAccountID", "AccessToken", ct);
         return count;
     }
 
@@ -115,6 +116,7 @@ public static class SettingSecretBackfill
             "EmailAccounts" => await MarkEmailAsync(context, ids, ct),
             "PaymentGateways" => await MarkPaymentAsync(context, ids, valueColumn, ct),
             "WebsiteCaptchaSettings" => await MarkCaptchaAsync(context, ids, ct),
+            "WebsiteInstagramAccounts" => await MarkInstagramAsync(context, ids, ct),
             _ => 0,
         };
 
@@ -195,6 +197,14 @@ public static class SettingSecretBackfill
         var rows = await context.WebsiteCaptchaSettings.Where(s => ids.Contains(s.WebsiteCaptchaSettingID)).ToListAsync(ct);
         foreach (var row in rows)
             context.Entry(row).Property(s => s.TurnstileSecretKey).IsModified = true;
+        return rows.Count;
+    }
+
+    private static async Task<int> MarkInstagramAsync(AppDbContext context, List<int> ids, CancellationToken ct)
+    {
+        var rows = await context.WebsiteInstagramAccounts.Where(s => ids.Contains(s.WebsiteInstagramAccountID)).ToListAsync(ct);
+        foreach (var row in rows)
+            context.Entry(row).Property(s => s.AccessToken).IsModified = true;
         return rows.Count;
     }
 }

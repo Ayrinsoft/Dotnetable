@@ -99,6 +99,15 @@ public class CachedPostService : IPostService
         await InvalidateAsync(ct);
     }
 
+    public Task<List<PostImage>> GetImagesAsync(int postId, CancellationToken ct = default) =>
+        _inner.GetImagesAsync(postId, ct);
+
+    public async Task SetImagesAsync(int postId, IReadOnlyList<int> fileRecordIds, CancellationToken ct = default)
+    {
+        await _inner.SetImagesAsync(postId, fileRecordIds, ct);
+        await InvalidateAsync(ct);
+    }
+
     public Task<PagedResult<PostSummaryDto>> GetPublishedAsync(
         int websiteId, string? postTypeSlug, string? categorySlug, string? tagSlug,
         int pageIndex, int pageSize, string? languageCode = null, string? authorSlug = null,

@@ -1,0 +1,159 @@
+@inject IInstagramAccountService Accounts
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudExpansionPanels Elevation="0" Class="mb-4">
+    <MudExpansionPanel Text="@L["posts.ig_help_title", "Instagram — connect your page"]" Expanded="_expanded" ExpandedChanged="OnExpandedChanged">
+        <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
+        <ol class="mb-4" style="padding-inline-start:1.25rem">
+            @foreach (var step in Steps)
+            {
+                <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+            }
+        </ol>
+
+        @if (CanEdit)
+        {
+            @if (_status?.Connected == true)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    @(string.IsNullOrWhiteSpace(_status.Username)
+                        ? L["posts.ig_connected", "Instagram is connected."]
+                        : string.Format(L["posts.ig_connected_as", "Connected as @{0}."], _status.Username))
+                </MudAlert>
+            }
+
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_igUserId" Label="@L["posts.ig_user_id", "Instagram account id"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_pageId" Label="@L["posts.ig_page_id", "Facebook Page id (optional)"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_token" Label="@L["posts.ig_token", "Page access token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.ig_save", "Check and save"]</MudButton>
+                @if (_status?.Connected == true)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.ig_disconnect", "Disconnect"]</MudButton>
+                }
+            </MudStack>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool Expanded { get; set; }
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    [Parameter] public EventCallback<bool> ConnectedChanged { get; set; }
+
+    private bool _busy;
+    private bool _expanded;
+    private int _loadedFor;
+    private InstagramAccountStatus? _status;
+    private string _igUserId = "";
+    private string _pageId = "";
+    private string _token = "";
+
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+
+    private string Intro => Persian
+        ? "اینستاگرام فقط از حساب حرفه‌ای (بیزینس یا کریتور) که به یک صفحه فیسبوک وصل است پست می‌گیرد. توکن را اینجا بگذارید. خود توکن بعد از ذخیره نشان داده نمی‌شود."
+        : "Instagram accepts posts only from a professional account (Business or Creator) linked to a Facebook Page. Paste the token here. It is not shown again after you save.";
+
+    private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
+
+    private static readonly string[] StepsFa =
+    [
+        "در اینستاگرام حساب را حرفه‌ای کنید و آن را به یک صفحه فیسبوک که مدیرش هستید وصل کنید.",
+        "در developers.facebook.com یک اپ از نوع Business بسازید و محصول Instagram را اضافه کنید.",
+        "یک توکن کاربر با مجوزهای instagram_basic، instagram_content_publish، pages_show_list و pages_read_engagement بگیرید و آن را با App Id و App Secret به توکن بلندمدت (حدود ۶۰ روز) تبدیل کنید.",
+        "با همان توکن، me/accounts را با فیلدهای access_token و instagram_business_account بخوانید. شناسه instagram_business_account همان شناسه حساب است و access_token صفحه، توکنی است که اینجا وارد می‌کنید.",
+        "نشانی فایل‌ها باید https و از اینترنت عمومی در دسترس باشد. اینستاگرام localhost را نمی‌خواند. عکس کتابخانه به JPEG موقت تبدیل می‌شود و بعد از ارسال پاک می‌شود.",
+        "در جدول، دکمه اینستاگرام را بزنید. کپشن، عکس یا ویدیو، و کاور را در پنجره مشخص کنید. هر پست فقط یک بار ارسال می‌شود.",
+    ];
+
+    private static readonly string[] StepsEn =
+    [
+        "Switch the Instagram account to Professional (Business or Creator) and link it to a Facebook Page you manage.",
+        "Create a Business app at developers.facebook.com and add the Instagram product.",
+        "Create a user token with instagram_basic, instagram_content_publish, pages_show_list, and pages_read_engagement, then exchange it for a long-lived token (about 60 days) with your App Id and App Secret.",
+        "Call me/accounts with that token and ask for access_token and instagram_business_account. The Instagram id is the account id. The page access_token is what you paste here.",
+        "File addresses must be public https. Instagram cannot read localhost. Library photos are copied to a temporary JPEG and deleted after publishing.",
+        "Use the Instagram button on a row. Set the caption, photos or video, and the cover in the window. Each post is sent once.",
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _expanded = Expanded;
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        _token = "";
+        _status = await Accounts.GetAsync(WebsiteId);
+        _igUserId = _status.IgUserId ?? "";
+        _pageId = _status.PageId ?? "";
+        await ConnectedChanged.InvokeAsync(_status.Connected);
+    }
+
+    private async Task OnExpandedChanged(bool value)
+    {
+        _expanded = value;
+        await ExpandedChanged.InvokeAsync(value);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _status = await Accounts.SaveAsync(WebsiteId, new InstagramAccountInput
+            {
+                IgUserId = _igUserId,
+                PageId = _pageId,
+                AccessToken = _token,
+            });
+            _token = "";
+            Snackbar.Add(L["posts.ig_saved", "Instagram account saved."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(_status.Connected);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Accounts.DisconnectAsync(WebsiteId);
+            _status = new InstagramAccountStatus();
+            _igUserId = "";
+            _pageId = "";
+            _token = "";
+            Snackbar.Add(L["posts.ig_disconnected", "Instagram disconnected."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(false);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

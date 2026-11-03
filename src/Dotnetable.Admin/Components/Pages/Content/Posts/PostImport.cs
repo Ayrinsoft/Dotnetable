@@ -141,7 +141,10 @@ public static class PostImportWriter
         {
             if (string.IsNullOrWhiteSpace(code) || code.Equals(language, StringComparison.OrdinalIgnoreCase)) continue;
             if (!HasText(locale)) continue;
-            others[code.Trim()] = From(code.Trim(), locale);
+            var translated = From(code.Trim(), locale);
+            // The summary is the primary-language excerpt. Translation blocks do not repeat it.
+            translated.Summary = null;
+            others[code.Trim()] = translated;
         }
         if (others.Count > 0) file.Translations = others;
         return JsonSerializer.Serialize(file, Options);
@@ -248,7 +251,6 @@ public static class PostImportSample
               "language": "en",
               "title": "Post title",
               "slug": "post-slug-en",
-              "summary": "Short excerpt.",
               "meta_title": "SEO title",
               "meta_description": "Search snippet.",
               "keywords": "keyword1, keyword2",
@@ -271,7 +273,7 @@ public static class PostImportSample
         بلوک اصلی، زبان مقاله است. language کد آن زبان است، مثلاً fa. هر زبان دیگر را داخل translations با کلید همان کد بگذار، مثلاً en. هر بلوک این فیلدها را دارد:
         - title
         - slug فقط با حروف انگلیسی کوچک، عدد و خط تیره
-        - summary خلاصهٔ کوتاه
+        - summary خلاصهٔ کوتاه. این فیلد را فقط در بلوک زبان اصلی بگذار، نه داخل translations
         - meta_title
         - meta_description حدود ۱۵۰ نویسه
         - keywords واژه‌ها با ویرگول
@@ -298,7 +300,7 @@ public static class PostImportSample
         The root object is the article's main language. language is that language code, for example en. Put every other language in translations, keyed by its code, for example fa. Each block has:
         - title
         - slug, using only lowercase English letters, digits, and hyphens
-        - summary, a short excerpt
+        - summary, a short excerpt, on the main language block only. Do not put summary inside translations
         - meta_title
         - meta_description, about 150 characters
         - keywords, separated by commas

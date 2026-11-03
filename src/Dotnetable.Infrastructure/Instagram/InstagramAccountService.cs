@@ -1,0 +1,72 @@
+using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Instagram;
+using Dotnetable.Application.Interfaces;
+using Dotnetable.Domain.Entities;
+using Dotnetable.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace Dotnetable.Infrastructure.Instagram;
+
+public sealed class InstagramAccountService : IInstagramAccountService
+{
+    private readonly IDbContextFactory<AppDbContext> _contexts;
+    private readonly IInstagramGraph _graph;
+
+    public InstagramAccountService(IDbContextFactory<AppDbContext> contexts, IInstagramGraph graph)
+    {
+        _contexts = contexts;
+        _graph = graph;
+    }
+
+    public async Task<InstagramAccountStatus> GetAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contexts.CreateDbContextAsync(ct);
+        var row = await context.WebsiteInstagramAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
+        return Status(row);
+    }
+
+    public async Task<InstagramAccountStatus> SaveAsync(int websiteId, InstagramAccountInput input, CancellationToken ct = default)
+    {
+        var igUserId = (input.IgUserId ?? "").Trim();
+        if (igUserId.Length == 0)
+            throw new InstagramException("Enter the Instagram account id.");
+
+        await using var context = await _contexts.CreateDbContextAsync(ct);
+        var row = await context.WebsiteInstagramAccounts.FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
+        var token = string.IsNullOrWhiteSpace(input.AccessToken) ? row?.AccessToken : input.AccessToken.Trim();
+        if (string.IsNullOrWhiteSpace(token))
+            throw new InstagramException("Enter the Page access token.");
+
+        var username = await _graph.GetUsernameAsync(igUserId, token, ct);
+        if (row is null)
+        {
+            row = new WebsiteInstagramAccount { WebsiteID = websiteId };
+            context.WebsiteInstagramAccounts.Add(row);
+        }
+
+        row.IgUserId = igUserId;
+        row.AccessToken = token;
+        row.PageId = string.IsNullOrWhiteSpace(input.PageId) ? null : input.PageId.Trim();
+        row.Username = string.IsNullOrWhiteSpace(username) ? row.Username : username.Trim().TrimStart('@');
+        row.IsActive = true;
+        row.UpdatedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync(ct);
+        return Status(row);
+    }
+
+    public async Task DisconnectAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var context = await _contexts.CreateDbContextAsync(ct);
+        await context.WebsiteInstagramAccounts.Where(a => a.WebsiteID == websiteId).ExecuteDeleteAsync(ct);
+    }
+
+    private static InstagramAccountStatus Status(WebsiteInstagramAccount? row) => new()
+    {
+        Connected = row is { IsActive: true } && !string.IsNullOrWhiteSpace(row.IgUserId) && !string.IsNullOrWhiteSpace(row.AccessToken),
+        IgUserId = row?.IgUserId,
+        Username = row?.Username,
+        PageId = row?.PageId,
+        HasToken = !string.IsNullOrWhiteSpace(row?.AccessToken),
+    };
+}

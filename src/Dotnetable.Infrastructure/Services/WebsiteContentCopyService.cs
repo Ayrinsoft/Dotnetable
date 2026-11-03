@@ -216,6 +216,7 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
             .Include(p => p.PostCategories)
             .Include(p => p.Tags)
             .Include(p => p.PostLocation!).ThenInclude(l => l.PostLocationTranslations)
+            .Include(p => p.PostImages)
             .Where(p => p.WebsiteID == sourceId)
             .ToListAsync(ct);
         var slugs = (await context.Posts.AsNoTracking().Where(p => p.WebsiteID == targetId).Select(p => p.Slug).ToListAsync(ct))
@@ -289,6 +290,9 @@ public class WebsiteContentCopyService : IWebsiteContentCopyService
                 }
                 copy.PostLocation = location;
             }
+
+            foreach (var image in row.PostImages.OrderBy(i => i.SortOrder).ThenBy(i => i.PostImageID))
+                copy.PostImages.Add(new PostImage { FileRecordID = image.FileRecordID, SortOrder = image.SortOrder });
 
             context.Posts.Add(copy);
             await context.SaveChangesAsync(ct);

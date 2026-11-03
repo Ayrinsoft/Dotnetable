@@ -65,8 +65,11 @@
   <ItemGroup>
     <Build Include="TagTranslations.sql" />
     <Build Include="Tags.sql" />
+    <Build Include="PostInstagramPublications.sql" />
+    <Build Include="PostImages.sql" />
     <Build Include="PostLocationTranslations.sql" />
     <Build Include="PostLocations.sql" />
+    <Build Include="WebsiteInstagramAccounts.sql" />
     <Build Include="PostTranslations.sql" />
     <Build Include="PostTags.sql" />
     <Build Include="Posts.sql" />

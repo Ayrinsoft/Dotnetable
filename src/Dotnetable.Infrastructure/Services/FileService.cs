@@ -134,7 +134,23 @@ public class FileService : IFileService
         var sourceMime = mime;
         var isRasterProcessable = category == FileCategory.Image && ext is not (".svg" or ".gif");
         ImageProcessingOptions? processingOptions = null;
-        if (isRasterProcessable)
+        if (request.KeepOriginalFormat)
+        {
+            if (!isRasterProcessable)
+                throw new InvalidOperationException("Only a raster image can be stored as JPEG.");
+            ValidateExtension(setting.AllowedExtensions, ".jpg");
+            processingOptions = await BuildProcessingOptionsAsync(
+                _context, request.WebsiteID, request.Crop, request.ResizeWidth, request.ResizeHeight,
+                request.Grayscale, applyWatermark: false, ct);
+            var jpeg = await ImageProcessor.TryProcessAsync(buffer, processingOptions, SKEncodedImageFormat.Jpeg, maxOutputBytes: null, ct)
+                ?? throw new InvalidOperationException("Could not prepare a JPEG for this image.");
+            uploadSource = jpeg;
+            sizeKb = (int)Math.Ceiling(jpeg.Length / 1024d);
+            mime = "image/jpeg";
+            ext = ".jpg";
+            storedName = Path.GetFileNameWithoutExtension(storedName) + ext;
+        }
+        else if (isRasterProcessable)
         {
             processingOptions = await BuildProcessingOptionsAsync(
             _context, request.WebsiteID, request.Crop, request.ResizeWidth, request.ResizeHeight,
@@ -584,6 +600,7 @@ public class FileService : IFileService
         await AddOptionalAsync("Client avatars", _context.WebsiteClients.CountAsync(x => x.AvatarID == id, ct));
         await AddOptionalAsync("Payment receipts", _context.Payments.CountAsync(x => x.ReceiptFileID == id, ct));
         await AddOptionalAsync("Post featured images", _context.Posts.CountAsync(x => x.FeaturedImageFileID == id, ct));
+        await AddOptionalAsync("Post gallery images", _context.PostImages.CountAsync(x => x.FileRecordID == id, ct));
         await AddOptionalAsync("Product featured images", _context.Products.CountAsync(x => x.FeaturedImageFileID == id, ct));
         await AddOptionalAsync("Product category images", _context.ProductCategories.CountAsync(x => x.ImageFileID == id, ct));
         await AddOptionalAsync("Product variant images", _context.ProductVariants.CountAsync(x => x.ImageFileID == id, ct));
@@ -688,8 +705,23 @@ public class FileService : IFileService
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.AvatarID, (int?)null), ct);
         await _context.Payments.Where(x => x.ReceiptFileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReceiptFileID, (int?)null), ct);
+        var galleryPostIds = await _context.PostImages.Where(x => x.FileRecordID == fileId)
+            .Select(x => x.PostID).Distinct().ToListAsync(ct);
+        await _context.PostImages.Where(x => x.FileRecordID == fileId).ExecuteDeleteAsync(ct);
         await _context.Posts.Where(x => x.FeaturedImageFileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.FeaturedImageFileID, (int?)null), ct);
+        if (galleryPostIds.Count > 0)
+        {
+            var posts = await _context.Posts.Where(p => galleryPostIds.Contains(p.PostID) && p.FeaturedImageFileID == null).ToListAsync(ct);
+            foreach (var post in posts)
+            {
+                post.FeaturedImageFileID = await _context.PostImages
+                    .Where(i => i.PostID == post.PostID)
+                    .OrderBy(i => i.SortOrder)
+                    .Select(i => (int?)i.FileRecordID)
+                    .FirstOrDefaultAsync(ct);
+            }
+        }
         await _context.Products.Where(x => x.FeaturedImageFileID == fileId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.FeaturedImageFileID, (int?)null), ct);
         await _context.ProductCategories.Where(x => x.ImageFileID == fileId)

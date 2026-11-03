@@ -44,6 +44,15 @@ public interface IPostService
     Task<List<int>> GetTagIdsAsync(int postId, CancellationToken ct = default);
     Task SetTagsAsync(int postId, IReadOnlyList<int> tagIds, CancellationToken ct = default);
 
+    /// <summary>Gallery in cover order, with each file loaded. The first file is the post cover.</summary>
+    Task<List<PostImage>> GetImagesAsync(int postId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Replaces the gallery. The first id is written to <c>FeaturedImageFileID</c>.
+    /// An empty list clears the gallery and the cover.
+    /// </summary>
+    Task SetImagesAsync(int postId, IReadOnlyList<int> fileRecordIds, CancellationToken ct = default);
+
     // ── Public read ─────────────────────────────────────────────────
 
     /// <summary>Published posts for a website (paged, newest first), optionally filtered by post type,

@@ -49,6 +49,28 @@ export function BlogList() {
   );
 }
 
+function PostGallery({ post }) {
+  const images = Array.isArray(post.images) ? post.images : [];
+  const [index, setIndex] = useState(0);
+  if (images.length < 2) {
+    return post.featuredImageUrl
+      ? <img src={post.featuredImageUrl} alt={post.title} style={{ borderRadius: 'var(--radius)' }} />
+      : null;
+  }
+  const current = images[Math.min(index, images.length - 1)];
+  const src = current.url || current.fullUrl;
+  return (
+    <div>
+      {src && <img src={src} alt={post.title} style={{ borderRadius: 'var(--radius)', width: '100%', maxHeight: 480, objectFit: 'contain', background: '#111' }} />}
+      <p style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <button type="button" className="btn secondary" onClick={() => setIndex((index + images.length - 1) % images.length)}>‹</button>
+        <button type="button" className="btn secondary" onClick={() => setIndex((index + 1) % images.length)}>›</button>
+        <span className="muted">{index + 1} / {images.length}</span>
+      </p>
+    </div>
+  );
+}
+
 export function BlogPost() {
   const { slug } = useParams();
   const [post, setPost] = useState(undefined);
@@ -65,7 +87,7 @@ export function BlogPost() {
     <section className="section container">
       <h1>{post.title}</h1>
       {post.publishedAt && <p className="muted">{new Date(post.publishedAt).toLocaleDateString()}</p>}
-      {post.featuredImageUrl && <img src={post.featuredImageUrl} alt={post.title} style={{ borderRadius: 'var(--radius)' }} />}
+      <PostGallery post={post} />
       <CmsContent html={post.content} />
       <p><Link to="/blog">← All posts</Link></p>
     </section>

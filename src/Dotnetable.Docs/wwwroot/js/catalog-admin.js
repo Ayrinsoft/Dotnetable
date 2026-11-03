@@ -855,6 +855,14 @@ window.DOCS_ADMIN = {
               fa: "پست بسازید، طبقه‌بندی، بدنه، مدیا را بگذارید و منتشر کنید. بخش «SEO / Meta» را برای تنظیم عنوان/توضیحات/کلمات کلیدی متای این پست باز کنید — اختیاری است و در صورت خالی بودن به عنوان/خلاصه برمی‌گردد.",
             },
             {
+              en: "Under Photos, add more than one image. The first is the cover and stays `featuredImageUrl`. The public post page shows a slideshow when there is more than one, from the `images` array on the single-post API.",
+              fa: "در بخش Photos چند عکس بگذارید. عکس اول کاور است و همان `featuredImageUrl` می‌ماند. اگر بیشتر از یکی باشد، صفحه پست آن‌ها را اسلایدشو نشان می‌دهد؛ API پست تکی آن‌ها را در آرایه `images` می‌فرستد.",
+            },
+            {
+              en: "Open Instagram at the top of the post list, follow the steps, and save the Instagram account id plus the long-lived Page token. The row button sends that post once. The window can take uploads, public links, or the post photos (with a crop), a cover, a video thumbnail, and a caption or the primary-language summary. Temporary files are deleted after Instagram accepts them. A sent post cannot be sent again.",
+              fa: "بالای فهرست پست‌ها بخش Instagram را باز کنید، مرحله‌ها را انجام دهید و شناسه حساب به‌همراه توکن بلندمدت صفحه را ذخیره کنید. دکمه هر ردیف آن پست را یک بار می‌فرستد. پنجره آپلود، لینک عمومی، یا عکس‌های خود پست (با برش)، کاور، تصویر بندانگشتی ویدیو، و کپشن یا خلاصه زبان اصلی را می‌گیرد. فایل‌های موقت بعد از پذیرش اینستاگرام پاک می‌شوند. پست ارسال‌شده دوباره فرستاده نمی‌شود.",
+            },
+            {
               en: "On the post editor, open **Sample file and agent prompt**. Download the sample JSON, or copy the prompt into an AI assistant, paste your article under it (or ask it to write the article), then choose the JSON file it returns. The file fills the text fields and, when present, `location` (latitude, longitude, optional numeric kind, the main-language address, and `addresses` for other languages). Categories and the featured image stay as they are until you save.",
               fa: "در ویرایش پست، **Sample file and agent prompt** را باز کنید. فایل نمونه JSON را دانلود کنید، یا پرامپت را در یک دستیار هوش مصنوعی کپی کنید، مقاله‌تان را زیر آن بچسبانید (یا از خودش بخواهید مقاله را بنویسد) و بعد فایل JSON را انتخاب کنید. فایل، متن‌ها و در صورت وجود `location` را پر می‌کند (عرض و طول جغرافیایی، kind عددی اختیاری، آدرس زبان اصلی و `addresses` برای زبان‌های دیگر). دسته و تصویر شاخص تا زمان ذخیره همان‌طور می‌مانند.",
             },

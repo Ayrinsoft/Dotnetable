@@ -1748,12 +1748,23 @@ window.DOCS_API = {
               request: { body: "GET /api/Posts/by-key/getting-started?version=1.0&type=help" },
               response: {
                 status: 200,
-                body: { slug: "getting-started", title: "Getting started", stableKey: "getting-started", appliesFrom: "1.0", appliesTo: "2.0", content: "<p>…</p>" },
+                body: {
+                  slug: "getting-started", title: "Getting started", stableKey: "getting-started", appliesFrom: "1.0", appliesTo: "2.0", content: "<p>…</p>",
+                  featuredImageUrl: "https://cdn.example.com/a_thumb.webp", featuredImageFullUrl: "https://cdn.example.com/a.webp",
+                  images: [
+                    { url: "https://cdn.example.com/a_thumb.webp", fullUrl: "https://cdn.example.com/a.webp", sortOrder: 0 },
+                    { url: "https://cdn.example.com/b_thumb.webp", fullUrl: "https://cdn.example.com/b.webp", sortOrder: 1 },
+                  ],
+                },
               },
               notes: [
                 {
                   en: "Among rows with the same website, post type and stable key, the match is AppliesFrom <= version and (AppliesTo is null or AppliesTo >= version). The highest AppliesFrom wins. A tie uses the higher post id. `GET /api/Posts/content-versions` lists published labels for the website.",
                   fa: "بین ردیف‌های هم‌وب‌سایت، هم‌نوع و هم‌کلید، موردی انتخاب می‌شود که AppliesFrom <= version و (AppliesTo خالی یا AppliesTo >= version) باشد. بزرگ‌ترین AppliesFrom برنده است. اگر مساوی باشند شناسه پست بزرگ‌تر می‌ماند. `GET /api/Posts/content-versions` برچسب‌های منتشرشده همان وب‌سایت را می‌دهد.",
+                },
+                {
+                  en: "`images` is on `GET /api/Posts/{slug}` and `GET /api/Posts/by-key/{stableKey}` only. List and featured responses keep the cover in `featuredImageUrl` and do not include the array. `images` is ordered with the cover first (`sortOrder` 0), the same file as the featured image. `url` is the thumbnail; `fullUrl` is the original. When `images` has more than one item, show a slideshow. One item, or an empty array on an older post, stays a single cover.",
+                  fa: "`images` فقط در `GET /api/Posts/{slug}` و `GET /api/Posts/by-key/{stableKey}` است. لیست و پست‌های ویژه همان کاور را در `featuredImageUrl` دارند و این آرایه را نمی‌فرستند. ترتیب `images` با کاور شروع می‌شود (`sortOrder` برابر ۰) و همان فایل تصویر شاخص است. `url` تصویر کوچک است و `fullUrl` فایل اصلی. اگر بیشتر از یک عضو باشد، اسلایدشو نشان دهید. یک عضو، یا آرایه خالی برای پست قدیمی، همان کاور تکی است.",
                 },
               ],
             },

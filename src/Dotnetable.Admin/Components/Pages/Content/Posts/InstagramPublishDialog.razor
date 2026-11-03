@@ -1,0 +1,359 @@
+@using Microsoft.AspNetCore.Components.Forms
+@inject IPostService Posts
+@inject IInstagramPublishService Publisher
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["posts.ig_send", "Send to Instagram"]</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@_title</MudText>
+            <MudCheckBox T="bool" Value="_useExcerpt" ValueChanged="OnUseExcerpt" Color="Color.Primary"
+                         Label="@L["posts.ig_use_excerpt", "Use the summary (primary language)"]" />
+            @if (_useExcerpt)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    @(string.IsNullOrWhiteSpace(_excerpt) ? L["posts.ig_excerpt_empty", "This post has no summary in the primary language."] : _excerpt)
+                </MudAlert>
+            }
+            else
+            {
+                <MudTextField @bind-Value="_caption" Label="@L["posts.ig_caption", "Caption"]" Variant="Variant.Outlined"
+                              Lines="4" MaxLength="2200" Counter="2200" Class="mb-3" />
+            }
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_media", "Photos and videos"]</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                @L["posts.ig_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Uploaded and cropped files are deleted after Instagram accepts them."]
+            </MudText>
+
+            <MudStack Spacing="2" Class="mb-3">
+                @for (var i = 0; i < _items.Count; i++)
+                {
+                    var index = i;
+                    var item = _items[i];
+                    <MudPaper Outlined="true" Class="pa-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (!string.IsNullOrEmpty(item.PreviewUrl))
+                            {
+                                <img src="@item.PreviewUrl" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:6px;" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@(item.Kind == InstagramMediaKind.Video ? Icons.Material.Filled.Movie : Icons.Material.Filled.Image)" />
+                            }
+                            <MudStack Spacing="0" Style="flex:1;min-width:0">
+                                <MudText Typo="Typo.body2">@item.Label</MudText>
+                                @if (_coverIndex == index)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Primary">@L["posts.ig_cover", "Cover"]</MudText>
+                                }
+                                @if (item.Crop is not null)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@L["posts.ig_cropped", "Cropped for Instagram"]</MudText>
+                                }
+                            </MudStack>
+                            <MudIconButton Icon="@(_coverIndex == index ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarBorder)"
+                                           Color="Color.Warning" Size="Size.Small"
+                                           title="@L["posts.ig_cover", "Cover"]"
+                                           OnClick="@(() => _coverIndex = index)" />
+                            @if (item.Kind == InstagramMediaKind.Image)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Crop" Size="Size.Small" OnClick="@(() => CropAsync(index))" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveAt(index))" />
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="3">
+                    <MudSelect T="InstagramMediaKind" @bind-Value="_linkKind" Label="@L["posts.ig_kind", "Type"]" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="InstagramMediaKind" Value="InstagramMediaKind.Image">@L["posts.ig_photo", "Photo"]</MudSelectItem>
+                        <MudSelectItem T="InstagramMediaKind" Value="InstagramMediaKind.Video">@L["posts.ig_video", "Video"]</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_link" Label="@L["posts.ig_url", "Public https link"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="3" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Outlined" OnClick="AddLink">@L["add", "Add"]</MudButton>
+                </MudItem>
+            </MudGrid>
+
+            <MudStack Row="true" Spacing="1" Class="mt-2 flex-wrap">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="AddUploadsAsync" Accept="image/*,video/mp4,video/quicktime" MaximumFileCount="10">
+                    <CustomContent Context="upload">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload" HtmlTag="label"
+                                   OnClick="@(() => upload.OpenFilePickerAsync())">@L["posts.ig_upload", "Upload"]</MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PhotoLibrary" OnClick="AddLibraryAsync">@L["posts.ig_from_library", "Library photo"]</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Collections" OnClick="AddPostPhotosAsync">@L["posts.ig_from_post", "This post's photos"]</MudButton>
+            </MudStack>
+
+            @if (_items.Any(i => i.Kind == InstagramMediaKind.Video))
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_video_cover", "Video cover"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                    @L["posts.ig_video_cover_hint", "Used as the thumbnail when the post is a single video. For several items, the cover marked above is the first slide."]
+                </MudText>
+                @if (_videoCover is not null)
+                {
+                    <MudChip T="string" Color="Color.Primary" OnClose="ClearVideoCover">@_videoCover.Label</MudChip>
+                }
+                <MudStack Row="true" Spacing="1" Class="mt-2">
+                    <MudTextField @bind-Value="_coverLink" Label="@L["posts.ig_cover_url", "Cover image link"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudButton Variant="Variant.Outlined" Class="mt-1" OnClick="AddCoverLink">@L["posts.ig_use_link", "Use link"]</MudButton>
+                    <MudButton Variant="Variant.Text" OnClick="PickCoverAsync">@L["posts.ig_from_library", "Library photo"]</MudButton>
+                </MudStack>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">@L["cancel", "Cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_busy || _loading)" OnClick="SendAsync">@L["posts.ig_publish", "Publish"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int PostId { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private bool _useExcerpt = true;
+    private string _title = "";
+    private string _excerpt = "";
+    private string _caption = "";
+    private string _link = "";
+    private string _coverLink = "";
+    private InstagramMediaKind _linkKind = InstagramMediaKind.Image;
+    private int _coverIndex;
+    private readonly List<Draft> _items = new();
+    private Draft? _videoCover;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var post = await Posts.GetByIdAsync(PostId);
+        if (post is not null)
+        {
+            _title = post.Title;
+            _excerpt = post.Excerpt ?? "";
+            var images = await Posts.GetImagesAsync(PostId);
+            foreach (var image in images.Where(i => i.FileRecord is not null))
+                AddLibraryFile(image.FileRecord!, InstagramMediaKind.Image);
+            if (_items.Count == 0 && post.FeaturedImageFile is not null)
+                AddLibraryFile(post.FeaturedImageFile, InstagramMediaKind.Image);
+        }
+        _loading = false;
+    }
+
+    private void OnUseExcerpt(bool value) => _useExcerpt = value;
+
+    private void AddLink()
+    {
+        var url = _link.Trim();
+        if (url.Length == 0) return;
+        if (_items.Count >= 10)
+        {
+            Snackbar.Add(L["posts.ig_max", "Instagram accepts at most 10 items."], Severity.Warning);
+            return;
+        }
+        _items.Add(new Draft
+        {
+            Kind = _linkKind,
+            Url = url,
+            Label = url,
+            PreviewUrl = _linkKind == InstagramMediaKind.Image ? url : null,
+        });
+        _link = "";
+    }
+
+    private async Task AddUploadsAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            if (_items.Count >= 10) break;
+            var video = file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
+            var max = video ? 50L * 1024 * 1024 : 8L * 1024 * 1024;
+            if (file.Size > max)
+            {
+                Snackbar.Add(video
+                    ? L["posts.ig_video_limit", "Upload a video under 50 MB, or paste a public link."]
+                    : L["posts.ig_photo_limit", "Upload a photo under 8 MB, or paste a public link."], Severity.Warning);
+                continue;
+            }
+
+            await using var stream = file.OpenReadStream(max);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var bytes = buffer.ToArray();
+            _items.Add(new Draft
+            {
+                Kind = video ? InstagramMediaKind.Video : InstagramMediaKind.Image,
+                Content = bytes,
+                FileName = file.Name,
+                MimeType = file.ContentType,
+                Label = file.Name,
+                PreviewUrl = video ? null : $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}",
+            });
+        }
+    }
+
+    private async Task AddLibraryAsync() => await PickAsync(InstagramMediaKind.Image, coverOnly: false);
+
+    private async Task PickCoverAsync() => await PickAsync(InstagramMediaKind.Image, coverOnly: true);
+
+    private async Task PickAsync(InstagramMediaKind kind, bool coverOnly)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.Category)] = kind == InstagramMediaKind.Video ? FileCategory.Video : FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: FileRecord file }) return;
+        if (coverOnly)
+        {
+            _videoCover = DraftFromFile(file, InstagramMediaKind.Image);
+            return;
+        }
+        if (_items.Count >= 10) return;
+        AddLibraryFile(file, kind);
+    }
+
+    private async Task AddPostPhotosAsync()
+    {
+        var images = await Posts.GetImagesAsync(PostId);
+        var files = images.Select(i => i.FileRecord).Where(f => f is not null).Cast<FileRecord>().ToList();
+        if (files.Count == 0)
+        {
+            var post = await Posts.GetByIdAsync(PostId);
+            if (post?.FeaturedImageFile is not null) files.Add(post.FeaturedImageFile);
+        }
+        foreach (var file in files)
+        {
+            if (_items.Count >= 10) break;
+            if (_items.Any(i => i.FileRecordId == file.FileRecordID)) continue;
+            AddLibraryFile(file, InstagramMediaKind.Image);
+        }
+    }
+
+    private void AddLibraryFile(FileRecord file, InstagramMediaKind kind)
+    {
+        if (_items.Any(i => i.FileRecordId == file.FileRecordID && i.Content is null)) return;
+        _items.Add(DraftFromFile(file, kind));
+    }
+
+    private static Draft DraftFromFile(FileRecord file, InstagramMediaKind kind) => new()
+    {
+        Kind = kind,
+        FileRecordId = file.FileRecordID,
+        Label = string.IsNullOrWhiteSpace(file.Title) ? file.OriginalFileName : file.Title,
+        PreviewUrl = kind == InstagramMediaKind.Image ? file.ThumbnailCDN ?? file.CNDUrl : null,
+    };
+
+    private async Task CropAsync(int index)
+    {
+        var item = _items[index];
+        var parameters = new DialogParameters
+        {
+            [nameof(MediaEditDialog.ImageUrl)] = item.PreviewUrl,
+            [nameof(MediaEditDialog.ReplaceExisting)] = true,
+        };
+        var dialog = await DialogService.ShowAsync<MediaEditDialog>(L["posts.ig_crop", "Crop for Instagram"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: FileEditSpec spec })
+            item.Crop = spec.Crop;
+    }
+
+    private void AddCoverLink()
+    {
+        var url = _coverLink.Trim();
+        if (url.Length == 0) return;
+        _videoCover = new Draft { Kind = InstagramMediaKind.Image, Url = url, Label = url, PreviewUrl = url };
+        _coverLink = "";
+    }
+
+    private void ClearVideoCover() => _videoCover = null;
+
+    private void RemoveAt(int index)
+    {
+        _items.RemoveAt(index);
+        if (_coverIndex >= _items.Count) _coverIndex = Math.Max(0, _items.Count - 1);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SendAsync()
+    {
+        if (_busy) return;
+        if (_items.Count == 0)
+        {
+            Snackbar.Add(L["posts.ig_need_media", "Add a photo or a video."], Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var permalink = await Publisher.PublishAsync(PostId, new InstagramPublishRequest
+            {
+                Caption = _caption,
+                UsePrimaryExcerpt = _useExcerpt,
+                CoverIndex = _coverIndex,
+                Items = _items.Select(ToItem).ToList(),
+                VideoCover = _videoCover is null ? null : ToItem(_videoCover),
+            });
+            Snackbar.Add(L["posts.ig_published", "Sent to Instagram."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(permalink));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static InstagramMediaItem ToItem(Draft draft) => new()
+    {
+        Kind = draft.Kind,
+        Url = draft.Url,
+        FileRecordId = draft.FileRecordId,
+        Content = draft.Content,
+        FileName = draft.FileName,
+        MimeType = draft.MimeType,
+        Crop = draft.Crop,
+    };
+
+    private sealed class Draft
+    {
+        public InstagramMediaKind Kind { get; set; }
+        public string? Url { get; set; }
+        public int? FileRecordId { get; set; }
+        public byte[]? Content { get; set; }
+        public string? FileName { get; set; }
+        public string? MimeType { get; set; }
+        public ImageCropRect? Crop { get; set; }
+        public string? PreviewUrl { get; set; }
+        public string Label { get; set; } = "";
+    }
+}

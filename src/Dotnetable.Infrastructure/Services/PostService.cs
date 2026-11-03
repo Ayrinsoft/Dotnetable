@@ -160,6 +160,7 @@ public class PostService : IPostService
             .Include(p => p.PostCategories)
             .Include(p => p.Tags)
             .Include(p => p.PostLocation).ThenInclude(l => l!.PostLocationTranslations)
+            .Include(p => p.PostImages)
             .FirstOrDefaultAsync(p => p.PostID == sourcePostId, ct)
             ?? throw new ContentEditionException("Post was not found.");
 
@@ -238,6 +239,9 @@ public class PostService : IPostService
 
         foreach (var tag in source.Tags)
             edition.Tags.Add(tag);
+
+        foreach (var image in source.PostImages.OrderBy(i => i.SortOrder).ThenBy(i => i.PostImageID))
+            edition.PostImages.Add(new PostImage { FileRecordID = image.FileRecordID, SortOrder = image.SortOrder });
 
         if (source.HasLocation && source.PostLocation is not null)
         {
@@ -326,6 +330,10 @@ public class PostService : IPostService
             await _context.ContentComments.Where(c => c.PostID == postId).ToListAsync(ct));
         _context.PostCategories.RemoveRange(post.PostCategories);
         _context.ClientReactions.RemoveRange(await ReactionStore.ForTargetAsync(_context, Dotnetable.Domain.Enums.ReactionTargetType.Post, postId, ct));
+        _context.PostImages.RemoveRange(await _context.PostImages.Where(i => i.PostID == postId).ToListAsync(ct));
+        var publication = await _context.PostInstagramPublications.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (publication is not null)
+            _context.PostInstagramPublications.Remove(publication);
         _context.PostTranslations.RemoveRange(post.PostTranslations);
         _context.Posts.Remove(post);
         await _context.SaveChangesAsync(ct);
@@ -514,6 +522,51 @@ public class PostService : IPostService
                 current.IsPrimary = isPrimary;
         }
 
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<List<PostImage>> GetImagesAsync(int postId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        return await _context.PostImages.AsNoTracking()
+            .Include(i => i.FileRecord)
+            .Where(i => i.PostID == postId)
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.PostImageID)
+            .ToListAsync(ct);
+    }
+
+    public async Task SetImagesAsync(int postId, IReadOnlyList<int> fileRecordIds, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var post = await _context.Posts.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (post is null) return;
+
+        var ordered = new List<int>();
+        foreach (var id in fileRecordIds)
+        {
+            if (id > 0 && !ordered.Contains(id)) ordered.Add(id);
+        }
+        if (ordered.Count > 20)
+            throw new InvalidOperationException("A post can have at most 20 photos.");
+
+        if (ordered.Count > 0)
+        {
+            var files = await _context.FileRecords.AsNoTracking()
+                .Where(f => ordered.Contains(f.FileRecordID) && !f.IsDeleted)
+                .Select(f => new { f.FileRecordID, f.WebsiteID, f.FileCategory })
+                .ToListAsync(ct);
+            if (files.Count != ordered.Count || files.Any(f => f.WebsiteID != post.WebsiteID || f.FileCategory != (byte)FileCategory.Image))
+                throw new InvalidOperationException("Choose photos that belong to this website.");
+        }
+
+        var existing = await _context.PostImages.Where(i => i.PostID == postId).ToListAsync(ct);
+        _context.PostImages.RemoveRange(existing);
+        for (var i = 0; i < ordered.Count; i++)
+            _context.PostImages.Add(new PostImage { PostID = postId, FileRecordID = ordered[i], SortOrder = i });
+
+        post.FeaturedImageFileID = ordered.Count == 0 ? null : ordered[0];
+        post.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
     }
 
@@ -773,6 +826,7 @@ public class PostService : IPostService
     private static IQueryable<Post> WithDetails(IQueryable<Post> query) =>
         query
             .Include(p => p.PostType)
+            .Include(p => p.PostImages).ThenInclude(i => i.FileRecord)
             .Include(p => p.AuthorMember).ThenInclude(m => m!.Avatar)
             .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.PhotoFile)
             .Include(p => p.AuthorMember).ThenInclude(m => m!.AuthorProfile).ThenInclude(a => a!.AuthorProfileTranslations)
@@ -820,8 +874,22 @@ public class PostService : IPostService
             // The post type can switch comments off for every post of that type.
             CommentsEnabled = p.CommentsEnabled && (p.PostType?.CommentsEnabled ?? true),
             MetaTitle = metaTitle, MetaDescription = metaDescription, MetaKeywords = metaKeywords,
+            Images = ProjectImages(p),
         };
     }
+
+    private static List<PostImageDto> ProjectImages(Post p) =>
+        p.PostImages
+            .OrderBy(i => i.SortOrder)
+            .ThenBy(i => i.PostImageID)
+            .Where(i => i.FileRecord is { IsDeleted: false } && !string.IsNullOrWhiteSpace(i.FileRecord.ThumbnailCDN ?? i.FileRecord.CNDUrl))
+            .Select(i => new PostImageDto
+            {
+                Url = i.FileRecord.ThumbnailCDN ?? i.FileRecord.CNDUrl!,
+                FullUrl = i.FileRecord.CNDUrl,
+                SortOrder = i.SortOrder,
+            })
+            .ToList();
 
     private static string? FeaturedUrl(Post p) => p.FeaturedImageFile?.ThumbnailCDN ?? p.FeaturedImageFile?.CNDUrl;
 

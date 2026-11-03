@@ -297,18 +297,34 @@ else if (_model is not null)
                 </MudPaper>
 
                 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
-                    <MudText Typo="Typo.subtitle1" Class="mb-3 fw-bold">@L["posts.featured_image", "Featured Image"]</MudText>
-                    @if (_featuredFile is not null && !string.IsNullOrEmpty(_featuredFile.CNDUrl))
-                    {
-                        <img src="@(_featuredFile.ThumbnailCDN ?? _featuredFile.CNDUrl)" alt="" style="max-width:100%; border-radius:8px;" class="mb-2" />
-                    }
-                    <MudStack Row="true" Spacing="2">
-                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image" OnClick="PickImageAsync">@L["posts.choose_image", "Choose"]</MudButton>
-                        @if (_model.FeaturedImageFileID is not null)
+                    <MudText Typo="Typo.subtitle1" Class="mb-1 fw-bold">@L["posts.gallery", "Photos"]</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+                        @L["posts.gallery_hint", "The first photo is the cover, as before. When there is more than one, the public post shows them as a slideshow."]
+                    </MudText>
+                    <MudStack Spacing="2" Class="mb-2">
+                        @for (var i = 0; i < _gallery.Count; i++)
                         {
-                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="ClearImage">@L["clear", "Clear"]</MudButton>
+                            var index = i;
+                            var photo = _gallery[i];
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                @if (!string.IsNullOrEmpty(photo.ThumbnailCDN ?? photo.CNDUrl))
+                                {
+                                    <img src="@(photo.ThumbnailCDN ?? photo.CNDUrl)" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;" />
+                                }
+                                <MudStack Spacing="0" Style="flex:1;min-width:0">
+                                    <MudText Typo="Typo.body2" Class="text-truncate">@(string.IsNullOrWhiteSpace(photo.Title) ? photo.OriginalFileName : photo.Title)</MudText>
+                                    @if (index == 0)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Primary">@L["posts.gallery_cover", "Cover"]</MudText>
+                                    }
+                                </MudStack>
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(index == 0)" OnClick="@(() => MovePhoto(index, -1))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(index == _gallery.Count - 1)" OnClick="@(() => MovePhoto(index, 1))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemovePhoto(index))" />
+                            </MudStack>
                         }
                     </MudStack>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image" OnClick="PickImageAsync">@L["posts.add_photo", "Add photo"]</MudButton>
                 </MudPaper>
             </MudItem>
         </MudGrid>
@@ -333,6 +349,7 @@ else if (_model is not null)
     private Post? _model;
     private MudForm _form = null!;
     private FileRecord? _featuredFile;
+    private readonly List<FileRecord> _gallery = new();
     private string[]? _formErrors;
 
     private DateTime? _publishedAt;
@@ -392,6 +409,10 @@ else if (_model is not null)
             if (_model is not null)
             {
                 _featuredFile = _model.FeaturedImageFile;
+                var gallery = await PostService.GetImagesAsync(_model.PostID);
+                _gallery.AddRange(gallery.Where(i => i.FileRecord is not null).Select(i => i.FileRecord!));
+                if (_gallery.Count == 0 && _featuredFile is not null)
+                    _gallery.Add(_featuredFile);
                 _publishedAt = _model.PublishedAt;
                 _scheduledAt = _model.ScheduledAt;
                 _selectedCategoryIds = (await PostService.GetCategoryIdsAsync(_model.PostID)).ToHashSet();
@@ -842,12 +863,34 @@ else if (_model is not null)
         var result = await dialog.Result;
         if (result is { Canceled: false, Data: FileRecord file })
         {
-            _model.FeaturedImageFileID = file.FileRecordID;
-            _featuredFile = file;
+            if (_gallery.Any(f => f.FileRecordID == file.FileRecordID)) return;
+            if (_gallery.Count >= 20)
+            {
+                Snackbar.Add(L["posts.gallery_limit", "A post can have at most 20 photos."], Severity.Warning);
+                return;
+            }
+            _gallery.Add(file);
+            _featuredFile = _gallery[0];
+            _model.FeaturedImageFileID = _featuredFile.FileRecordID;
         }
     }
 
-    private void ClearImage() { _model!.FeaturedImageFileID = null; _featuredFile = null; }
+    private void MovePhoto(int index, int delta)
+    {
+        var target = index + delta;
+        if (target < 0 || target >= _gallery.Count || _model is null) return;
+        (_gallery[index], _gallery[target]) = (_gallery[target], _gallery[index]);
+        _featuredFile = _gallery[0];
+        _model.FeaturedImageFileID = _featuredFile.FileRecordID;
+    }
+
+    private void RemovePhoto(int index)
+    {
+        if (_model is null || index < 0 || index >= _gallery.Count) return;
+        _gallery.RemoveAt(index);
+        _featuredFile = _gallery.Count == 0 ? null : _gallery[0];
+        _model.FeaturedImageFileID = _featuredFile?.FileRecordID;
+    }
 
     private string LocationAddress(string code) =>
         _locationAddresses.TryGetValue(code, out var value) ? value : "";
@@ -917,6 +960,8 @@ else if (_model is not null)
             var primary = _primaryCategoryId is int pid && categoryIds.Contains(pid) ? pid : (int?)null;
             await PostService.SetCategoriesAsync(_model.PostID, categoryIds, primary);
             await PostService.SetTagsAsync(_model.PostID, _selectedTagIds.ToList());
+            _model.FeaturedImageFileID = _gallery.Count == 0 ? null : _gallery[0].FileRecordID;
+            await PostService.SetImagesAsync(_model.PostID, _gallery.Select(f => f.FileRecordID).ToList());
 
             var locationTranslations = _locationAddresses
                 .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))

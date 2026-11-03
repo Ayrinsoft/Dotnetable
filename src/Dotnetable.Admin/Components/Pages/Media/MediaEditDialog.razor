@@ -23,6 +23,8 @@
                        Style="max-width: 220px;">
                 <MudSelectItem T="string" Value="@("free")">@L["upload.aspect_free", "Free"]</MudSelectItem>
                 <MudSelectItem T="string" Value="@("1:1")">1:1</MudSelectItem>
+                <MudSelectItem T="string" Value="@("4:5")">4:5</MudSelectItem>
+                <MudSelectItem T="string" Value="@("1.91:1")">1.91:1</MudSelectItem>
                 <MudSelectItem T="string" Value="@("4:3")">4:3</MudSelectItem>
                 <MudSelectItem T="string" Value="@("3:2")">3:2</MudSelectItem>
                 <MudSelectItem T="string" Value="@("16:9")">16:9</MudSelectItem>
@@ -254,6 +256,8 @@
     private static double? AspectKeyToRatio(string key) => key switch
     {
         "1:1" => 1.0,
+        "4:5" => 4.0 / 5.0,
+        "1.91:1" => 1.91,
         "4:3" => 4.0 / 3.0,
         "3:2" => 3.0 / 2.0,
         "16:9" => 16.0 / 9.0,
