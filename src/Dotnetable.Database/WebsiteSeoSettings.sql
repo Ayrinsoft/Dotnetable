@@ -6,6 +6,8 @@ CREATE TABLE [dbo].[WebsiteSeoSettings] (
     [DefaultMetaDescription] NVARCHAR (158) NULL,
     [SitemapEnabled]         BIT            NOT NULL,
     [RobotsEnabled]          BIT            NOT NULL,
+    [IndexNowEnabled]        BIT            CONSTRAINT [DF_WebsiteSeoSettings_IndexNowEnabled] DEFAULT ((0)) NOT NULL,
+    [IndexNowKey]            NVARCHAR (128) NULL,
     [CustomRobotsTxt]        NVARCHAR (MAX) NOT NULL,
     CONSTRAINT [PK_WebsiteSeoSettings] PRIMARY KEY CLUSTERED ([WebsiteSeoSettingID] ASC),
     CONSTRAINT [FK_WebsiteSeoSettings_Websites] FOREIGN KEY ([WebsiteID]) REFERENCES [dbo].[Websites] ([WebsiteID])

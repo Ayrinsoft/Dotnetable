@@ -9627,6 +9627,13 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasColumnType("varchar(40)")
                         .HasComment("Page | {SiteName}");
 
+                    b.Property<bool>("IndexNowEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("IndexNowKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
                     b.Property<bool>("RobotsEnabled")
                         .HasColumnType("tinyint(1)");
 

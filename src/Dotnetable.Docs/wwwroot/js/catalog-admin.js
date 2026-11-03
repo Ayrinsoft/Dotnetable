@@ -649,6 +649,10 @@ window.DOCS_ADMIN = {
               en: "Save, then spot-check a public page’s meta tags.",
               fa: "ذخیره کنید و متای یک صفحه عمومی را نمونه چک کنید.",
             },
+            {
+              en: "IndexNow: turn on “Submit changed URLs with IndexNow”, generate or paste a key (8–128 letters, digits, or dashes), and save. The storefront serves https://{website-address}/{key}.txt. Saving a published page, post, or product then submits that URL to api.indexnow.org, which Bing, Yandex, Naver, Seznam, and Yep share. Drafts are not sent. Google does not use IndexNow; it discovers URLs from sitemap.xml. Google’s Indexing API is only for job postings and livestreams, so it is not wired up for pages, posts, or products.",
+              fa: "IndexNow: گزینه «Submit changed URLs with IndexNow» را روشن کنید، یک کلید بسازید یا بچسبانید (۸ تا ۱۲۸ حرف، رقم یا خط تیره) و ذخیره کنید. فروشگاه فایل https://{website-address}/{key}.txt را خودش سرو می‌کند. ذخیره صفحه، پست یا محصول منتشرشده همان URL را به api.indexnow.org می‌فرستد و بینگ، یاندکس، نیور، سزنم و Yep آن را با هم می‌گیرند. پیش‌نویس ارسال نمی‌شود. گوگل IndexNow ندارد و URLها را از sitemap.xml پیدا می‌کند. Indexing API گوگل فقط برای آگهی شغل و پخش زنده است و برای صفحه، پست و محصول وصل نشده.",
+            },
           ],
           related: ["pages", "posts", "website-social"],
         },

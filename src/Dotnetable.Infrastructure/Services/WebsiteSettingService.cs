@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Seo;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
@@ -10,8 +11,13 @@ namespace Dotnetable.Infrastructure.Services;
 public class WebsiteSettingService : IWebsiteSettingService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IIndexNowNotifier _indexNow;
 
-    public WebsiteSettingService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+    public WebsiteSettingService(IDbContextFactory<AppDbContext> contextFactory, IIndexNowNotifier? indexNow = null)
+    {
+        _contextFactory = contextFactory;
+        _indexNow = indexNow ?? NullIndexNowNotifier.Instance;
+    }
 
     // ── IPs ──────────────────────────────────────────────────────────
 
@@ -168,6 +174,10 @@ public class WebsiteSettingService : IWebsiteSettingService
         if (string.IsNullOrWhiteSpace(setting.TitleSeparator))
             setting.TitleSeparator = " | ";
 
+        setting.IndexNowKey = string.IsNullOrWhiteSpace(setting.IndexNowKey) ? null : setting.IndexNowKey.Trim();
+        if (setting.IndexNowEnabled && !IndexNowKeyRules.IsValid(setting.IndexNowKey))
+            throw new InvalidOperationException("IndexNow key must be 8–128 letters, digits, or dashes.");
+
         if (existing is null)
         {
             _context.WebsiteSeoSettings.Add(setting);
@@ -179,10 +189,15 @@ public class WebsiteSettingService : IWebsiteSettingService
             existing.DefaultMetaDescription = setting.DefaultMetaDescription;
             existing.SitemapEnabled = setting.SitemapEnabled;
             existing.RobotsEnabled = setting.RobotsEnabled;
+            existing.IndexNowEnabled = setting.IndexNowEnabled;
+            existing.IndexNowKey = setting.IndexNowKey;
             existing.CustomRobotsTxt = setting.CustomRobotsTxt;
         }
 
         await _context.SaveChangesAsync(ct);
+
+        if (setting.IndexNowEnabled)
+            await _indexNow.NotifyPathsAsync(setting.WebsiteID, ["/"], ct);
     }
 
     // ── Social Links ─────────────────────────────────────────────────

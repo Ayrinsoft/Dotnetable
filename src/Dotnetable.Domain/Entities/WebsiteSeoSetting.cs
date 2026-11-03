@@ -22,6 +22,18 @@ public partial class WebsiteSeoSetting
 
     public bool RobotsEnabled { get; set; }
 
+    /// <summary>
+    /// When true, saving a published page, post, or product submits its public URL to IndexNow
+    /// (Bing and the other engines on that protocol).
+    /// </summary>
+    public bool IndexNowEnabled { get; set; }
+
+    /// <summary>
+    /// Public ownership key, 8–128 letters, digits, or dashes. The storefront serves it at
+    /// <c>/{key}.txt</c>. Not a secret: search engines fetch that file to verify the host.
+    /// </summary>
+    public string? IndexNowKey { get; set; }
+
     public string CustomRobotsTxt { get; set; } = null!;
 
     public virtual Website Website { get; set; } = null!;

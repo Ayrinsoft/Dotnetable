@@ -4698,6 +4698,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.IndexNowKey).HasMaxLength(128);
 
             entity.HasOne(d => d.Website).WithMany(p => p.WebsiteSeoSettings)
                 .HasForeignKey(d => d.WebsiteID)

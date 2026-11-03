@@ -1,5 +1,6 @@
 using System.Text;
 using System.Xml;
+using Dotnetable.Application.Seo;
 using Dotnetable.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -41,6 +42,22 @@ public class SeoController : Controller
             """;
 
         return Content(body, "text/plain", Encoding.UTF8);
+    }
+
+    /// <summary>
+    /// IndexNow ownership file at <c>/{key}.txt</c>. The body is the key itself. A request whose
+    /// name is not this website's configured key is a normal 404.
+    /// </summary>
+    [HttpGet("/{key}.txt")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> IndexNowKey(string key, CancellationToken ct = default)
+    {
+        if (!IndexNowKeyRules.IsValid(key)) return NotFound();
+
+        var configured = await _api.GetIndexNowKeyAsync(ct);
+        if (!string.Equals(configured, key, StringComparison.Ordinal)) return NotFound();
+
+        return Content(key, "text/plain", Encoding.UTF8);
     }
 
     /// <summary>

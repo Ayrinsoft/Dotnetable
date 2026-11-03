@@ -9625,6 +9625,13 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasComment("Page | {SiteName}");
 
+                    b.Property<bool>("IndexNowEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("IndexNowKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("RobotsEnabled")
                         .HasColumnType("INTEGER");
 

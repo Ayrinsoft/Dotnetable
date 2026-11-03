@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Seo;
 using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
@@ -269,6 +270,21 @@ public class ApiClient
     /// <summary>Site branding/identity (brand, logo, contact, socials, SEO defaults) used by the
     /// layout. Null when the API is unreachable — the layout falls back to neutral defaults.
     /// <paramref name="lang"/> selects translated contact info fields where available.</summary>
+    /// <summary>The website's IndexNow key, or null when IndexNow is off or the API is unreachable.
+    /// Not cached: Bing validates the key file against the value saved moments earlier.</summary>
+    public async Task<string?> GetIndexNowKeyAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            using var response = await _http.GetAsync("api/IndexNow/key", ct);
+            if (!response.IsSuccessStatusCode) return null;
+            var text = (await response.Content.ReadAsStringAsync(ct)).Trim();
+            return IndexNowKeyRules.IsValid(text) ? text : null;
+        }
+        catch (HttpRequestException) { return null; }
+        catch (TaskCanceledException) { return null; }
+    }
+
     public Task<SiteInfoDto?> GetSiteInfoAsync(string? lang = null, CancellationToken ct = default) =>
         CachedGetAsync($"siteinfo:{lang}", () =>
         {

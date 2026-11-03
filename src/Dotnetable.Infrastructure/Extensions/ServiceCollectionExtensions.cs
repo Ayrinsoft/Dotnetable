@@ -122,6 +122,11 @@ public static class ServiceCollectionExtensions
 
         // Media library: pluggable CDN storage backends + file/album/tag management.
         services.AddHttpClient(); // used by HTTP-based providers (BunnyCDN)
+        services.AddHttpClient(IndexNowNotifier.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(8);
+        });
+        services.AddScoped<IIndexNowNotifier, IndexNowNotifier>();
         services.AddScoped<IFileStorageProvider, Storage.ArvanStorageProvider>();
         services.AddScoped<IFileStorageProvider, Storage.DropboxStorageProvider>();
         // On-host disk storage needs the content root to resolve its upload directory.

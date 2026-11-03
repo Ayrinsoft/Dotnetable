@@ -9986,6 +9986,13 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasColumnType("character varying(40)")
                         .HasComment("Page | {SiteName}");
 
+                    b.Property<bool>("IndexNowEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("IndexNowKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<bool>("RobotsEnabled")
                         .HasColumnType("boolean");
 

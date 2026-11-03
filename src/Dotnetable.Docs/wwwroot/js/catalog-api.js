@@ -1655,6 +1655,23 @@ window.DOCS_API = {
                 },
               },
             },
+            {
+              title: { en: "IndexNow key file source", fa: "منبع فایل کلید IndexNow" },
+              method: "GET",
+              path: "/api/IndexNow/key",
+              auth: "website",
+              request: { body: "GET /api/IndexNow/key" },
+              response: {
+                status: 200,
+                body: "0123456789abcdef0123456789abcdef",
+              },
+              notes: [
+                {
+                  en: "Plain text, not JSON. 200 only when IndexNow is enabled and the key is valid. The storefront copies this body to https://{host}/{key}.txt so Bing can verify the host. 404 when IndexNow is off.",
+                  fa: "متن ساده است، نه JSON. فقط وقتی IndexNow روشن و کلید معتبر باشد ۲۰۰ برمی‌گردد. فروشگاه همین متن را در https://{host}/{key}.txt می‌گذارد تا بینگ مالکیت هاست را ببیند. اگر IndexNow خاموش باشد ۴۰۴ است.",
+                },
+              ],
+            },
           ],
         },
         {

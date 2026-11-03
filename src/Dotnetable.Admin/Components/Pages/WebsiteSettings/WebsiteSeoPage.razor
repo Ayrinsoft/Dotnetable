@@ -1,5 +1,6 @@
 @page "/website/seo"
 @attribute [Authorize(Policy = RoleKeys.WebsiteEdit)]
+@using Dotnetable.Application.Seo
 @inject IWebsiteSettingService SettingService
 @inject IWebsiteService WebsiteService
 @inject AuthenticationStateProvider AuthState
@@ -71,6 +72,41 @@ else
 
         <MudItem xs="12">
             <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.TravelExplore" Size="Size.Small" Class="me-1" />
+                    @L["seo.indexnow", "IndexNow (Bing)"]
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    @L["seo.indexnow.help", "After you save a published page, post, or product, its public URL is sent to IndexNow. Bing, Yandex, Naver, Seznam, and Yep share that notice. Google does not use IndexNow; it keeps discovering URLs from sitemap.xml. Google's Indexing API is only for job postings and livestreams, so it is not used for these pages."]
+                </MudText>
+                <MudSwitch T="bool" @bind-Value="_setting.IndexNowEnabled" Color="Color.Primary"
+                           Label="@L["seo.indexnow.enable", "Submit changed URLs with IndexNow"]" Class="mb-3" />
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_setting.IndexNowKey" Label="@L["seo.indexnow.key", "IndexNow key"]"
+                                      Variant="Variant.Outlined" MaxLength="128"
+                                      HelperText="@L["seo.indexnow.key_hint", "8–128 letters, digits, or dashes. The storefront publishes this key as a text file so search engines can verify the site."]" />
+                    </MudItem>
+                    <MudItem xs="12" md="4" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.VpnKey"
+                                   OnClick="GenerateKey">
+                            @L["seo.indexnow.generate", "Generate key"]
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+                @if (KeyFileUrl is string keyFile)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-3">
+                        @L["seo.indexnow.file", "Key file"] :
+                        <MudLink Href="@keyFile" Target="_blank">@keyFile</MudLink>
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
                 <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3">
                     <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" Class="me-1" />
                     @L["seo.custom_robots", "Custom robots.txt"]
@@ -101,8 +137,21 @@ else
     private bool _saving;
     private bool _isMaster;
     private int _websiteId;
+    private string? _siteAddress;
     private List<Website> _websites = new();
     private WebsiteSeoSetting _setting = new() { CustomRobotsTxt = string.Empty };
+
+    private string? KeyFileUrl
+    {
+        get
+        {
+            var key = _setting.IndexNowKey?.Trim();
+            if (!IndexNowKeyRules.IsValid(key)) return null;
+            return IndexNowOrigins.TryParse(_siteAddress, out var origin, out _)
+                ? $"{origin}/{key}.txt"
+                : null;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,8 +175,12 @@ else
         _loading = true;
         var existing = await SettingService.GetSeoSettingAsync(_websiteId);
         _setting = existing ?? new WebsiteSeoSetting { WebsiteID = _websiteId, CustomRobotsTxt = string.Empty };
+        var site = await WebsiteService.GetByIdAsync(_websiteId);
+        _siteAddress = site?.WebsiteAddress;
         _loading = false;
     }
+
+    private void GenerateKey() => _setting.IndexNowKey = IndexNowKeyRules.Generate();
 
     private async Task SaveAsync()
     {
@@ -135,6 +188,13 @@ else
         try
         {
             _setting.WebsiteID = _websiteId;
+            _setting.IndexNowKey = string.IsNullOrWhiteSpace(_setting.IndexNowKey) ? null : _setting.IndexNowKey.Trim();
+            if (_setting.IndexNowEnabled && !IndexNowKeyRules.IsValid(_setting.IndexNowKey))
+            {
+                Snackbar.Add(L["seo.indexnow.key_invalid", "IndexNow needs a key of 8–128 letters, digits, or dashes."], Severity.Warning);
+                return;
+            }
+
             await SettingService.SaveSeoSettingAsync(_setting);
             Snackbar.Add(L["seo.saved", "SEO settings saved."], Severity.Success);
         }

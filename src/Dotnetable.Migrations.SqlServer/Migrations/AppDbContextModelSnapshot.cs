@@ -9995,6 +9995,13 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasColumnType("varchar(40)")
                         .HasComment("Page | {SiteName}");
 
+                    b.Property<bool>("IndexNowEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("IndexNowKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<bool>("RobotsEnabled")
                         .HasColumnType("bit");
 

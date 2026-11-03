@@ -13,8 +13,13 @@ public class PageService : IPageService
     private const int SlugMaxLength = 300;
 
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IIndexNowNotifier _indexNow;
 
-    public PageService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+    public PageService(IDbContextFactory<AppDbContext> contextFactory, IIndexNowNotifier? indexNow = null)
+    {
+        _contextFactory = contextFactory;
+        _indexNow = indexNow ?? NullIndexNowNotifier.Instance;
+    }
 
     /// <summary>All slugs in use by this website's pages (main + translation rows), excluding
     /// <paramref name="excludePageId"/> — the lookup route matches either, so uniqueness must span
@@ -87,6 +92,7 @@ public class PageService : IPageService
 
         _context.Pages.Add(page);
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyPageAsync(page.PageID, ct);
         return page;
     }
 
@@ -105,6 +111,7 @@ public class PageService : IPageService
 
         _context.Pages.Update(page);
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyPageAsync(page.PageID, ct);
     }
 
     public async Task DeleteAsync(int pageId, CancellationToken ct = default)
@@ -138,6 +145,7 @@ public class PageService : IPageService
 
         await _context.Pages.Where(p => p.PageID == pageId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+        await _indexNow.NotifyPageAsync(pageId, ct);
     }
 
     private async Task ClearHomepageAsync(AppDbContext _context, int websiteId, CancellationToken ct, int? exceptPageId = null)
@@ -210,6 +218,7 @@ public class PageService : IPageService
         }
 
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyPageAsync(pageId, ct);
     }
 
     // ── Public read ─────────────────────────────────────────────────

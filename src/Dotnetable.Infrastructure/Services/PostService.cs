@@ -18,8 +18,13 @@ public class PostService : IPostService
     private const int SlugMaxLength = 300;
 
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IIndexNowNotifier _indexNow;
 
-    public PostService(IDbContextFactory<AppDbContext> contextFactory) => _contextFactory = contextFactory;
+    public PostService(IDbContextFactory<AppDbContext> contextFactory, IIndexNowNotifier? indexNow = null)
+    {
+        _contextFactory = contextFactory;
+        _indexNow = indexNow ?? NullIndexNowNotifier.Instance;
+    }
 
     /// <summary>All slugs in use by this website's posts (main + translation rows), excluding
     /// <paramref name="excludePostId"/> — the lookup route matches either, so uniqueness must span
@@ -96,6 +101,7 @@ public class PostService : IPostService
 
         _context.Posts.Add(post);
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyPostAsync(post.PostID, ct);
         return post;
     }
 
@@ -146,6 +152,7 @@ public class PostService : IPostService
         post.AppliesTo = existing.AppliesTo;
         post.UpdatedAt = existing.UpdatedAt;
         post.PublishedAt = existing.PublishedAt;
+        await _indexNow.NotifyPostAsync(existing.PostID, ct);
     }
 
     public async Task<Post> CreateEditionAsync(int sourcePostId, string appliesFrom, CancellationToken ct = default)
@@ -351,6 +358,7 @@ public class PostService : IPostService
 
         await _context.Posts.Where(p => p.PostID == postId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+        await _indexNow.NotifyPostAsync(postId, ct);
     }
 
     // ── Translations ────────────────────────────────────────────────
@@ -417,6 +425,7 @@ public class PostService : IPostService
         }
 
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyPostAsync(postId, ct);
     }
 
     public async Task SetLocationAsync(int postId, bool hasLocation, PostLocationInput? location, IReadOnlyList<PostLocationTranslation> translations, CancellationToken ct = default)

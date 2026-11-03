@@ -20,11 +20,18 @@ public class ProductService : IProductService
     private readonly ICurrencyConversionService _currency;
     private readonly IVendorService _vendors;
 
-    public ProductService(IDbContextFactory<AppDbContext> contextFactory, ICurrencyConversionService currency, IVendorService vendors)
+    private readonly IIndexNowNotifier _indexNow;
+
+    public ProductService(
+        IDbContextFactory<AppDbContext> contextFactory,
+        ICurrencyConversionService currency,
+        IVendorService vendors,
+        IIndexNowNotifier? indexNow = null)
     {
         _contextFactory = contextFactory;
         _currency = currency;
         _vendors = vendors;
+        _indexNow = indexNow ?? NullIndexNowNotifier.Instance;
     }
 
     // ── Admin management ────────────────────────────────────────────
@@ -179,6 +186,7 @@ public class ProductService : IProductService
         product.CreatedAt = product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Add(product);
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyProductAsync(product.ProductID, ct);
         return product;
     }
 
@@ -207,6 +215,7 @@ public class ProductService : IProductService
         product.UpdatedAt = DateTime.UtcNow;
         _context.Products.Update(product);
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyProductAsync(product.ProductID, ct);
     }
 
     /// <summary>
@@ -310,6 +319,7 @@ public class ProductService : IProductService
 
         await _context.Products.Where(p => p.ProductID == productId)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsActive, active), ct);
+        await _indexNow.NotifyProductAsync(productId, ct);
     }
 
     // ── Translations ────────────────────────────────────────────────
@@ -364,6 +374,7 @@ public class ProductService : IProductService
         }
 
         await _context.SaveChangesAsync(ct);
+        await _indexNow.NotifyProductAsync(productId, ct);
     }
 
     // ── Categories ───────────────────────────────────────────────────
