@@ -6374,6 +6374,28 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("ProductCategoryTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductInstagramPublication", b =>
+                {
+                    b.Property<int>("ProductID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IgMediaId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Permalink")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("ProductID");
+
+                    b.ToTable("ProductInstagramPublications");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductMedium", b =>
                 {
                     b.Property<int>("ProductID")
@@ -6525,6 +6547,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_ProductReviews_WebsiteID");
 
                     b.ToTable("ProductReviews");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductTelegramPublication", b =>
+                {
+                    b.Property<int>("ProductID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MessageId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("ProductID");
+
+                    b.ToTable("ProductTelegramPublications");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductTranslation", b =>
@@ -6776,6 +6815,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WarrantyID" }, "IX_ProductWarranties_WarrantyID");
 
                     b.ToTable("ProductWarranties");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductXPublication", b =>
+                {
+                    b.Property<int>("ProductID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("TweetId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("ProductID");
+
+                    b.ToTable("ProductXPublications");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Quiz", b =>
@@ -12909,6 +12965,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("ProductCategory");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductInstagramPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithOne("ProductInstagramPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.ProductInstagramPublication", "ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductInstagramPublications_Products");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductMedium", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.MediaSet", "MediaSet")
@@ -13008,6 +13075,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteClient");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductTelegramPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithOne("ProductTelegramPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.ProductTelegramPublication", "ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductTelegramPublications_Products");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
@@ -13101,6 +13179,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ProductXPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Product", "Product")
+                        .WithOne("ProductXPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.ProductXPublication", "ProductID")
+                        .IsRequired()
+                        .HasConstraintName("FK_ProductXPublications_Products");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Quiz", b =>
@@ -15051,6 +15140,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("ProductCategoryRelations");
 
+                    b.Navigation("ProductInstagramPublication");
+
                     b.Navigation("ProductMedia");
 
                     b.Navigation("ProductQuestions");
@@ -15061,6 +15152,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("ProductReviews");
 
+                    b.Navigation("ProductTelegramPublication");
+
                     b.Navigation("ProductTranslations");
 
                     b.Navigation("ProductVariants");
@@ -15068,6 +15161,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("ProductWarnings");
 
                     b.Navigation("ProductWarranties");
+
+                    b.Navigation("ProductXPublication");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.ProductAttributeValue", b =>

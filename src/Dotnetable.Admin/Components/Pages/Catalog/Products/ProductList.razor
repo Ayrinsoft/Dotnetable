@@ -1,6 +1,8 @@
 @page "/catalog/products"
 @attribute [Authorize(Policy = RoleKeys.ProductsView)]
+@using Dotnetable.Admin.Components.Pages.Content.Posts
 @inject IProductService ProductService
+@inject ISocialPublishService SocialPublish
 @inject IBrandService BrandService
 @inject IProductCategoryService CategoryService
 @inject IPlatformCatalogService PlatformCatalog
@@ -84,6 +86,19 @@
     </MudAlert>
 }
 
+<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_helpOpen" ConnectedChanged="OnInstagramConnected" />
+<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_tgHelp" ConnectedChanged="OnTelegramConnected" />
+<XAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_xHelp" ConnectedChanged="OnXConnected" />
+@if (_canEdit && !_igConnected && !_tgConnected && !_xConnected)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" ContentAlignment="HorizontalAlignment.Start">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText Typo="Typo.body2">@L["products.social_not_connected", "Connect Instagram, Telegram, or X with the steps above before sending a product."]</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenHelp">@L["posts.ig_open_help", "Show steps"]</MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
 <DNPrerequisiteAlert Items="_prerequisites" />
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
@@ -120,6 +135,30 @@
                     <td>@FormatMinPrice(p.MinPrice ?? p.MinPriceUsd)</td>
                     <td>@(p.IsActive ? L["yes", "Yes"] : L["no", "No"])</td>
                     <td @onclick:stopPropagation="true">
+                        @if (_canEdit)
+                        {
+                            <MudTooltip Text="@L["products.social_send", "Send to Instagram, Telegram, or X"]">
+                                <MudIconButton Icon="@Icons.Material.Filled.Share" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => PublishAsync(p))" />
+                            </MudTooltip>
+                        }
+                        @if (Sent(p.ProductID).Instagram)
+                        {
+                            <MudTooltip Text="@L["products.ig_sent_mark", "Sent to Instagram"]">
+                                <MudIcon Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Success" />
+                            </MudTooltip>
+                        }
+                        @if (Sent(p.ProductID).Telegram)
+                        {
+                            <MudTooltip Text="@L["products.tg_sent_mark", "Sent to Telegram"]">
+                                <MudIcon Icon="@Icons.Custom.Brands.Telegram" Size="Size.Small" Color="Color.Success" />
+                            </MudTooltip>
+                        }
+                        @if (Sent(p.ProductID).X)
+                        {
+                            <MudTooltip Text="@L["products.x_sent_mark", "Sent to X"]">
+                                <MudIcon Icon="@Icons.Custom.Brands.X" Size="Size.Small" Color="Color.Success" />
+                            </MudTooltip>
+                        }
                         <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info"
                                        Title="@L["products.preview", "Product preview"]"
                                        OnClick="@(() => Nav.NavigateTo($"/catalog/products/{p.ProductID}/preview"))" />
@@ -154,6 +193,13 @@
     private decimal _usdToCurrency = 1m;
     private int _localDigits = 2;
     private bool _isUsdSite = true;
+    private bool _helpOpen;
+    private bool _tgHelp;
+    private bool _xHelp;
+    private bool _igConnected;
+    private bool _tgConnected;
+    private bool _xConnected;
+    private Dictionary<int, SocialSentFlags> _sent = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -223,8 +269,62 @@
             _localDigits = rate.CurrencyCodeNavigation?.DecimalDigits ?? 0;
         }
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categoryCount, rates.Count);
+        _sent = (await SocialPublish.GetProductSentAsync(_items.Select(p => p.ProductID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
 
         _loading = false;
+    }
+
+    private Task OnInstagramConnected(bool connected)
+    {
+        _igConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTelegramConnected(bool connected)
+    {
+        _tgConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private Task OnXConnected(bool connected)
+    {
+        _xConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private void OpenHelp()
+    {
+        _helpOpen = true;
+        _tgHelp = true;
+        _xHelp = true;
+    }
+
+    private SocialSentFlags Sent(int productId) =>
+        _sent.TryGetValue(productId, out var flags) ? flags : new SocialSentFlags();
+
+    private async Task PublishAsync(ProductListItemDto product)
+    {
+        if (!_igConnected && !_tgConnected && !_xConnected)
+        {
+            OpenHelp();
+            Snackbar.Add(L["products.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a product."], Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters { [nameof(InstagramPublishDialog.ProductId)] = product.ProductID };
+        var dialog = await DialogService.ShowAsync<InstagramPublishDialog>(L["products.social_send", "Send to Instagram, Telegram, or X"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false });
+        var result = await dialog.Result;
+        if (result is { Canceled: false, Data: SocialPublishResult sent })
+        {
+            var previous = Sent(product.ProductID);
+            _sent[product.ProductID] = new SocialSentFlags
+            {
+                Instagram = previous.Instagram || sent.Instagram,
+                Telegram = previous.Telegram || sent.Telegram,
+                X = previous.X || sent.X,
+            };
+        }
     }
 
     private string FormatMinPrice(decimal? minSiteCurrency)

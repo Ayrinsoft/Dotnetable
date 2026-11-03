@@ -1,5 +1,6 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IPostService Posts
+@inject IProductService Products
 @inject ISocialPublishService Publisher
 @inject IInstagramAccountService InstagramAccounts
 @inject ITelegramAccountService TelegramAccounts
@@ -33,11 +34,15 @@
                 <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["posts.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a post."]</MudAlert>
             }
             <MudCheckBox T="bool" Value="_useExcerpt" ValueChanged="OnUseExcerpt" Color="Color.Primary"
-                         Label="@L["posts.ig_use_excerpt", "Use the summary (primary language)"]" />
+                         Label="@(ProductId > 0 ? L["products.social_use_short", "Use the short description"] : L["posts.ig_use_excerpt", "Use the summary (primary language)"])" />
             @if (_useExcerpt)
             {
                 <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
-                    @(string.IsNullOrWhiteSpace(_excerpt) ? L["posts.ig_excerpt_empty", "This post has no summary in the primary language."] : _excerpt)
+                    @(string.IsNullOrWhiteSpace(_excerpt)
+                        ? (ProductId > 0
+                            ? L["products.social_short_empty", "This product has no short description."]
+                            : L["posts.ig_excerpt_empty", "This post has no summary in the primary language."])
+                        : _excerpt)
                 </MudAlert>
             }
             else
@@ -48,7 +53,9 @@
 
             <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_media", "Photos and videos"]</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
-                @L["posts.social_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."]
+                @(ProductId > 0
+                    ? L["products.social_media_hint", "Upload a file, paste a public https link, or use this product's photos and videos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."]
+                    : L["posts.social_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."])
             </MudText>
 
             <MudStack Spacing="2" Class="mb-3">
@@ -117,7 +124,14 @@
                     </CustomContent>
                 </MudFileUpload>
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PhotoLibrary" OnClick="AddLibraryAsync">@L["posts.ig_from_library", "Library photo"]</MudButton>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Collections" OnClick="AddPostPhotosAsync">@L["posts.ig_from_post", "This post's photos"]</MudButton>
+                @if (ProductId > 0)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Collections" OnClick="AddProductMediaAsync">@L["products.social_from_product", "This product's photos"]</MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Collections" OnClick="AddPostPhotosAsync">@L["posts.ig_from_post", "This post's photos"]</MudButton>
+                }
             </MudStack>
 
             @if (_items.Any(i => i.Kind == InstagramMediaKind.Video))
@@ -148,6 +162,7 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public int PostId { get; set; }
+    [Parameter] public int ProductId { get; set; }
 
     private bool _loading = true;
     private bool _busy;
@@ -171,24 +186,43 @@
     protected override async Task OnInitializedAsync()
     {
         await L.EnsureLoadedAsync();
-        var post = await Posts.GetByIdAsync(PostId);
-        if (post is not null)
+        if (ProductId > 0)
         {
-            _igOn = (await InstagramAccounts.GetAsync(post.WebsiteID)).Connected;
-            _tgOn = (await TelegramAccounts.GetAsync(post.WebsiteID)).Connected;
-            _xOn = (await XAccounts.GetAsync(post.WebsiteID)).Connected;
-            _sendInstagram = _igOn;
-            _sendTelegram = _tgOn;
-            _sendX = _xOn;
-            _title = post.Title;
-            _excerpt = post.Excerpt ?? "";
-            var images = await Posts.GetImagesAsync(PostId);
-            foreach (var image in images.Where(i => i.FileRecord is not null))
-                AddLibraryFile(image.FileRecord!, InstagramMediaKind.Image);
-            if (_items.Count == 0 && post.FeaturedImageFile is not null)
-                AddLibraryFile(post.FeaturedImageFile, InstagramMediaKind.Image);
+            var product = await Products.GetByIdAsync(ProductId);
+            if (product is not null)
+            {
+                await LoadAccountsAsync(product.WebsiteID);
+                _title = product.Title;
+                _excerpt = product.ShortDescription ?? "";
+                AddProductFiles(product);
+            }
+        }
+        else
+        {
+            var post = await Posts.GetByIdAsync(PostId);
+            if (post is not null)
+            {
+                await LoadAccountsAsync(post.WebsiteID);
+                _title = post.Title;
+                _excerpt = post.Excerpt ?? "";
+                var images = await Posts.GetImagesAsync(PostId);
+                foreach (var image in images.Where(i => i.FileRecord is not null))
+                    AddLibraryFile(image.FileRecord!, InstagramMediaKind.Image);
+                if (_items.Count == 0 && post.FeaturedImageFile is not null)
+                    AddLibraryFile(post.FeaturedImageFile, InstagramMediaKind.Image);
+            }
         }
         _loading = false;
+    }
+
+    private async Task LoadAccountsAsync(int websiteId)
+    {
+        _igOn = (await InstagramAccounts.GetAsync(websiteId)).Connected;
+        _tgOn = (await TelegramAccounts.GetAsync(websiteId)).Connected;
+        _xOn = (await XAccounts.GetAsync(websiteId)).Connected;
+        _sendInstagram = _igOn;
+        _sendTelegram = _tgOn;
+        _sendX = _xOn;
     }
 
     private void OnUseExcerpt(bool value) => _useExcerpt = value;
@@ -267,6 +301,42 @@
         }
         if (_items.Count >= 20) return;
         AddLibraryFile(file, kind);
+    }
+
+    private async Task AddProductMediaAsync()
+    {
+        var product = await Products.GetByIdAsync(ProductId);
+        if (product is null) return;
+        AddProductFiles(product);
+    }
+
+    private void AddProductFiles(Product product)
+    {
+        var items = product.ProductMedia
+            .OrderBy(m => m.SortOrder)
+            .SelectMany(m => m.MediaSet?.MediaSetItems ?? [])
+            .OrderBy(i => i.SortOrder);
+        foreach (var item in items)
+        {
+            if (_items.Count >= 20) break;
+            if (item.File is not null && item.File.FileCategory == (byte)FileCategory.Video)
+                AddLibraryFile(item.File, InstagramMediaKind.Video);
+            else if (item.File is not null && item.File.FileCategory == (byte)FileCategory.Image)
+                AddLibraryFile(item.File, InstagramMediaKind.Image);
+            else if (!string.IsNullOrWhiteSpace(item.ExternalVideoUrl)
+                     && _items.All(i => !string.Equals(i.Url, item.ExternalVideoUrl, StringComparison.OrdinalIgnoreCase)))
+            {
+                _items.Add(new Draft
+                {
+                    Kind = InstagramMediaKind.Video,
+                    Url = item.ExternalVideoUrl,
+                    Label = item.ExternalVideoUrl,
+                });
+            }
+        }
+
+        if (_items.Count == 0 && product.FeaturedImageFile is not null)
+            AddLibraryFile(product.FeaturedImageFile, InstagramMediaKind.Image);
     }
 
     private async Task AddPostPhotosAsync()
@@ -360,7 +430,7 @@
         _busy = true;
         try
         {
-            var sent = await Publisher.PublishAsync(PostId, new InstagramPublishRequest
+            var request = new InstagramPublishRequest
             {
                 Caption = _caption,
                 UsePrimaryExcerpt = _useExcerpt,
@@ -370,7 +440,10 @@
                 SendX = _sendX,
                 Items = _items.Select(ToItem).ToList(),
                 VideoCover = _videoCover is null ? null : ToItem(_videoCover),
-            });
+            };
+            var sent = ProductId > 0
+                ? await Publisher.PublishProductAsync(ProductId, request)
+                : await Publisher.PublishAsync(PostId, request);
             foreach (var error in sent.Errors)
                 Snackbar.Add(error, sent.Instagram || sent.Telegram || sent.X ? Severity.Warning : Severity.Error);
             if (!sent.Instagram && !sent.Telegram && !sent.X)

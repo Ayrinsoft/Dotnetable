@@ -112,6 +112,86 @@ public class PostGalleryAndInstagramTests : IDisposable
     }
 
     [Fact]
+    public async Task PublishProduct_UsesShortDescription_AndKeepsOneRowOnResend()
+    {
+        int websiteId;
+        int productId;
+        using (var seed = new AppDbContext(_options))
+        {
+            seed.Currencies.Add(new Currency { CurrencyCode = "USD", Name = "US Dollar", Symbol = "$", DecimalDigits = 2, IsActive = true });
+            var website = new Website
+            {
+                TradeName = "Shop",
+                BrandName = "Shop",
+                WebsiteAddress = "https://shop.test",
+                AuthCode = Guid.NewGuid(),
+                Active = true,
+                Manager = "Mgr",
+                Mobile = "1",
+                Email = "mgr@shop.test",
+                RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                DefaultLanguageCode = "en",
+                DefaultCurrencyCode = "USD",
+            };
+            seed.Websites.Add(website);
+            await seed.SaveChangesAsync();
+            websiteId = website.WebsiteID;
+            var storage = new WebsiteStorageSetting
+            {
+                WebsiteID = websiteId,
+                StorageSettingsJSON = "{}",
+                Active = true,
+                MaxFileSizeKB = 1024,
+            };
+            seed.WebsiteStorageSettings.Add(storage);
+            await seed.SaveChangesAsync();
+            var file = File(storage.WebsiteStorageSettingsID, websiteId, 9);
+            seed.FileRecords.Add(file);
+            seed.WebsiteInstagramAccounts.Add(new WebsiteInstagramAccount
+            {
+                WebsiteID = websiteId,
+                IgUserId = "1789",
+                AccessToken = "page-token",
+                IsActive = true,
+                UpdatedAt = DateTime.UtcNow,
+            });
+            var product = new Product
+            {
+                WebsiteID = websiteId,
+                Slug = "mug",
+                Title = "Mug",
+                ShortDescription = "Short product text",
+                Status = ProductService.PublishedStatus,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            seed.Products.Add(product);
+            await seed.SaveChangesAsync();
+            productId = product.ProductID;
+            _ = file;
+        }
+
+        var graph = new FakeGraph();
+        var publisher = new InstagramPublishService(new TestDbContextFactory(_options), graph, new FakeHost());
+        var request = new InstagramPublishRequest
+        {
+            UsePrimaryExcerpt = true,
+            Caption = "should not win",
+            Items = [new InstagramMediaItem { Kind = InstagramMediaKind.Image, Url = "https://cdn.test/mug.jpg" }],
+        };
+
+        var link = await publisher.PublishProductAsync(productId, request);
+        link.Should().Be("https://instagram.com/p/abc");
+        graph.Caption.Should().Be("Short product text");
+
+        await publisher.PublishProductAsync(productId, request);
+        using var rows = new AppDbContext(_options);
+        (await rows.ProductInstagramPublications.CountAsync()).Should().Be(1);
+        (await rows.PostInstagramPublications.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public void Plan_MovesCoverFirst_AndTreatsOneVideoAsReel()
     {
         var slides = new[]

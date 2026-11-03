@@ -1343,6 +1343,10 @@ window.DOCS_ADMIN = {
               en: "Optional: change product code prefix under Websites → edit site (default **DN**).",
               fa: "اختیاری: پیشوند کد کالا را در Websites → ویرایش سایت عوض کنید (پیش‌فرض **DN**).",
             },
+            {
+              en: "Open the Instagram, Telegram, and X steps at the top of the product list. These are the same one-per-website accounts as the post list. The row button opens the same window. Tick the networks, then tick which files go to each one. The caption can be typed or taken from the short description. Product photos and videos fill the window. Instagram still needs a public https address and deletes its temporary files after it accepts them. Sending again is allowed. A green mark on the row means that network has received the product before. The mark does not show a count or a time.",
+              fa: "بالای فهرست محصولات مرحله‌های اینستاگرام، تلگرام و X را باز کنید. این‌ها همان حساب‌های هر وب‌سایت هستند که در فهرست پست‌ها هم دیده می‌شوند. دکمه هر ردیف همان پنجره را باز می‌کند. شبکه را تیک بزنید و بعد مشخص کنید کدام فایل به کدام شبکه برود. کپشن را می‌توان نوشت یا از توضیح کوتاه گرفت. عکس و ویدیوی محصول در پنجره می‌آید. اینستاگرام هنوز نشانی https عمومی می‌خواهد و فایل موقت را بعد از پذیرش پاک می‌کند. ارسال دوباره مجاز است. علامت سبز روی ردیف یعنی آن شبکه قبلاً این محصول را گرفته است و تعداد یا زمان را نشان نمی‌دهد.",
+            },
           ],
           sections: [
             {
