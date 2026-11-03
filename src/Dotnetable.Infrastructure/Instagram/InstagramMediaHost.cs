@@ -16,6 +16,8 @@ public interface IInstagramMediaHost
 
     Task<byte[]> DownloadAsync(string url, CancellationToken ct);
 
+    Task<byte[]> DownloadAsync(string url, int maxBytes, CancellationToken ct);
+
     Task DeleteHostedAsync(IReadOnlyCollection<string> urls, CancellationToken ct);
 }
 
@@ -90,19 +92,21 @@ public sealed class InstagramMediaHost : IInstagramMediaHost
         return saved.CNDUrl;
     }
 
-    public async Task<byte[]> DownloadAsync(string url, CancellationToken ct)
+    public Task<byte[]> DownloadAsync(string url, CancellationToken ct) => DownloadAsync(url, MaxImageBytes, ct);
+
+    public async Task<byte[]> DownloadAsync(string url, int maxBytes, CancellationToken ct)
     {
         if (!InstagramUrls.IsPublicHttps(url))
             throw new InstagramException("Instagram can only fetch a public https address.");
 
         var client = _http.CreateClient();
-        client.Timeout = TimeSpan.FromSeconds(30);
+        client.Timeout = TimeSpan.FromSeconds(maxBytes > MaxImageBytes ? 120 : 30);
         using var response = await client.GetAsync(url, ct);
         if (!response.IsSuccessStatusCode)
-            throw new InstagramException("Could not read that photo in order to crop it.");
+            throw new InstagramException("Could not read that file.");
         var bytes = await response.Content.ReadAsByteArrayAsync(ct);
-        if (bytes.Length == 0 || bytes.Length > MaxImageBytes)
-            throw new InstagramException("Each photo must be under 8 MB.");
+        if (bytes.Length == 0 || bytes.Length > maxBytes)
+            throw new InstagramException(maxBytes > MaxImageBytes ? "Each video must be under 50 MB." : "Each photo must be under 8 MB.");
         return bytes;
     }
 

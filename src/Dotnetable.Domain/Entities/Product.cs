@@ -96,6 +96,12 @@ public partial class Product
 
     public virtual ICollection<ProductMedium> ProductMedia { get; set; } = new List<ProductMedium>();
 
+    public virtual ProductInstagramPublication? ProductInstagramPublication { get; set; }
+
+    public virtual ProductTelegramPublication? ProductTelegramPublication { get; set; }
+
+    public virtual ProductXPublication? ProductXPublication { get; set; }
+
     public virtual ICollection<ProductQuestion> ProductQuestions { get; set; } = new List<ProductQuestion>();
 
     public virtual ICollection<ProductRelation> ProductRelationProducts { get; set; } = new List<ProductRelation>();

@@ -102,11 +102,13 @@ public class PostGalleryAndInstagramTests : IDisposable
         host.Deleted.Should().BeEquivalentTo(graph.ImageUrls);
         host.Deleted.Should().OnlyContain(url => url.StartsWith("https://cdn.test/", StringComparison.Ordinal));
 
-        var again = () => publisher.PublishAsync(postId, new InstagramPublishRequest
+        var again = await publisher.PublishAsync(postId, new InstagramPublishRequest
         {
             Items = [new InstagramMediaItem { Kind = InstagramMediaKind.Image, Url = "https://cdn.test/direct.jpg" }],
         });
-        await again.Should().ThrowAsync<InstagramException>();
+        again.Should().Be("https://instagram.com/p/abc");
+        using var rows = new AppDbContext(_options);
+        (await rows.PostInstagramPublications.CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -256,6 +258,9 @@ public class PostGalleryAndInstagramTests : IDisposable
 
         public Task<byte[]> DownloadAsync(string url, CancellationToken ct) =>
             Task.FromResult(new byte[] { 1, 2, 3 });
+
+        public Task<byte[]> DownloadAsync(string url, int maxBytes, CancellationToken ct) =>
+            DownloadAsync(url, ct);
 
         public Task DeleteHostedAsync(IReadOnlyCollection<string> urls, CancellationToken ct)
         {

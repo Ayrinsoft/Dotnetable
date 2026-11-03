@@ -44,6 +44,15 @@ public sealed class InstagramMediaItem
     public string? FileName { get; set; }
     public string? MimeType { get; set; }
     public ImageCropRect? Crop { get; set; }
+
+    /// <summary>Included when <see cref="InstagramPublishRequest.SendInstagram"/> is on.</summary>
+    public bool ToInstagram { get; set; } = true;
+
+    /// <summary>Included when <see cref="InstagramPublishRequest.SendTelegram"/> is on.</summary>
+    public bool ToTelegram { get; set; } = true;
+
+    /// <summary>Included when <see cref="InstagramPublishRequest.SendX"/> is on.</summary>
+    public bool ToX { get; set; } = true;
 }
 
 /// <summary>Popup payload. <see cref="UsePrimaryExcerpt"/> reads the post's main-language summary, not a translation.</summary>
@@ -56,6 +65,12 @@ public sealed class InstagramPublishRequest
     /// <summary>Index of the slide that should be the feed cover (moved first). Ignored when there is a single video.</summary>
     public int CoverIndex { get; set; }
 
-    /// <summary>Thumbnail for a single video. Not added as its own slide.</summary>
+    /// <summary>Thumbnail for a single video. Not added as its own slide. Instagram only.</summary>
     public InstagramMediaItem? VideoCover { get; set; }
+
+    public bool SendInstagram { get; set; }
+
+    public bool SendTelegram { get; set; }
+
+    public bool SendX { get; set; }
 }

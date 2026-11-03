@@ -225,6 +225,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PostInstagramPublication> PostInstagramPublications { get; set; }
 
+    public virtual DbSet<PostTelegramPublication> PostTelegramPublications { get; set; }
+
+    public virtual DbSet<PostXPublication> PostXPublications { get; set; }
+
     public virtual DbSet<PostLocation> PostLocations { get; set; }
 
     public virtual DbSet<PostLocationTranslation> PostLocationTranslations { get; set; }
@@ -240,6 +244,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PriceListItem> PriceListItems { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
+
+    public virtual DbSet<ProductInstagramPublication> ProductInstagramPublications { get; set; }
+
+    public virtual DbSet<ProductTelegramPublication> ProductTelegramPublications { get; set; }
+
+    public virtual DbSet<ProductXPublication> ProductXPublications { get; set; }
 
     public virtual DbSet<ProductAnswer> ProductAnswers { get; set; }
 
@@ -358,6 +368,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WebsiteSmsSetting> WebsiteSmsSettings { get; set; }
 
     public virtual DbSet<WebsiteInstagramAccount> WebsiteInstagramAccounts { get; set; }
+
+    public virtual DbSet<WebsiteTelegramAccount> WebsiteTelegramAccounts { get; set; }
+
+    public virtual DbSet<WebsiteXAccount> WebsiteXAccounts { get; set; }
 
     public virtual DbSet<WebsiteWhatsAppSetting> WebsiteWhatsAppSettings { get; set; }
 

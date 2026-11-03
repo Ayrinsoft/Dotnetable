@@ -300,6 +300,10 @@ public partial class Website
 
     public virtual WebsiteInstagramAccount? WebsiteInstagramAccount { get; set; }
 
+    public virtual WebsiteTelegramAccount? WebsiteTelegramAccount { get; set; }
+
+    public virtual WebsiteXAccount? WebsiteXAccount { get; set; }
+
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
 
     public virtual ICollection<WebsiteRedirect> WebsiteRedirects { get; set; } = new List<WebsiteRedirect>();

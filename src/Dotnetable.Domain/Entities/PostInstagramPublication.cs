@@ -2,7 +2,7 @@ using System;
 
 namespace Dotnetable.Domain.Entities;
 
-/// <summary>One Instagram publish for a post. A row means the post was already sent and must not be sent again.</summary>
+/// <summary>A row means this post has been sent to Instagram at least once. Sending again is allowed.</summary>
 public partial class PostInstagramPublication
 {
     public int PostID { get; set; }

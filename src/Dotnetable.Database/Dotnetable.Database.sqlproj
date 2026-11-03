@@ -66,10 +66,17 @@
     <Build Include="TagTranslations.sql" />
     <Build Include="Tags.sql" />
     <Build Include="PostInstagramPublications.sql" />
+    <Build Include="PostTelegramPublications.sql" />
+    <Build Include="PostXPublications.sql" />
+    <Build Include="ProductInstagramPublications.sql" />
+    <Build Include="ProductTelegramPublications.sql" />
+    <Build Include="ProductXPublications.sql" />
     <Build Include="PostImages.sql" />
     <Build Include="PostLocationTranslations.sql" />
     <Build Include="PostLocations.sql" />
     <Build Include="WebsiteInstagramAccounts.sql" />
+    <Build Include="WebsiteTelegramAccounts.sql" />
+    <Build Include="WebsiteXAccounts.sql" />
     <Build Include="PostTranslations.sql" />
     <Build Include="PostTags.sql" />
     <Build Include="Posts.sql" />

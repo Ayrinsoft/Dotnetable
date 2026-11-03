@@ -294,6 +294,12 @@ public class ProductService : IProductService
         _context.ProductCategoryMaps.RemoveRange(product.ProductCategoryMaps);
         _context.ProductVariants.RemoveRange(product.ProductVariants);
         _context.ProductTranslations.RemoveRange(product.ProductTranslations);
+        var instagram = await _context.ProductInstagramPublications.FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+        if (instagram is not null) _context.ProductInstagramPublications.Remove(instagram);
+        var telegram = await _context.ProductTelegramPublications.FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+        if (telegram is not null) _context.ProductTelegramPublications.Remove(telegram);
+        var xPublication = await _context.ProductXPublications.FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+        if (xPublication is not null) _context.ProductXPublications.Remove(xPublication);
         _context.Products.Remove(product);
         await _context.SaveChangesAsync(ct);
     }

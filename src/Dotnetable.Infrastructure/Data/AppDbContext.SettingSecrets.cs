@@ -28,6 +28,11 @@ public partial class AppDbContext
         Widen(modelBuilder.Entity<PaymentGateway>().Property(e => e.SettingsJSON));
         Widen(modelBuilder.Entity<WebsiteCaptchaSetting>().Property(e => e.TurnstileSecretKey));
         Widen(modelBuilder.Entity<WebsiteInstagramAccount>().Property(e => e.AccessToken));
+        Widen(modelBuilder.Entity<WebsiteTelegramAccount>().Property(e => e.BotToken));
+        Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiKey));
+        Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiSecret));
+        Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessToken));
+        Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessTokenSecret));
 
         if (_settingKey is null) return;
 
@@ -43,6 +48,11 @@ public partial class AppDbContext
         Protect(modelBuilder.Entity<PaymentGateway>().Property(e => e.SettingsJSON)!, key);
         Protect(modelBuilder.Entity<WebsiteCaptchaSetting>().Property(e => e.TurnstileSecretKey)!, key);
         Protect(modelBuilder.Entity<WebsiteInstagramAccount>().Property(e => e.AccessToken), key);
+        Protect(modelBuilder.Entity<WebsiteTelegramAccount>().Property(e => e.BotToken), key);
+        Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiKey), key);
+        Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiSecret), key);
+        Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessToken), key);
+        Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessTokenSecret), key);
     }
 
     private static void Widen<T>(PropertyBuilder<T> property) => property.Metadata.SetMaxLength(null);

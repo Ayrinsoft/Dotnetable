@@ -90,6 +90,10 @@ public partial class Post
 
     public virtual PostInstagramPublication? PostInstagramPublication { get; set; }
 
+    public virtual PostTelegramPublication? PostTelegramPublication { get; set; }
+
+    public virtual PostXPublication? PostXPublication { get; set; }
+
     public virtual PostLocation? PostLocation { get; set; }
 
     public virtual ICollection<PostTranslation> PostTranslations { get; set; } = new List<PostTranslation>();

@@ -83,6 +83,11 @@ public static class SettingSecretBackfill
         count += await RewriteAsync(context, "PaymentGateways", "PaymentGatewayID", "SettingsJSON", ct);
         count += await RewriteAsync(context, "WebsiteCaptchaSettings", "WebsiteCaptchaSettingID", "TurnstileSecretKey", ct);
         count += await RewriteAsync(context, "WebsiteInstagramAccounts", "WebsiteInstagramAccountID", "AccessToken", ct);
+        count += await RewriteAsync(context, "WebsiteTelegramAccounts", "WebsiteTelegramAccountID", "BotToken", ct);
+        count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "ApiKey", ct);
+        count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "ApiSecret", ct);
+        count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "AccessToken", ct);
+        count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "AccessTokenSecret", ct);
         return count;
     }
 
@@ -117,6 +122,8 @@ public static class SettingSecretBackfill
             "PaymentGateways" => await MarkPaymentAsync(context, ids, valueColumn, ct),
             "WebsiteCaptchaSettings" => await MarkCaptchaAsync(context, ids, ct),
             "WebsiteInstagramAccounts" => await MarkInstagramAsync(context, ids, ct),
+            "WebsiteTelegramAccounts" => await MarkTelegramAsync(context, ids, ct),
+            "WebsiteXAccounts" => await MarkXAsync(context, ids, valueColumn, ct),
             _ => 0,
         };
 
@@ -205,6 +212,31 @@ public static class SettingSecretBackfill
         var rows = await context.WebsiteInstagramAccounts.Where(s => ids.Contains(s.WebsiteInstagramAccountID)).ToListAsync(ct);
         foreach (var row in rows)
             context.Entry(row).Property(s => s.AccessToken).IsModified = true;
+        return rows.Count;
+    }
+
+    private static async Task<int> MarkTelegramAsync(AppDbContext context, List<int> ids, CancellationToken ct)
+    {
+        var rows = await context.WebsiteTelegramAccounts.Where(s => ids.Contains(s.WebsiteTelegramAccountID)).ToListAsync(ct);
+        foreach (var row in rows)
+            context.Entry(row).Property(s => s.BotToken).IsModified = true;
+        return rows.Count;
+    }
+
+    private static async Task<int> MarkXAsync(AppDbContext context, List<int> ids, string column, CancellationToken ct)
+    {
+        var rows = await context.WebsiteXAccounts.Where(s => ids.Contains(s.WebsiteXAccountID)).ToListAsync(ct);
+        foreach (var row in rows)
+        {
+            var entry = context.Entry(row);
+            switch (column)
+            {
+                case "ApiKey": entry.Property(s => s.ApiKey).IsModified = true; break;
+                case "ApiSecret": entry.Property(s => s.ApiSecret).IsModified = true; break;
+                case "AccessTokenSecret": entry.Property(s => s.AccessTokenSecret).IsModified = true; break;
+                default: entry.Property(s => s.AccessToken).IsModified = true; break;
+            }
+        }
         return rows.Count;
     }
 }

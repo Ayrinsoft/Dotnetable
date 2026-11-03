@@ -1,0 +1,141 @@
+@inject ITelegramAccountService Accounts
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudExpansionPanels Elevation="0" Class="mb-4">
+    <MudExpansionPanel Text="@L["posts.tg_help_title", "Telegram — connect your bot"]" Expanded="_expanded" ExpandedChanged="OnExpandedChanged">
+        <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
+        <ol class="mb-4" style="padding-inline-start:1.25rem">
+            @foreach (var step in Steps)
+            {
+                <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+            }
+        </ol>
+        @if (CanEdit)
+        {
+            @if (_status?.Connected == true)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    @(string.IsNullOrWhiteSpace(_status.Username)
+                        ? string.Format(L["posts.tg_connected_chat", "Telegram is connected to {0}."], _status.ChatId)
+                        : string.Format(L["posts.tg_connected_as", "Bot @{0} posts to {1}."], _status.Username, _status.ChatId))
+                </MudAlert>
+            }
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_chatId" Label="@L["posts.tg_chat", "Chat id (@channel or numeric)"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_token" Label="@L["posts.tg_token", "Bot token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.tg_save", "Check and save"]</MudButton>
+                @if (_status?.Connected == true)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.tg_disconnect", "Disconnect"]</MudButton>
+                }
+            </MudStack>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool Expanded { get; set; }
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    [Parameter] public EventCallback<bool> ConnectedChanged { get; set; }
+
+    private bool _busy;
+    private bool _expanded;
+    private int _loadedFor;
+    private TelegramAccountStatus? _status;
+    private string _chatId = "";
+    private string _token = "";
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+    private string Intro => Persian
+        ? "ربات باید مدیر کانال یا گروهی باشد که پست در آن منتشر می‌شود. توکن بعد از ذخیره نشان داده نمی‌شود."
+        : "The bot must be an administrator of the channel or group that receives the post. The token is not shown again after you save.";
+    private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
+    private static readonly string[] StepsFa =
+    [
+        "در تلگرام به @BotFather بروید، /newbot را بزنید و توکن ربات را کپی کنید.",
+        "یک کانال یا گروه بسازید و ربات را با اجازه ارسال پیام، مدیر کنید.",
+        "اگر کانال عمومی است شناسه را به شکل @channel بنویسید. برای کانال خصوصی شناسه عددی (معمولاً با ‎-100) را بگذارید.",
+        "توکن و شناسه گفتگو را ذخیره کنید. سایت با getMe و getChat آن‌ها را چک می‌کند.",
+        "آلبوم تلگرام حداکثر ۱۰ فایل است. بیشتر از آن در آلبوم بعدی می‌رود. کپشن بلندتر از ۱۰۲۴ نویسه به‌صورت پیام جدا می‌آید.",
+        "در پنجره ارسال، تلگرام را تیک بزنید و فقط عکس‌هایی را که باید آنجا بروند انتخاب کنید. می‌توانید فقط تلگرام را بفرستید. ارسال دوباره مجاز است.",
+    ];
+    private static readonly string[] StepsEn =
+    [
+        "In Telegram, open @BotFather, send /newbot, and copy the bot token.",
+        "Create a channel or group and make the bot an administrator that can post messages.",
+        "For a public channel the chat id is @channel. For a private chat use the numeric id, which usually starts with -100.",
+        "Save the token and the chat id. The site checks them with getMe and getChat.",
+        "A Telegram album holds at most 10 files. Extra files go in the next album. A caption longer than 1024 characters is sent as its own message.",
+        "In the send window, tick Telegram and only the photos that should go there. You can send to Telegram alone. Sending again is allowed.",
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _expanded = Expanded;
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        _token = "";
+        _status = await Accounts.GetAsync(WebsiteId);
+        _chatId = _status.ChatId ?? "";
+        await ConnectedChanged.InvokeAsync(_status.Connected);
+    }
+
+    private async Task OnExpandedChanged(bool value)
+    {
+        _expanded = value;
+        await ExpandedChanged.InvokeAsync(value);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _status = await Accounts.SaveAsync(WebsiteId, new TelegramAccountInput { ChatId = _chatId, BotToken = _token });
+            _token = "";
+            Snackbar.Add(L["posts.tg_saved", "Telegram bot saved."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(_status.Connected);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Accounts.DisconnectAsync(WebsiteId);
+            _status = new TelegramAccountStatus();
+            _chatId = "";
+            _token = "";
+            Snackbar.Add(L["posts.tg_disconnected", "Telegram disconnected."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(false);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

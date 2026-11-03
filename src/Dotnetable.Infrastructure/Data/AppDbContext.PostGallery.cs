@@ -50,5 +50,91 @@ public partial class AppDbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteInstagramAccounts_Websites");
         });
+
+        modelBuilder.Entity<PostTelegramPublication>(entity =>
+        {
+            entity.HasKey(e => e.PostID);
+            entity.Property(e => e.MessageId).HasMaxLength(40);
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Post).WithOne(p => p.PostTelegramPublication)
+                .HasForeignKey<PostTelegramPublication>(d => d.PostID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PostTelegramPublications_Posts");
+        });
+
+        modelBuilder.Entity<PostXPublication>(entity =>
+        {
+            entity.HasKey(e => e.PostID);
+            entity.Property(e => e.TweetId).HasMaxLength(40);
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Post).WithOne(p => p.PostXPublication)
+                .HasForeignKey<PostXPublication>(d => d.PostID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PostXPublications_Posts");
+        });
+
+        modelBuilder.Entity<WebsiteTelegramAccount>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteTelegramAccounts_WebsiteID").IsUnique();
+            entity.Property(e => e.ChatId).HasMaxLength(80);
+            entity.Property(e => e.Username).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithOne(p => p.WebsiteTelegramAccount)
+                .HasForeignKey<WebsiteTelegramAccount>(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteTelegramAccounts_Websites");
+        });
+
+        modelBuilder.Entity<ProductInstagramPublication>(entity =>
+        {
+            entity.HasKey(e => e.ProductID);
+            entity.Property(e => e.IgMediaId).HasMaxLength(64);
+            entity.Property(e => e.Permalink).HasMaxLength(300);
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Product).WithOne(p => p.ProductInstagramPublication)
+                .HasForeignKey<ProductInstagramPublication>(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductInstagramPublications_Products");
+        });
+
+        modelBuilder.Entity<ProductTelegramPublication>(entity =>
+        {
+            entity.HasKey(e => e.ProductID);
+            entity.Property(e => e.MessageId).HasMaxLength(40);
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Product).WithOne(p => p.ProductTelegramPublication)
+                .HasForeignKey<ProductTelegramPublication>(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductTelegramPublications_Products");
+        });
+
+        modelBuilder.Entity<ProductXPublication>(entity =>
+        {
+            entity.HasKey(e => e.ProductID);
+            entity.Property(e => e.TweetId).HasMaxLength(40);
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Product).WithOne(p => p.ProductXPublication)
+                .HasForeignKey<ProductXPublication>(d => d.ProductID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductXPublications_Products");
+        });
+
+        modelBuilder.Entity<WebsiteXAccount>(entity =>
+        {
+            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteXAccounts_WebsiteID").IsUnique();
+            entity.Property(e => e.Username).HasMaxLength(100);
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
+
+            entity.HasOne(d => d.Website).WithOne(p => p.WebsiteXAccount)
+                .HasForeignKey<WebsiteXAccount>(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WebsiteXAccounts_Websites");
+        });
     }
 }

@@ -5723,6 +5723,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("PostLocationTranslations");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostTelegramPublication", b =>
+                {
+                    b.Property<int>("PostID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MessageId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("PostID");
+
+                    b.ToTable("PostTelegramPublications");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostTranslation", b =>
                 {
                     b.Property<int>("PostTranslationID")
@@ -5827,6 +5844,23 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_PostTypes_WebsiteID");
 
                     b.ToTable("PostTypes");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostXPublication", b =>
+                {
+                    b.Property<int>("PostID")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("TweetId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.HasKey("PostID");
+
+                    b.ToTable("PostXPublications");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PriceList", b =>
@@ -10040,6 +10074,44 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.ToTable("WebsiteStorageSettings");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTelegramAccount", b =>
+                {
+                    b.Property<int>("WebsiteTelegramAccountID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteTelegramAccountID"));
+
+                    b.Property<string>("BotToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChatId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteTelegramAccountID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteTelegramAccounts_WebsiteID")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteTelegramAccounts");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTheme", b =>
                 {
                     b.Property<int>("WebsiteThemeID")
@@ -10237,6 +10309,51 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteWhatsAppSettings_WebsiteID");
 
                     b.ToTable("WebsiteWhatsAppSettings");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteXAccount", b =>
+                {
+                    b.Property<int>("WebsiteXAccountID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("WebsiteXAccountID"));
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AccessTokenSecret")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApiSecret")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WebsiteXAccountID");
+
+                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteXAccounts_WebsiteID")
+                        .IsUnique();
+
+                    b.ToTable("WebsiteXAccounts");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Wishlist", b =>
@@ -12524,6 +12641,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("PostLocation");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostTelegramPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithOne("PostTelegramPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.PostTelegramPublication", "PostID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PostTelegramPublications_Posts");
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostTranslation", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
@@ -12544,6 +12672,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasConstraintName("FK_PostTypes_Websites");
 
                     b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.PostXPublication", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Post", "Post")
+                        .WithOne("PostXPublication")
+                        .HasForeignKey("Dotnetable.Domain.Entities.PostXPublication", "PostID")
+                        .IsRequired()
+                        .HasConstraintName("FK_PostXPublications_Posts");
+
+                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PriceList", b =>
@@ -14229,6 +14368,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("Website");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTelegramAccount", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithOne("WebsiteTelegramAccount")
+                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteTelegramAccount", "WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteTelegramAccounts_Websites");
+
+                    b.Navigation("Website");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTheme", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
@@ -14305,6 +14455,17 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteWhatsAppSettings_Websites");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteXAccount", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithOne("WebsiteXAccount")
+                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteXAccount", "WebsiteID")
+                        .IsRequired()
+                        .HasConstraintName("FK_WebsiteXAccounts_Websites");
 
                     b.Navigation("Website");
                 });
@@ -14852,7 +15013,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("PostLocation");
 
+                    b.Navigation("PostTelegramPublication");
+
                     b.Navigation("PostTranslations");
+
+                    b.Navigation("PostXPublication");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.PostLocation", b =>
@@ -15279,6 +15444,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
 
                     b.Navigation("WebsiteStorageSettings");
 
+                    b.Navigation("WebsiteTelegramAccount");
+
                     b.Navigation("WebsiteThemes");
 
                     b.Navigation("WebsiteVisibleProductCategories");
@@ -15288,6 +15455,8 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("WebsiteWatermarkSettings");
 
                     b.Navigation("WebsiteWhatsAppSettings");
+
+                    b.Navigation("WebsiteXAccount");
 
                     b.Navigation("Wishlists");
                 });

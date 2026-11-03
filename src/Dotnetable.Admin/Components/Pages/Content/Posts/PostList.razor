@@ -1,7 +1,7 @@
 @page "/content/posts"
 @attribute [Authorize(Policy = RoleKeys.PostsView)]
 @inject IPostService PostService
-@inject IInstagramPublishService InstagramPublish
+@inject ISocialPublishService SocialPublish
 @inject IPostTypeService PostTypeService
 @inject ICategoryService CategoryService
 @inject ITagService TagService
@@ -42,12 +42,14 @@
 </MudStack>
 
 <InstagramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_helpOpen" ConnectedChanged="OnInstagramConnected" />
-@if (_canEdit && !_igConnected)
+<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_tgHelp" ConnectedChanged="OnTelegramConnected" />
+<XAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_xHelp" ConnectedChanged="OnXConnected" />
+@if (_canEdit && !_igConnected && !_tgConnected && !_xConnected)
 {
     <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" ContentAlignment="HorizontalAlignment.Start">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText Typo="Typo.body2">@L["posts.ig_not_connected", "Instagram is not connected yet. Open the steps above and save the account id and Page token."]</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => _helpOpen = true)">@L["posts.ig_open_help", "Show steps"]</MudButton>
+            <MudText Typo="Typo.body2">@L["posts.social_not_connected", "Connect Instagram, Telegram, or X with the steps above before sending a post."]</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenHelp">@L["posts.ig_open_help", "Show steps"]</MudButton>
         </MudStack>
     </MudAlert>
 }
@@ -81,16 +83,28 @@
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(p))" />
                             }
-                            @if (_sent.ContainsKey(p.PostID))
+                            @if (_canEdit)
                             {
-                                <MudTooltip Text="@(_sent[p.PostID] ?? L["posts.ig_sent", "Already sent to Instagram"])">
-                                    <MudIconButton Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Success" Disabled="true" />
+                                <MudTooltip Text="@L["posts.social_send", "Send to Instagram, Telegram, or X"]">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Share" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => PublishAsync(p))" />
                                 </MudTooltip>
                             }
-                            else if (_canEdit)
+                            @if (Sent(p.PostID).Instagram)
                             {
-                                <MudTooltip Text="@L["posts.ig_send", "Send to Instagram"]">
-                                    <MudIconButton Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Secondary" OnClick="@(() => PublishAsync(p))" />
+                                <MudTooltip Text="@L["posts.ig_sent_mark", "Sent to Instagram"]">
+                                    <MudIcon Icon="@Icons.Custom.Brands.Instagram" Size="Size.Small" Color="Color.Success" />
+                                </MudTooltip>
+                            }
+                            @if (Sent(p.PostID).Telegram)
+                            {
+                                <MudTooltip Text="@L["posts.tg_sent_mark", "Sent to Telegram"]">
+                                    <MudIcon Icon="@Icons.Custom.Brands.Telegram" Size="Size.Small" Color="Color.Success" />
+                                </MudTooltip>
+                            }
+                            @if (Sent(p.PostID).X)
+                            {
+                                <MudTooltip Text="@L["posts.x_sent_mark", "Sent to X"]">
+                                    <MudIcon Icon="@Icons.Custom.Brands.X" Size="Size.Small" Color="Color.Success" />
                                 </MudTooltip>
                             }
                         </MudStack>
@@ -121,9 +135,13 @@
     private List<PostType> _postTypes = new();
     private List<Website> _websites = new();
     private HashSet<int> _busy = new();
-    private Dictionary<int, string?> _sent = new();
     private bool _helpOpen;
+    private bool _tgHelp;
+    private bool _xHelp;
     private bool _igConnected;
+    private bool _tgConnected;
+    private bool _xConnected;
+    private Dictionary<int, SocialSentFlags> _sent = new();
     private GridViewHeaderParameters _grid = new();
     private List<DNPrerequisiteAlert.Item> _prerequisites = new();
 
@@ -199,7 +217,7 @@
         var result = await PostService.GetPagedAsync(_websiteId, filter, _grid.ToQuery());
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
-        _sent = (await InstagramPublish.GetLinksAsync(_items.Select(p => p.PostID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
+        _sent = (await SocialPublish.GetSentAsync(_items.Select(p => p.PostID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
         _loading = false;
     }
 
@@ -209,22 +227,50 @@
         return Task.CompletedTask;
     }
 
+    private Task OnTelegramConnected(bool connected)
+    {
+        _tgConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private Task OnXConnected(bool connected)
+    {
+        _xConnected = connected;
+        return Task.CompletedTask;
+    }
+
+    private void OpenHelp()
+    {
+        _helpOpen = true;
+        _tgHelp = true;
+        _xHelp = true;
+    }
+
+    private SocialSentFlags Sent(int postId) =>
+        _sent.TryGetValue(postId, out var flags) ? flags : new SocialSentFlags();
+
     private async Task PublishAsync(Post post)
     {
-        if (!_igConnected)
+        if (!_igConnected && !_tgConnected && !_xConnected)
         {
-            _helpOpen = true;
-            Snackbar.Add(L["posts.ig_connect_first", "Connect Instagram with the steps above before sending a post."], Severity.Warning);
+            OpenHelp();
+            Snackbar.Add(L["posts.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a post."], Severity.Warning);
             return;
         }
 
         var parameters = new DialogParameters { [nameof(InstagramPublishDialog.PostId)] = post.PostID };
-        var dialog = await DialogService.ShowAsync<InstagramPublishDialog>(L["posts.ig_send", "Send to Instagram"], parameters,
+        var dialog = await DialogService.ShowAsync<InstagramPublishDialog>(L["posts.social_send", "Send to Instagram, Telegram, or X"], parameters,
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = false });
         var result = await dialog.Result;
-        if (result is { Canceled: false })
+        if (result is { Canceled: false, Data: SocialPublishResult sent })
         {
-            _sent[post.PostID] = result.Data as string;
+            var previous = Sent(post.PostID);
+            _sent[post.PostID] = new SocialSentFlags
+            {
+                Instagram = previous.Instagram || sent.Instagram,
+                Telegram = previous.Telegram || sent.Telegram,
+                X = previous.X || sent.X,
+            };
         }
     }
 

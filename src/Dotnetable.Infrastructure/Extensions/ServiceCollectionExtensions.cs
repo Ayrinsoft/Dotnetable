@@ -9,6 +9,7 @@ using Dotnetable.Infrastructure.Instagram;
 using Dotnetable.Infrastructure.Provisioning;
 using Dotnetable.Infrastructure.Repositories;
 using Dotnetable.Infrastructure.Security;
+using Dotnetable.Infrastructure.Social;
 using Dotnetable.Infrastructure.Services;
 using Dotnetable.Infrastructure.Services.Caching;
 using Microsoft.AspNetCore.Identity;
@@ -264,6 +265,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IInstagramMediaHost, InstagramMediaHost>();
         services.AddScoped<IInstagramAccountService, InstagramAccountService>();
         services.AddScoped<IInstagramPublishService, InstagramPublishService>();
+        services.AddHttpClient<ITelegramBot, TelegramBotClient>();
+        services.AddHttpClient<IXApi, XApiClient>();
+        services.AddScoped<ITelegramAccountService, TelegramAccountService>();
+        services.AddScoped<IXAccountService, XAccountService>();
+        services.AddScoped<TelegramPublishService>();
+        services.AddScoped<XPublishService>();
+        services.AddScoped<ISocialPublishService, SocialPublishService>();
 
         services.AddScoped<PostService>();
         services.AddScoped<IPostService>(sp => new CachedPostService(

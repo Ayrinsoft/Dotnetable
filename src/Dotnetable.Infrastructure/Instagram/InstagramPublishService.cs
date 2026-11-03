@@ -30,23 +30,41 @@ public sealed class InstagramPublishService : IInstagramPublishService
             .ToDictionaryAsync(p => p.PostID, p => p.Permalink, ct);
     }
 
-    public async Task<string?> PublishAsync(int postId, InstagramPublishRequest request, CancellationToken ct = default)
+    public Task<string?> PublishAsync(int postId, InstagramPublishRequest request, CancellationToken ct = default) =>
+        PublishOwnerAsync(postId, product: false, request, ct);
+
+    public Task<string?> PublishProductAsync(int productId, InstagramPublishRequest request, CancellationToken ct = default) =>
+        PublishOwnerAsync(productId, product: true, request, ct);
+
+    private async Task<string?> PublishOwnerAsync(int ownerId, bool product, InstagramPublishRequest request, CancellationToken ct)
     {
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        var post = await context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.PostID == postId, ct)
-            ?? throw new InstagramException("Post was not found.");
-        if (await context.PostInstagramPublications.AnyAsync(p => p.PostID == postId, ct))
-            throw new InstagramException("This post was already sent to Instagram.");
+        int websiteId;
+        string excerpt;
+        if (product)
+        {
+            var row = await context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductID == ownerId, ct)
+                ?? throw new InstagramException("Product was not found.");
+            websiteId = row.WebsiteID;
+            excerpt = row.ShortDescription ?? "";
+        }
+        else
+        {
+            var post = await context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.PostID == ownerId, ct)
+                ?? throw new InstagramException("Post was not found.");
+            websiteId = post.WebsiteID;
+            excerpt = post.Excerpt ?? "";
+        }
 
         var account = await context.WebsiteInstagramAccounts.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.WebsiteID == post.WebsiteID && a.IsActive, ct)
+            .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new InstagramException("Connect an Instagram account on this page first.");
         var siteAddress = await context.Websites.AsNoTracking()
-            .Where(w => w.WebsiteID == post.WebsiteID)
+            .Where(w => w.WebsiteID == websiteId)
             .Select(w => w.WebsiteAddress)
             .FirstOrDefaultAsync(ct);
 
-        var caption = request.UsePrimaryExcerpt ? post.Excerpt ?? "" : request.Caption ?? "";
+        var caption = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
         var hosted = new List<string>();
         string? outbox = null;
         try
@@ -54,7 +72,7 @@ public sealed class InstagramPublishService : IInstagramPublishService
             var slides = new List<PreparedSlide>();
             foreach (var item in request.Items)
             {
-                var url = await MaterializeAsync(context, post.WebsiteID, siteAddress, item, hosted, ct);
+                var url = await MaterializeAsync(context, websiteId, siteAddress, item, hosted, ct);
                 slides.Add(new PreparedSlide { Url = url, IsVideo = item.Kind == InstagramMediaKind.Video });
             }
 
@@ -62,11 +80,11 @@ public sealed class InstagramPublishService : IInstagramPublishService
             if (request.VideoCover is not null)
             {
                 request.VideoCover.Kind = InstagramMediaKind.Image;
-                videoCover = await MaterializeAsync(context, post.WebsiteID, siteAddress, request.VideoCover, hosted, ct);
+                videoCover = await MaterializeAsync(context, websiteId, siteAddress, request.VideoCover, hosted, ct);
             }
 
             var plan = InstagramPublishPlanner.Plan(caption, slides, request.CoverIndex, videoCover);
-            outbox = await InstagramOutbox.WriteAsync(postId, plan, ct);
+            outbox = await InstagramOutbox.WriteAsync(ownerId, product, plan, ct);
 
             var creationId = await CreateContainerAsync(account, plan, ct);
             var mediaId = await _graph.PublishAsync(account.IgUserId, account.AccessToken, creationId, ct);
@@ -80,13 +98,10 @@ public sealed class InstagramPublishService : IInstagramPublishService
                 permalink = null;
             }
 
-            context.PostInstagramPublications.Add(new PostInstagramPublication
-            {
-                PostID = postId,
-                IgMediaId = mediaId,
-                Permalink = permalink,
-                PublishedAt = DateTime.UtcNow,
-            });
+            if (product)
+                await SaveProductAsync(context, ownerId, mediaId, permalink, ct);
+            else
+                await SavePostAsync(context, ownerId, mediaId, permalink, ct);
             await context.SaveChangesAsync(ct);
             return permalink;
         }
@@ -94,6 +109,48 @@ public sealed class InstagramPublishService : IInstagramPublishService
         {
             await _host.DeleteHostedAsync(hosted, CancellationToken.None);
             InstagramOutbox.Delete(outbox);
+        }
+    }
+
+    private static async Task SavePostAsync(AppDbContext context, int postId, string mediaId, string? permalink, CancellationToken ct)
+    {
+        var existing = await context.PostInstagramPublications.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (existing is null)
+        {
+            context.PostInstagramPublications.Add(new PostInstagramPublication
+            {
+                PostID = postId,
+                IgMediaId = mediaId,
+                Permalink = permalink,
+                PublishedAt = DateTime.UtcNow,
+            });
+        }
+        else
+        {
+            existing.IgMediaId = mediaId;
+            existing.Permalink = permalink;
+            existing.PublishedAt = DateTime.UtcNow;
+        }
+    }
+
+    private static async Task SaveProductAsync(AppDbContext context, int productId, string mediaId, string? permalink, CancellationToken ct)
+    {
+        var existing = await context.ProductInstagramPublications.FirstOrDefaultAsync(p => p.ProductID == productId, ct);
+        if (existing is null)
+        {
+            context.ProductInstagramPublications.Add(new ProductInstagramPublication
+            {
+                ProductID = productId,
+                IgMediaId = mediaId,
+                Permalink = permalink,
+                PublishedAt = DateTime.UtcNow,
+            });
+        }
+        else
+        {
+            existing.IgMediaId = mediaId;
+            existing.Permalink = permalink;
+            existing.PublishedAt = DateTime.UtcNow;
         }
     }
 
@@ -180,13 +237,14 @@ public sealed class InstagramPublishService : IInstagramPublishService
 
 internal static class InstagramOutbox
 {
-    public static async Task<string> WriteAsync(int postId, InstagramDelivery plan, CancellationToken ct)
+    public static async Task<string> WriteAsync(int ownerId, bool product, InstagramDelivery plan, CancellationToken ct)
     {
         var dir = Path.Combine(Path.GetTempPath(), "dotnetable-instagram", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var json = JsonSerializer.Serialize(new
         {
-            postId,
+            postId = product ? (int?)null : ownerId,
+            productId = product ? ownerId : (int?)null,
             caption = plan.Caption,
             reel = plan.IsReel,
             carousel = plan.IsCarousel,

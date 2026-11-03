@@ -76,7 +76,7 @@
         "یک توکن کاربر با مجوزهای instagram_basic، instagram_content_publish، pages_show_list و pages_read_engagement بگیرید و آن را با App Id و App Secret به توکن بلندمدت (حدود ۶۰ روز) تبدیل کنید.",
         "با همان توکن، me/accounts را با فیلدهای access_token و instagram_business_account بخوانید. شناسه instagram_business_account همان شناسه حساب است و access_token صفحه، توکنی است که اینجا وارد می‌کنید.",
         "نشانی فایل‌ها باید https و از اینترنت عمومی در دسترس باشد. اینستاگرام localhost را نمی‌خواند. عکس کتابخانه به JPEG موقت تبدیل می‌شود و بعد از ارسال پاک می‌شود.",
-        "در جدول، دکمه اینستاگرام را بزنید. کپشن، عکس یا ویدیو، و کاور را در پنجره مشخص کنید. هر پست فقط یک بار ارسال می‌شود.",
+        "در جدول، دکمه ارسال را بزنید. کپشن، عکس یا ویدیو، و کاور را در پنجره مشخص کنید. ارسال دوباره مجاز است و ردیف فقط نشان می‌دهد که قبلاً به اینستاگرام رفته است.",
     ];
 
     private static readonly string[] StepsEn =
@@ -86,7 +86,7 @@
         "Create a user token with instagram_basic, instagram_content_publish, pages_show_list, and pages_read_engagement, then exchange it for a long-lived token (about 60 days) with your App Id and App Secret.",
         "Call me/accounts with that token and ask for access_token and instagram_business_account. The Instagram id is the account id. The page access_token is what you paste here.",
         "File addresses must be public https. Instagram cannot read localhost. Library photos are copied to a temporary JPEG and deleted after publishing.",
-        "Use the Instagram button on a row. Set the caption, photos or video, and the cover in the window. Each post is sent once.",
+        "Use the send button on a row. Set the caption, photos or video, and the cover in the window. Sending again is allowed. The row only shows that Instagram has received it before.",
     ];
 
     protected override async Task OnParametersSetAsync()

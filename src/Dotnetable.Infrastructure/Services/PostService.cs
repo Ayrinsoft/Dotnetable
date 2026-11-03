@@ -334,6 +334,12 @@ public class PostService : IPostService
         var publication = await _context.PostInstagramPublications.FirstOrDefaultAsync(p => p.PostID == postId, ct);
         if (publication is not null)
             _context.PostInstagramPublications.Remove(publication);
+        var telegram = await _context.PostTelegramPublications.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (telegram is not null)
+            _context.PostTelegramPublications.Remove(telegram);
+        var xPost = await _context.PostXPublications.FirstOrDefaultAsync(p => p.PostID == postId, ct);
+        if (xPost is not null)
+            _context.PostXPublications.Remove(xPost);
         _context.PostTranslations.RemoveRange(post.PostTranslations);
         _context.Posts.Remove(post);
         await _context.SaveChangesAsync(ct);

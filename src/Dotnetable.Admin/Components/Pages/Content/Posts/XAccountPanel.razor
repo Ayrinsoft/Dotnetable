@@ -1,0 +1,161 @@
+@inject IXAccountService Accounts
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudExpansionPanels Elevation="0" Class="mb-4">
+    <MudExpansionPanel Text="@L["posts.x_help_title", "X — connect your account"]" Expanded="_expanded" ExpandedChanged="OnExpandedChanged">
+        <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
+        <ol class="mb-4" style="padding-inline-start:1.25rem">
+            @foreach (var step in Steps)
+            {
+                <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+            }
+        </ol>
+        @if (CanEdit)
+        {
+            @if (_status?.Connected == true)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    @(string.IsNullOrWhiteSpace(_status.Username)
+                        ? L["posts.x_connected", "X is connected."]
+                        : string.Format(L["posts.x_connected_as", "Connected as @{0}."], _status.Username))
+                </MudAlert>
+            }
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_apiKey" Label="@L["posts.x_key", "API key"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  InputType="InputType.Password" HelperText="@(_status?.HasKeys == true ? L["posts.x_keep", "Leave a field blank to keep the saved value."] : null)" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_apiSecret" Label="@L["posts.x_secret", "API key secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_accessToken" Label="@L["posts.x_token", "Access token"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_accessSecret" Label="@L["posts.x_token_secret", "Access token secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.x_save", "Check and save"]</MudButton>
+                @if (_status?.Connected == true)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.x_disconnect", "Disconnect"]</MudButton>
+                }
+            </MudStack>
+        }
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public bool Expanded { get; set; }
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    [Parameter] public EventCallback<bool> ConnectedChanged { get; set; }
+
+    private bool _busy;
+    private bool _expanded;
+    private int _loadedFor;
+    private XAccountStatus? _status;
+    private string _apiKey = "";
+    private string _apiSecret = "";
+    private string _accessToken = "";
+    private string _accessSecret = "";
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+    private string Intro => Persian
+        ? "پست با کلیدهای خود کاربر در developer.x.com ارسال می‌شود. هیچ‌کدام از کلیدها بعد از ذخیره نشان داده نمی‌شوند."
+        : "Posts are sent with the user keys from developer.x.com. None of the keys are shown again after you save.";
+    private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
+    private static readonly string[] StepsFa =
+    [
+        "در developer.x.com یک پروژه و اپ بسازید.",
+        "در تنظیمات احراز هویت کاربر، دسترسی را Read and Write بگذارید. اگر Callback خواست یک نشانی https بگذارید.",
+        "از بخش Keys and tokens این چهار مقدار را کپی کنید: API Key، API Key Secret، Access Token و Access Token Secret. بعد از عوض کردن دسترسی، Access Token را دوباره بسازید.",
+        "هر پست X حداکثر ۴ عکس دارد. عکس پنجم به بعد پاسخ همان پست می‌شود. ویدیو پست جداست و با عکس قاطی نمی‌شود. هر عکس باید کمتر از ۵ مگابایت باشد.",
+        "کپشن بلندتر از ۲۸۰ نویسه را فقط حساب X Premium می‌پذیرد. در غیر این صورت خود X آن را رد می‌کند.",
+        "در پنجره ارسال، X را تیک بزنید و فقط فایل‌هایی را که باید آنجا بروند انتخاب کنید. می‌توانید X را خالی بگذارید. ارسال دوباره مجاز است.",
+    ];
+    private static readonly string[] StepsEn =
+    [
+        "Create a project and an app at developer.x.com.",
+        "In the user authentication settings, set the access to Read and Write. If a callback is required, any https address is enough.",
+        "From Keys and tokens, copy the API key, API key secret, access token, and access token secret. Regenerate the access token after you change the permissions.",
+        "One X post holds at most 4 photos. Further photos are sent as replies. A video is its own post and is not mixed with photos. Each photo must be under 5 MB.",
+        "A caption longer than 280 characters is accepted only by an X Premium account. Otherwise X rejects it.",
+        "In the send window, tick X and only the files that should go there. You can leave X off. Sending again is allowed.",
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _expanded = Expanded;
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        ClearSecrets();
+        _status = await Accounts.GetAsync(WebsiteId);
+        await ConnectedChanged.InvokeAsync(_status.Connected);
+    }
+
+    private async Task OnExpandedChanged(bool value)
+    {
+        _expanded = value;
+        await ExpandedChanged.InvokeAsync(value);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            _status = await Accounts.SaveAsync(WebsiteId, new XAccountInput
+            {
+                ApiKey = _apiKey,
+                ApiSecret = _apiSecret,
+                AccessToken = _accessToken,
+                AccessTokenSecret = _accessSecret,
+            });
+            ClearSecrets();
+            Snackbar.Add(L["posts.x_saved", "X account saved."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(_status.Connected);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Accounts.DisconnectAsync(WebsiteId);
+            _status = new XAccountStatus();
+            ClearSecrets();
+            Snackbar.Add(L["posts.x_disconnected", "X disconnected."], Severity.Success);
+            await ConnectedChanged.InvokeAsync(false);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void ClearSecrets()
+    {
+        _apiKey = "";
+        _apiSecret = "";
+        _accessToken = "";
+        _accessSecret = "";
+    }
+}

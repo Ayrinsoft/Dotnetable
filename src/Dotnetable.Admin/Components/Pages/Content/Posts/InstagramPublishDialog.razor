@@ -1,13 +1,16 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IPostService Posts
-@inject IInstagramPublishService Publisher
+@inject ISocialPublishService Publisher
+@inject IInstagramAccountService InstagramAccounts
+@inject ITelegramAccountService TelegramAccounts
+@inject IXAccountService XAccounts
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@L["posts.ig_send", "Send to Instagram"]</MudText>
+        <MudText Typo="Typo.h6">@L["posts.social_send", "Send to Instagram, Telegram, or X"]</MudText>
     </TitleContent>
     <DialogContent>
         @if (_loading)
@@ -16,7 +19,19 @@
         }
         else
         {
-            <MudText Typo="Typo.body2" Class="mb-3">@_title</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">@_title</MudText>
+            <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap">
+                <MudCheckBox T="bool" Value="_sendInstagram" ValueChanged="OnSendInstagram" Color="Color.Primary" Disabled="@(!_igOn)"
+                             Label="@L["posts.ig_network", "Instagram"]" />
+                <MudCheckBox T="bool" Value="_sendTelegram" ValueChanged="OnSendTelegram" Color="Color.Primary" Disabled="@(!_tgOn)"
+                             Label="@L["posts.tg_network", "Telegram"]" />
+                <MudCheckBox T="bool" Value="_sendX" ValueChanged="OnSendX" Color="Color.Primary" Disabled="@(!_xOn)"
+                             Label="@L["posts.x_network", "X"]" />
+            </MudStack>
+            @if (!_igOn && !_tgOn && !_xOn)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["posts.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a post."]</MudAlert>
+            }
             <MudCheckBox T="bool" Value="_useExcerpt" ValueChanged="OnUseExcerpt" Color="Color.Primary"
                          Label="@L["posts.ig_use_excerpt", "Use the summary (primary language)"]" />
             @if (_useExcerpt)
@@ -33,7 +48,7 @@
 
             <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_media", "Photos and videos"]</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
-                @L["posts.ig_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Uploaded and cropped files are deleted after Instagram accepts them."]
+                @L["posts.social_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."]
             </MudText>
 
             <MudStack Spacing="2" Class="mb-3">
@@ -70,6 +85,9 @@
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Crop" Size="Size.Small" OnClick="@(() => CropAsync(index))" />
                             }
+                            <MudCheckBox T="bool" Value="_items[index].ToInstagram" ValueChanged="@(v => _items[index].ToInstagram = v)" Disabled="@(!_sendInstagram)" Label="IG" />
+                            <MudCheckBox T="bool" Value="_items[index].ToTelegram" ValueChanged="@(v => _items[index].ToTelegram = v)" Disabled="@(!_sendTelegram)" Label="TG" />
+                            <MudCheckBox T="bool" Value="_items[index].ToX" ValueChanged="@(v => _items[index].ToX = v)" Disabled="@(!_sendX)" Label="X" />
                             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveAt(index))" />
                         </MudStack>
                     </MudPaper>
@@ -92,7 +110,7 @@
             </MudGrid>
 
             <MudStack Row="true" Spacing="1" Class="mt-2 flex-wrap">
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="AddUploadsAsync" Accept="image/*,video/mp4,video/quicktime" MaximumFileCount="10">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="AddUploadsAsync" Accept="image/*,video/mp4,video/quicktime" MaximumFileCount="20">
                     <CustomContent Context="upload">
                         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload" HtmlTag="label"
                                    OnClick="@(() => upload.OpenFilePickerAsync())">@L["posts.ig_upload", "Upload"]</MudButton>
@@ -134,6 +152,12 @@
     private bool _loading = true;
     private bool _busy;
     private bool _useExcerpt = true;
+    private bool _igOn;
+    private bool _tgOn;
+    private bool _xOn;
+    private bool _sendInstagram;
+    private bool _sendTelegram;
+    private bool _sendX;
     private string _title = "";
     private string _excerpt = "";
     private string _caption = "";
@@ -150,6 +174,12 @@
         var post = await Posts.GetByIdAsync(PostId);
         if (post is not null)
         {
+            _igOn = (await InstagramAccounts.GetAsync(post.WebsiteID)).Connected;
+            _tgOn = (await TelegramAccounts.GetAsync(post.WebsiteID)).Connected;
+            _xOn = (await XAccounts.GetAsync(post.WebsiteID)).Connected;
+            _sendInstagram = _igOn;
+            _sendTelegram = _tgOn;
+            _sendX = _xOn;
             _title = post.Title;
             _excerpt = post.Excerpt ?? "";
             var images = await Posts.GetImagesAsync(PostId);
@@ -162,14 +192,17 @@
     }
 
     private void OnUseExcerpt(bool value) => _useExcerpt = value;
+    private void OnSendInstagram(bool value) => _sendInstagram = value;
+    private void OnSendTelegram(bool value) => _sendTelegram = value;
+    private void OnSendX(bool value) => _sendX = value;
 
     private void AddLink()
     {
         var url = _link.Trim();
         if (url.Length == 0) return;
-        if (_items.Count >= 10)
+        if (_items.Count >= 20)
         {
-            Snackbar.Add(L["posts.ig_max", "Instagram accepts at most 10 items."], Severity.Warning);
+            Snackbar.Add(L["posts.social_max", "The window holds at most 20 files. Instagram still accepts only 10 of them."], Severity.Warning);
             return;
         }
         _items.Add(new Draft
@@ -186,7 +219,7 @@
     {
         foreach (var file in files)
         {
-            if (_items.Count >= 10) break;
+            if (_items.Count >= 20) break;
             var video = file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
             var max = video ? 50L * 1024 * 1024 : 8L * 1024 * 1024;
             if (file.Size > max)
@@ -232,7 +265,7 @@
             _videoCover = DraftFromFile(file, InstagramMediaKind.Image);
             return;
         }
-        if (_items.Count >= 10) return;
+        if (_items.Count >= 20) return;
         AddLibraryFile(file, kind);
     }
 
@@ -247,7 +280,7 @@
         }
         foreach (var file in files)
         {
-            if (_items.Count >= 10) break;
+            if (_items.Count >= 20) break;
             if (_items.Any(i => i.FileRecordId == file.FileRecordID)) continue;
             AddLibraryFile(file, InstagramMediaKind.Image);
         }
@@ -303,7 +336,22 @@
     private async Task SendAsync()
     {
         if (_busy) return;
-        if (_items.Count == 0)
+        if (!_sendInstagram && !_sendTelegram && !_sendX)
+        {
+            Snackbar.Add(L["posts.social_pick", "Choose Instagram, Telegram, or X."], Severity.Warning);
+            return;
+        }
+        if (_sendInstagram && !_items.Any(i => i.ToInstagram))
+        {
+            Snackbar.Add(L["posts.ig_need_media", "Add a photo or a video for Instagram."], Severity.Warning);
+            return;
+        }
+        if (_sendInstagram && _items.Count(i => i.ToInstagram) > 10)
+        {
+            Snackbar.Add(L["posts.ig_max", "Instagram accepts at most 10 items."], Severity.Warning);
+            return;
+        }
+        if (_items.Count == 0 && !(_sendTelegram || _sendX))
         {
             Snackbar.Add(L["posts.ig_need_media", "Add a photo or a video."], Severity.Warning);
             return;
@@ -312,16 +360,23 @@
         _busy = true;
         try
         {
-            var permalink = await Publisher.PublishAsync(PostId, new InstagramPublishRequest
+            var sent = await Publisher.PublishAsync(PostId, new InstagramPublishRequest
             {
                 Caption = _caption,
                 UsePrimaryExcerpt = _useExcerpt,
                 CoverIndex = _coverIndex,
+                SendInstagram = _sendInstagram,
+                SendTelegram = _sendTelegram,
+                SendX = _sendX,
                 Items = _items.Select(ToItem).ToList(),
                 VideoCover = _videoCover is null ? null : ToItem(_videoCover),
             });
-            Snackbar.Add(L["posts.ig_published", "Sent to Instagram."], Severity.Success);
-            MudDialog.Close(DialogResult.Ok(permalink));
+            foreach (var error in sent.Errors)
+                Snackbar.Add(error, sent.Instagram || sent.Telegram || sent.X ? Severity.Warning : Severity.Error);
+            if (!sent.Instagram && !sent.Telegram && !sent.X)
+                return;
+            Snackbar.Add(L["posts.social_published", "Sent to the selected networks."], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(sent));
         }
         catch (Exception ex)
         {
@@ -342,6 +397,9 @@
         FileName = draft.FileName,
         MimeType = draft.MimeType,
         Crop = draft.Crop,
+        ToInstagram = draft.ToInstagram,
+        ToTelegram = draft.ToTelegram,
+        ToX = draft.ToX,
     };
 
     private sealed class Draft
@@ -353,6 +411,9 @@
         public string? FileName { get; set; }
         public string? MimeType { get; set; }
         public ImageCropRect? Crop { get; set; }
+        public bool ToInstagram { get; set; } = true;
+        public bool ToTelegram { get; set; } = true;
+        public bool ToX { get; set; } = true;
         public string? PreviewUrl { get; set; }
         public string Label { get; set; } = "";
     }
