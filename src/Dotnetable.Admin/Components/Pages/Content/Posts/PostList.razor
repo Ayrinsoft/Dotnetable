@@ -2,6 +2,9 @@
 @attribute [Authorize(Policy = RoleKeys.PostsView)]
 @inject IPostService PostService
 @inject ISocialPublishService SocialPublish
+@inject IInstagramAccountService InstagramAccounts
+@inject ITelegramAccountService TelegramAccounts
+@inject IXAccountService XAccounts
 @inject IPostTypeService PostTypeService
 @inject ICategoryService CategoryService
 @inject ITagService TagService
@@ -9,6 +12,7 @@
 @inject AuthenticationStateProvider AuthState
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 @inject IPageLocalizer L
 
 <DNPageTitle Title=@L["posts", "Posts"] />
@@ -40,19 +44,6 @@
         }
     </MudStack>
 </MudStack>
-
-<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_helpOpen" ConnectedChanged="OnInstagramConnected" />
-<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_tgHelp" ConnectedChanged="OnTelegramConnected" />
-<XAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_xHelp" ConnectedChanged="OnXConnected" />
-@if (_canEdit && !_igConnected && !_tgConnected && !_xConnected)
-{
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" ContentAlignment="HorizontalAlignment.Start">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText Typo="Typo.body2">@L["posts.social_not_connected", "Connect Instagram, Telegram, or X with the steps above before sending a post."]</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenHelp">@L["posts.ig_open_help", "Show steps"]</MudButton>
-        </MudStack>
-    </MudAlert>
-}
 
 <DNPrerequisiteAlert Items="_prerequisites" />
 
@@ -135,9 +126,6 @@
     private List<PostType> _postTypes = new();
     private List<Website> _websites = new();
     private HashSet<int> _busy = new();
-    private bool _helpOpen;
-    private bool _tgHelp;
-    private bool _xHelp;
     private bool _igConnected;
     private bool _tgConnected;
     private bool _xConnected;
@@ -218,32 +206,13 @@
         _items = result.Items.ToList();
         _grid.Pagination.MaxLength = result.TotalCount;
         _sent = (await SocialPublish.GetSentAsync(_items.Select(p => p.PostID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (_canEdit && _websiteId > 0)
+        {
+            _igConnected = (await InstagramAccounts.GetAsync(_websiteId)).Connected;
+            _tgConnected = (await TelegramAccounts.GetAsync(_websiteId)).Connected;
+            _xConnected = (await XAccounts.GetAsync(_websiteId)).Connected;
+        }
         _loading = false;
-    }
-
-    private Task OnInstagramConnected(bool connected)
-    {
-        _igConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private Task OnTelegramConnected(bool connected)
-    {
-        _tgConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private Task OnXConnected(bool connected)
-    {
-        _xConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private void OpenHelp()
-    {
-        _helpOpen = true;
-        _tgHelp = true;
-        _xHelp = true;
     }
 
     private SocialSentFlags Sent(int postId) =>
@@ -253,8 +222,7 @@
     {
         if (!_igConnected && !_tgConnected && !_xConnected)
         {
-            OpenHelp();
-            Snackbar.Add(L["posts.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a post."], Severity.Warning);
+            await SocialAccountPrompt.OfferSetupAsync(DialogService, L, Nav);
             return;
         }
 

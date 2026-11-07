@@ -1,0 +1,43 @@
+@page "/website/social-accounts"
+@attribute [Authorize(Policy = AdminPolicies.SocialPublishAccess)]
+@using Dotnetable.Admin.Components.Pages.Content.Posts
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["social_publish", "Social publishing"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["social_publish", "Social publishing"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["social_publish.subtitle", "Instagram, Telegram, and X accounts used when a post or a product is sent. One set for each website."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+<XAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+
+@code {
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+    }
+
+    private void OnWebsiteChanged(int id) => _websiteId = id;
+}

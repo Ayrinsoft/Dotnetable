@@ -31,7 +31,7 @@
             </MudStack>
             @if (!_igOn && !_tgOn && !_xOn)
             {
-                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["posts.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a post."]</MudAlert>
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["posts.social_missing_body", "Instagram, Telegram, and X have no saved account for this website. Open Social publishing under Website if you want to fill them in."]</MudAlert>
             }
             <MudCheckBox T="bool" Value="_useExcerpt" ValueChanged="OnUseExcerpt" Color="Color.Primary"
                          Label="@(ProductId > 0 ? L["products.social_use_short", "Use the short description"] : L["posts.ig_use_excerpt", "Use the summary (primary language)"])" />

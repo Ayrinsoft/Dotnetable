@@ -20,6 +20,10 @@ public static class AdminPolicies
     /// <see cref="RoleKeys.WebsiteContactEdit"/> a site owner can be granted on its own.</summary>
     public const string WebsiteContactAccess = "WebsiteContactAccess";
 
+    /// <summary>Instagram, Telegram, and X account page. Post editors, product editors, and
+    /// website editors can open it. The tokens are not the public profile links.</summary>
+    public const string SocialPublishAccess = "SocialPublishAccess";
+
     public static void Register(AuthorizationOptions options)
     {
         options.AddPolicy(SuperAdminOnly, p =>
@@ -46,6 +50,12 @@ public static class AdminPolicies
 
         options.AddPolicy(WebsiteContactAccess, p =>
             p.RequireAssertion(ctx => Allows(ctx.User, RoleKeys.WebsiteEdit) || Allows(ctx.User, RoleKeys.WebsiteContactEdit)));
+
+        options.AddPolicy(SocialPublishAccess, p =>
+            p.RequireAssertion(ctx =>
+                Allows(ctx.User, RoleKeys.WebsiteEdit)
+                || Allows(ctx.User, RoleKeys.PostsEdit)
+                || Allows(ctx.User, RoleKeys.ProductsEdit)));
     }
 
     /// <summary>True if the user is a master-website member or holds the given role key.</summary>

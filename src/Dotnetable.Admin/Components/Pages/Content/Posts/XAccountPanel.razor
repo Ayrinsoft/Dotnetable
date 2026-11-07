@@ -2,60 +2,60 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
-<MudExpansionPanels Elevation="0" Class="mb-4">
-    <MudExpansionPanel Text="@L["posts.x_help_title", "X — connect your account"]" Expanded="_expanded" ExpandedChanged="OnExpandedChanged">
-        <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
-        <ol class="mb-4" style="padding-inline-start:1.25rem">
-            @foreach (var step in Steps)
-            {
-                <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
-            }
-        </ol>
-        @if (CanEdit)
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-2">@L["posts.x_help_title", "X — connect your account"]</MudText>
+    <MudExpansionPanels Elevation="0" Class="mb-3">
+        <MudExpansionPanel Text="@L["posts.ig_open_help", "Show steps"]" Icon="@Icons.Material.Filled.Info" Expanded="_helpOpen" ExpandedChanged="OnHelpChanged">
+            <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
+            <ol class="mb-0" style="padding-inline-start:1.25rem">
+                @foreach (var step in Steps)
+                {
+                    <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+                }
+            </ol>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+    @if (CanEdit)
+    {
+        @if (_status?.Connected == true)
         {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                @(string.IsNullOrWhiteSpace(_status.Username)
+                    ? L["posts.x_connected", "X is connected."]
+                    : string.Format(L["posts.x_connected_as", "Connected as @{0}."], _status.Username))
+            </MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_apiKey" Label="@L["posts.x_key", "API key"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              InputType="InputType.Password" HelperText="@(_status?.HasKeys == true ? L["posts.x_keep", "Leave a field blank to keep the saved value."] : null)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_apiSecret" Label="@L["posts.x_secret", "API key secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_accessToken" Label="@L["posts.x_token", "Access token"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_accessSecret" Label="@L["posts.x_token_secret", "Access token secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
+            </MudItem>
+        </MudGrid>
+        <MudStack Row="true" Spacing="2" Class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.x_save", "Check and save"]</MudButton>
             @if (_status?.Connected == true)
             {
-                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                    @(string.IsNullOrWhiteSpace(_status.Username)
-                        ? L["posts.x_connected", "X is connected."]
-                        : string.Format(L["posts.x_connected_as", "Connected as @{0}."], _status.Username))
-                </MudAlert>
+                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.x_disconnect", "Disconnect"]</MudButton>
             }
-            <MudGrid Spacing="2">
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_apiKey" Label="@L["posts.x_key", "API key"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  InputType="InputType.Password" HelperText="@(_status?.HasKeys == true ? L["posts.x_keep", "Leave a field blank to keep the saved value."] : null)" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_apiSecret" Label="@L["posts.x_secret", "API key secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_accessToken" Label="@L["posts.x_token", "Access token"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_accessSecret" Label="@L["posts.x_token_secret", "Access token secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
-                </MudItem>
-            </MudGrid>
-            <MudStack Row="true" Spacing="2" Class="mt-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.x_save", "Check and save"]</MudButton>
-                @if (_status?.Connected == true)
-                {
-                    <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.x_disconnect", "Disconnect"]</MudButton>
-                }
-            </MudStack>
-        }
-    </MudExpansionPanel>
-</MudExpansionPanels>
+        </MudStack>
+    }
+</MudPaper>
 
 @code {
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public bool CanEdit { get; set; }
-    [Parameter] public bool Expanded { get; set; }
-    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
-    [Parameter] public EventCallback<bool> ConnectedChanged { get; set; }
 
     private bool _busy;
-    private bool _expanded;
+    private bool _helpOpen;
     private int _loadedFor;
     private XAccountStatus? _status;
     private string _apiKey = "";
@@ -88,19 +88,13 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _expanded = Expanded;
         if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
         _loadedFor = WebsiteId;
         ClearSecrets();
         _status = await Accounts.GetAsync(WebsiteId);
-        await ConnectedChanged.InvokeAsync(_status.Connected);
     }
 
-    private async Task OnExpandedChanged(bool value)
-    {
-        _expanded = value;
-        await ExpandedChanged.InvokeAsync(value);
-    }
+    private void OnHelpChanged(bool value) => _helpOpen = value;
 
     private async Task SaveAsync()
     {
@@ -117,7 +111,6 @@
             });
             ClearSecrets();
             Snackbar.Add(L["posts.x_saved", "X account saved."], Severity.Success);
-            await ConnectedChanged.InvokeAsync(_status.Connected);
         }
         catch (Exception ex)
         {
@@ -139,7 +132,6 @@
             _status = new XAccountStatus();
             ClearSecrets();
             Snackbar.Add(L["posts.x_disconnected", "X disconnected."], Severity.Success);
-            await ConnectedChanged.InvokeAsync(false);
         }
         catch (Exception ex)
         {

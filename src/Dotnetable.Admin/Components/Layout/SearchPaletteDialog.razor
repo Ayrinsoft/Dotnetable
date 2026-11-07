@@ -65,7 +65,8 @@
         if (page.NavArea is AdminNavArea area && !NavSurface.Shows(area)) return false;
         return page.RoleKey is null
             || _grantedRoleKeys.Contains(page.RoleKey)
-            || (page.AltRoleKey is not null && _grantedRoleKeys.Contains(page.AltRoleKey));
+            || (page.AltRoleKey is not null && _grantedRoleKeys.Contains(page.AltRoleKey))
+            || (page.AltRoleKey2 is not null && _grantedRoleKeys.Contains(page.AltRoleKey2));
     }
 
     private void OnQueryChanged()

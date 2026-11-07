@@ -3,6 +3,9 @@
 @using Dotnetable.Admin.Components.Pages.Content.Posts
 @inject IProductService ProductService
 @inject ISocialPublishService SocialPublish
+@inject IInstagramAccountService InstagramAccounts
+@inject ITelegramAccountService TelegramAccounts
+@inject IXAccountService XAccounts
 @inject IBrandService BrandService
 @inject IProductCategoryService CategoryService
 @inject IPlatformCatalogService PlatformCatalog
@@ -83,19 +86,6 @@
 {
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
         @L["products.platform_locked", "This installation is a platform. Only website 1 adds catalog products and categories. This store sets its own price on those products, and can add a used item with its own photos and description."]
-    </MudAlert>
-}
-
-<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_helpOpen" ConnectedChanged="OnInstagramConnected" />
-<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_tgHelp" ConnectedChanged="OnTelegramConnected" />
-<XAccountPanel WebsiteId="_websiteId" CanEdit="_canEdit" @bind-Expanded="_xHelp" ConnectedChanged="OnXConnected" />
-@if (_canEdit && !_igConnected && !_tgConnected && !_xConnected)
-{
-    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" ContentAlignment="HorizontalAlignment.Start">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText Typo="Typo.body2">@L["products.social_not_connected", "Connect Instagram, Telegram, or X with the steps above before sending a product."]</MudText>
-            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenHelp">@L["posts.ig_open_help", "Show steps"]</MudButton>
-        </MudStack>
     </MudAlert>
 }
 
@@ -193,9 +183,6 @@
     private decimal _usdToCurrency = 1m;
     private int _localDigits = 2;
     private bool _isUsdSite = true;
-    private bool _helpOpen;
-    private bool _tgHelp;
-    private bool _xHelp;
     private bool _igConnected;
     private bool _tgConnected;
     private bool _xConnected;
@@ -270,33 +257,14 @@
         }
         _prerequisites = ContentPrerequisiteHelper.ForProducts(L, brands.Count, categoryCount, rates.Count);
         _sent = (await SocialPublish.GetProductSentAsync(_items.Select(p => p.ProductID).ToList())).ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (_canEdit && _websiteId > 0)
+        {
+            _igConnected = (await InstagramAccounts.GetAsync(_websiteId)).Connected;
+            _tgConnected = (await TelegramAccounts.GetAsync(_websiteId)).Connected;
+            _xConnected = (await XAccounts.GetAsync(_websiteId)).Connected;
+        }
 
         _loading = false;
-    }
-
-    private Task OnInstagramConnected(bool connected)
-    {
-        _igConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private Task OnTelegramConnected(bool connected)
-    {
-        _tgConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private Task OnXConnected(bool connected)
-    {
-        _xConnected = connected;
-        return Task.CompletedTask;
-    }
-
-    private void OpenHelp()
-    {
-        _helpOpen = true;
-        _tgHelp = true;
-        _xHelp = true;
     }
 
     private SocialSentFlags Sent(int productId) =>
@@ -306,8 +274,7 @@
     {
         if (!_igConnected && !_tgConnected && !_xConnected)
         {
-            OpenHelp();
-            Snackbar.Add(L["products.social_connect_first", "Connect Instagram, Telegram, or X with the steps above before sending a product."], Severity.Warning);
+            await SocialAccountPrompt.OfferSetupAsync(DialogService, L, Nav);
             return;
         }
 

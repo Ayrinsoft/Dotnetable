@@ -2,54 +2,54 @@
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
 
-<MudExpansionPanels Elevation="0" Class="mb-4">
-    <MudExpansionPanel Text="@L["posts.tg_help_title", "Telegram — connect your bot"]" Expanded="_expanded" ExpandedChanged="OnExpandedChanged">
-        <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
-        <ol class="mb-4" style="padding-inline-start:1.25rem">
-            @foreach (var step in Steps)
-            {
-                <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
-            }
-        </ol>
-        @if (CanEdit)
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-2">@L["posts.tg_help_title", "Telegram — connect your bot"]</MudText>
+    <MudExpansionPanels Elevation="0" Class="mb-3">
+        <MudExpansionPanel Text="@L["posts.ig_open_help", "Show steps"]" Icon="@Icons.Material.Filled.Info" Expanded="_helpOpen" ExpandedChanged="OnHelpChanged">
+            <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
+            <ol class="mb-0" style="padding-inline-start:1.25rem">
+                @foreach (var step in Steps)
+                {
+                    <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+                }
+            </ol>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+    @if (CanEdit)
+    {
+        @if (_status?.Connected == true)
         {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                @(string.IsNullOrWhiteSpace(_status.Username)
+                    ? string.Format(L["posts.tg_connected_chat", "Telegram is connected to {0}."], _status.ChatId)
+                    : string.Format(L["posts.tg_connected_as", "Bot @{0} posts to {1}."], _status.Username, _status.ChatId))
+            </MudAlert>
+        }
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_chatId" Label="@L["posts.tg_chat", "Chat id (@channel or numeric)"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_token" Label="@L["posts.tg_token", "Bot token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
+            </MudItem>
+        </MudGrid>
+        <MudStack Row="true" Spacing="2" Class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.tg_save", "Check and save"]</MudButton>
             @if (_status?.Connected == true)
             {
-                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                    @(string.IsNullOrWhiteSpace(_status.Username)
-                        ? string.Format(L["posts.tg_connected_chat", "Telegram is connected to {0}."], _status.ChatId)
-                        : string.Format(L["posts.tg_connected_as", "Bot @{0} posts to {1}."], _status.Username, _status.ChatId))
-                </MudAlert>
+                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.tg_disconnect", "Disconnect"]</MudButton>
             }
-            <MudGrid Spacing="2">
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_chatId" Label="@L["posts.tg_chat", "Chat id (@channel or numeric)"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_token" Label="@L["posts.tg_token", "Bot token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                  InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
-                </MudItem>
-            </MudGrid>
-            <MudStack Row="true" Spacing="2" Class="mt-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.tg_save", "Check and save"]</MudButton>
-                @if (_status?.Connected == true)
-                {
-                    <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.tg_disconnect", "Disconnect"]</MudButton>
-                }
-            </MudStack>
-        }
-    </MudExpansionPanel>
-</MudExpansionPanels>
+        </MudStack>
+    }
+</MudPaper>
 
 @code {
     [Parameter] public int WebsiteId { get; set; }
     [Parameter] public bool CanEdit { get; set; }
-    [Parameter] public bool Expanded { get; set; }
-    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
-    [Parameter] public EventCallback<bool> ConnectedChanged { get; set; }
 
     private bool _busy;
-    private bool _expanded;
+    private bool _helpOpen;
     private int _loadedFor;
     private TelegramAccountStatus? _status;
     private string _chatId = "";
@@ -80,20 +80,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _expanded = Expanded;
         if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
         _loadedFor = WebsiteId;
         _token = "";
         _status = await Accounts.GetAsync(WebsiteId);
         _chatId = _status.ChatId ?? "";
-        await ConnectedChanged.InvokeAsync(_status.Connected);
     }
 
-    private async Task OnExpandedChanged(bool value)
-    {
-        _expanded = value;
-        await ExpandedChanged.InvokeAsync(value);
-    }
+    private void OnHelpChanged(bool value) => _helpOpen = value;
 
     private async Task SaveAsync()
     {
@@ -104,7 +98,6 @@
             _status = await Accounts.SaveAsync(WebsiteId, new TelegramAccountInput { ChatId = _chatId, BotToken = _token });
             _token = "";
             Snackbar.Add(L["posts.tg_saved", "Telegram bot saved."], Severity.Success);
-            await ConnectedChanged.InvokeAsync(_status.Connected);
         }
         catch (Exception ex)
         {
@@ -127,7 +120,6 @@
             _chatId = "";
             _token = "";
             Snackbar.Add(L["posts.tg_disconnected", "Telegram disconnected."], Severity.Success);
-            await ConnectedChanged.InvokeAsync(false);
         }
         catch (Exception ex)
         {
