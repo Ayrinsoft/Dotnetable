@@ -87,6 +87,73 @@ public class SocialProxyAddressTests
         inner.Uri.PathAndQuery.Should().Contain("access_token=abc");
     }
 
+    [Fact]
+    public async Task AsyncLocal_SetInsideAnAsyncMethod_DoesNotReturnToTheCaller()
+    {
+        var previous = SocialProxyAmbient.Current;
+        SocialProxyAmbient.Set(null);
+        try
+        {
+            await SetAfterYield();
+            SocialProxyAmbient.Current.Should().BeNull();
+        }
+        finally
+        {
+            SocialProxyAmbient.Set(previous);
+        }
+    }
+
+    [Fact]
+    public async Task Open_AfterAwait_RewritesTheTelegramCall()
+    {
+        var previous = SocialProxyAmbient.Current;
+        SocialProxyAmbient.Set(null);
+        try
+        {
+            await Task.Yield();
+            using var proxy = SocialProxyLease.Open(new SocialProxySnapshot("https://worker-blue-v2.xapi.workers.dev/ignored", "secret"));
+            await Task.Yield();
+            var inner = new CaptureHandler();
+            var handler = new SocialProxyHandler { InnerHandler = inner };
+            using var client = new HttpClient(handler);
+            await client.PostAsync("https://api.telegram.org/botTOKEN/getMe", new StringContent(""));
+            inner.Uri!.Host.Should().Be("worker-blue-v2.xapi.workers.dev");
+            inner.ProxyKey.Should().Be("secret");
+            Decode(inner.Uri.AbsolutePath["/proxy/b64/".Length..]).Should().Be("https://api.telegram.org/botTOKEN/getMe");
+        }
+        finally
+        {
+            SocialProxyAmbient.Set(previous);
+        }
+    }
+
+    [Fact]
+    public void Apply_RewritesBeforeTheHandlerRuns()
+    {
+        var previous = SocialProxyAmbient.Current;
+        SocialProxyAmbient.Set(new SocialProxyAmbient.State("https://worker-blue-v2.xapi.workers.dev", "secret"));
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.telegram.org/botTOKEN/getMe");
+            SocialProxyAddress.Apply(request);
+            request.RequestUri!.Host.Should().Be("worker-blue-v2.xapi.workers.dev");
+            request.RequestUri.Query.Should().Be("?secret=secret");
+            request.Version.Should().Be(HttpVersion.Version11);
+            request.Headers.GetValues(SocialProxyAddress.KeyHeader).Single().Should().Be("secret");
+            Decode(request.RequestUri.AbsolutePath["/proxy/b64/".Length..]).Should().Be("https://api.telegram.org/botTOKEN/getMe");
+        }
+        finally
+        {
+            SocialProxyAmbient.Set(previous);
+        }
+    }
+
+    private static async Task SetAfterYield()
+    {
+        await Task.Yield();
+        SocialProxyAmbient.Set(new SocialProxyAmbient.State("https://worker.example", null));
+    }
+
     private static string Decode(string segment)
     {
         var pad = (4 - (segment.Length % 4)) % 4;

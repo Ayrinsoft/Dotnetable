@@ -15,7 +15,8 @@ public static class SocialProxyWorker
               return new Response("Not found", { status: 404 });
             }
 
-            if (SECRET && (request.headers.get("x-proxy-key") || "") !== SECRET) {
+            const given = url.searchParams.get("secret") || request.headers.get("x-proxy-key") || "";
+            if (SECRET && given !== SECRET) {
               return new Response("Unauthorized", { status: 401 });
             }
 
@@ -30,18 +31,20 @@ public static class SocialProxyWorker
             }
 
             const headers = new Headers(request.headers);
-            ["cf-connecting-ip", "x-forwarded-for", "x-real-ip", "cf-ray", "cf-ipcountry", "cf-visitor", "host", "x-proxy-key", "content-length"]
+            ["cf-connecting-ip", "x-forwarded-for", "x-real-ip", "cf-ray", "cf-ipcountry", "cf-visitor", "host", "x-proxy-key", "content-length", "transfer-encoding", "connection", "keep-alive", "te", "trailer", "upgrade", "expect"]
               .forEach((name) => headers.delete(name));
 
-            const outbound = new Request(target, {
-              method: request.method,
-              headers,
-              body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-              redirect: "follow",
-            });
+            // A streamed body makes the worker throw before Telegram is called.
+            const method = request.method.toUpperCase();
+            const body = method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
 
             try {
-              const response = await fetch(outbound);
+              const response = await fetch(target, {
+                method,
+                headers,
+                body: body && body.byteLength > 0 ? body : undefined,
+                redirect: "follow",
+              });
               const outHeaders = new Headers(response.headers);
               outHeaders.set("access-control-allow-origin", "*");
               return new Response(response.body, {

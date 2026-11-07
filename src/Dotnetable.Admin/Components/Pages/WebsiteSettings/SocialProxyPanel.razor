@@ -65,7 +65,7 @@
 
     private static readonly string[] StepsFa =
     [
-        "در Cloudflare یک Worker بسازید و اسکریپت زیر را جایگزین کد فعلی کنید.",
+        "در Cloudflare یک Worker بسازید و اسکریپت زیر را جایگزین کد فعلی کنید. اگر اسکریپت قبلی را منتشر کرده‌اید همین نسخه را بگذارید و دوباره Deploy کنید، وگرنه Check and save تلگرام خطا می‌دهد.",
         "اگر کلید می‌خواهید، همان متن را در SECRET اسکریپت و در فیلد کلید این صفحه بگذارید. اگر هر دو خالی باشند، بررسی کلید انجام نمی‌شود.",
         "ورکر را روی آدرسی مثل https://worker-blue-v2.xapi.workers.dev منتشر کنید و همان آدرس را اینجا ذخیره کنید.",
         "برنامه به‌جای آدرس رسمی، این مسیر را صدا می‌زند: {آدرس ورکر}/proxy/b64/{آدرس API به صورت base64url}. هدر Authorization و بدنه دست نمی‌خورد. برای X امضا هنوز روی api.x.com محاسبه می‌شود.",
@@ -74,7 +74,7 @@
 
     private static readonly string[] StepsEn =
     [
-        "Create a Cloudflare Worker and replace its script with the one below.",
+        "Create a Cloudflare Worker and replace its script with the one below. If an older script is already published, paste this one and deploy again, or Telegram Check and save fails.",
         "If you want a key, put the same text in the script SECRET and in the key field on this page. Leave both empty to skip the check.",
         "Publish the worker at an address such as https://worker-blue-v2.xapi.workers.dev and save that address here.",
         "The app calls {worker}/proxy/b64/{base64url of the real API URL}. Authorization and the body stay as they are. The X signature is still computed for api.x.com.",

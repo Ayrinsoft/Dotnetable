@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Text;
 using Dotnetable.Application.Instagram;
 
@@ -28,6 +29,29 @@ public static class SocialProxyAddress
         var bytes = Encoding.UTF8.GetBytes(target.AbsoluteUri);
         var b64 = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         return new Uri(baseUrl.TrimEnd('/') + "/proxy/b64/" + b64);
+    }
+
+    /// <summary>
+    /// Rewrites this request before it is sent. The handler may run where the ambient value is empty,
+    /// so each social client calls this while the lease is still visible.
+    /// </summary>
+    public static void Apply(HttpRequestMessage request)
+    {
+        var scope = SocialProxyAmbient.Current;
+        if (scope is null || request.RequestUri is not { IsAbsoluteUri: true } uri) return;
+        if (string.Equals(uri.Host, new Uri(scope.BaseUrl).Host, StringComparison.OrdinalIgnoreCase)) return;
+        var wrapped = Wrap(scope.BaseUrl, uri);
+        var key = (scope.Key ?? "").Trim();
+        if (key.Length > 0)
+        {
+            wrapped = new Uri(wrapped.AbsoluteUri + "?secret=" + Uri.EscapeDataString(key));
+            request.Headers.TryAddWithoutValidation(KeyHeader, key);
+        }
+
+        request.RequestUri = wrapped;
+        request.Version = new Version(1, 1);
+        request.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+        request.Headers.ExpectContinue = false;
     }
 }
 

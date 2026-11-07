@@ -36,7 +36,7 @@ public sealed class XAccountService : IXAccountService
         if (apiKey is null || apiSecret is null || accessToken is null || accessSecret is null)
             throw new SocialPublishException("Enter the API key, API secret, access token, and access token secret.");
 
-        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
+        using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
         var username = await _api.GetUsernameAsync(new XCredentials(apiKey, apiSecret, accessToken, accessSecret), ct);
         if (row is null)
         {

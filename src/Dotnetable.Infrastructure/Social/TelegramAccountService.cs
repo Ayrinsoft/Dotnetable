@@ -27,9 +27,7 @@ public sealed class TelegramAccountService : ITelegramAccountService
 
     public async Task<TelegramAccountStatus> SaveAsync(int websiteId, TelegramAccountInput input, CancellationToken ct = default)
     {
-        var chatId = (input.ChatId ?? "").Trim();
-        if (chatId.Length == 0)
-            throw new SocialPublishException("Enter the Telegram chat id, such as @channel.");
+        var chatId = TelegramChatId.Normalize(input.ChatId);
 
         await using var context = await _contexts.CreateDbContextAsync(ct);
         var row = await context.WebsiteTelegramAccounts.FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
@@ -37,9 +35,9 @@ public sealed class TelegramAccountService : ITelegramAccountService
         if (string.IsNullOrWhiteSpace(token))
             throw new SocialPublishException("Enter the bot token from BotFather.");
 
-        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
-        var username = await _bot.GetUsernameAsync(token, ct);
+        using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
         await _bot.EnsureChatAsync(token, chatId, ct);
+        var username = await _bot.GetUsernameAsync(token, ct);
         if (row is null)
         {
             row = new WebsiteTelegramAccount { WebsiteID = websiteId };

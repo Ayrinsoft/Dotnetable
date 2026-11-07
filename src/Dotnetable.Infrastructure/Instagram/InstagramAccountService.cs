@@ -39,7 +39,7 @@ public sealed class InstagramAccountService : IInstagramAccountService
         if (string.IsNullOrWhiteSpace(token))
             throw new InstagramException("Enter the Page access token.");
 
-        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
+        using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
         var username = await _graph.GetUsernameAsync(igUserId, token, ct);
         if (row is null)
         {

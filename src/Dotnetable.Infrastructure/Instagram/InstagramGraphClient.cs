@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Dotnetable.Application.Instagram;
+using Dotnetable.Infrastructure.Social;
 
 namespace Dotnetable.Infrastructure.Instagram;
 
@@ -114,14 +115,20 @@ public sealed class InstagramGraphClient : IInstagramGraph
 
     private async Task<JsonDocument> GetAsync(string relative, CancellationToken ct)
     {
-        using var response = await _http.GetAsync(relative, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_http.BaseAddress!, relative));
+        SocialProxyAddress.Apply(request);
+        using var response = await _http.SendAsync(request, ct);
         return await ReadAsync(response, ct);
     }
 
     private async Task<JsonDocument> PostAsync(string relative, Dictionary<string, string> fields, CancellationToken ct)
     {
-        using var content = new FormUrlEncodedContent(fields);
-        using var response = await _http.PostAsync(relative, content, ct);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_http.BaseAddress!, relative))
+        {
+            Content = new FormUrlEncodedContent(fields),
+        };
+        SocialProxyAddress.Apply(request);
+        using var response = await _http.SendAsync(request, ct);
         return await ReadAsync(response, ct);
     }
 

@@ -16,7 +16,7 @@ public sealed class TelegramBotClient : ITelegramBot
 
     public async Task<string> GetUsernameAsync(string botToken, CancellationToken ct = default)
     {
-        using var doc = await PostAsync(botToken, "getMe", null, ct);
+        using var doc = await GetAsync(botToken, "getMe", ct);
         return doc.RootElement.TryGetProperty("result", out var result) && result.TryGetProperty("username", out var name)
             ? name.GetString() ?? ""
             : "";
@@ -24,8 +24,7 @@ public sealed class TelegramBotClient : ITelegramBot
 
     public async Task EnsureChatAsync(string botToken, string chatId, CancellationToken ct = default)
     {
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["chat_id"] = chatId });
-        using var doc = await PostAsync(botToken, "getChat", form, ct);
+        using var doc = await GetAsync(botToken, "getChat?chat_id=" + Uri.EscapeDataString(chatId), ct);
     }
 
     public async Task<string?> SendTextAsync(string botToken, string chatId, string text, CancellationToken ct = default)
@@ -79,27 +78,50 @@ public sealed class TelegramBotClient : ITelegramBot
         return MessageId(doc.RootElement);
     }
 
-    private async Task<JsonDocument> PostAsync(string botToken, string method, HttpContent? body, CancellationToken ct)
+    private Task<JsonDocument> GetAsync(string botToken, string methodAndQuery, CancellationToken ct) =>
+        SendAsync(HttpMethod.Get, botToken, methodAndQuery, null, ct);
+
+    private Task<JsonDocument> PostAsync(string botToken, string method, HttpContent? body, CancellationToken ct) =>
+        SendAsync(HttpMethod.Post, botToken, method, body, ct);
+
+    private async Task<JsonDocument> SendAsync(HttpMethod httpMethod, string botToken, string methodAndQuery, HttpContent? body, CancellationToken ct)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.telegram.org/bot" + botToken + "/" + method) { Content = body };
-        using var response = await _http.SendAsync(request, ct);
-        var payload = await response.Content.ReadAsStringAsync(ct);
+        using var request = new HttpRequestMessage(httpMethod, "https://api.telegram.org/bot" + botToken + "/" + methodAndQuery) { Content = body };
+        SocialProxyAddress.Apply(request);
+        HttpResponseMessage response;
         try
         {
-            var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(payload) ? "{}" : payload);
-            var ok = doc.RootElement.TryGetProperty("ok", out var flag) && flag.ValueKind == JsonValueKind.True;
-            if (response.IsSuccessStatusCode && ok) return doc;
-            var description = doc.RootElement.TryGetProperty("description", out var text) ? text.GetString() : null;
-            doc.Dispose();
-            if (!string.IsNullOrEmpty(description))
-                description = description.Replace(botToken, "…", StringComparison.Ordinal);
-            throw new SocialPublishException(string.IsNullOrWhiteSpace(description)
-                ? "Telegram refused the request. Confirm the bot is an admin of that chat."
-                : description);
+            response = await _http.SendAsync(request, ct);
         }
-        catch (JsonException)
+        catch (HttpRequestException ex)
         {
-            throw new SocialPublishException("Telegram did not return a readable answer.");
+            var detail = ex.Message;
+            for (var inner = ex.InnerException; inner is not null; inner = inner.InnerException)
+            {
+                if (!string.IsNullOrWhiteSpace(inner.Message) && !detail.Contains(inner.Message, StringComparison.Ordinal))
+                    detail = detail + " " + inner.Message;
+            }
+
+            detail = detail.Replace(botToken, "…", StringComparison.Ordinal);
+            throw new SocialPublishException("Telegram request to " + request.RequestUri?.GetLeftPart(UriPartial.Authority) + " failed. " + detail);
+        }
+
+        using (response)
+        {
+            var payload = await response.Content.ReadAsStringAsync(ct);
+            JsonDocument? doc = null;
+            try
+            {
+                doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(payload) ? "{}" : payload);
+                var ok = doc.RootElement.TryGetProperty("ok", out var flag) && flag.ValueKind == JsonValueKind.True;
+                if (response.IsSuccessStatusCode && ok) return doc;
+            }
+            catch (JsonException)
+            {
+            }
+
+            doc?.Dispose();
+            throw new SocialPublishException(TelegramApiError.Describe((int)response.StatusCode, payload, botToken));
         }
     }
 

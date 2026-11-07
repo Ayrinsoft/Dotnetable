@@ -136,6 +136,7 @@ public sealed class XApiClient : IXApi
         using var request = new HttpRequestMessage(method, target);
         request.Headers.TryAddWithoutValidation("Authorization", XOAuth1.Header(method.Method, url, credentials, query));
         request.Content = body;
+        SocialProxyAddress.Apply(request);
         using var response = await _http.SendAsync(request, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode)

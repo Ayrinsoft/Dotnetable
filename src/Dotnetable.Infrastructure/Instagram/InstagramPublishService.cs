@@ -57,7 +57,7 @@ public sealed class InstagramPublishService : IInstagramPublishService
             excerpt = post.Excerpt ?? "";
         }
 
-        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
+        using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
         var account = await context.WebsiteInstagramAccounts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new InstagramException("Connect an Instagram account on this page first.");
