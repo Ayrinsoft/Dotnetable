@@ -46,6 +46,7 @@ public sealed class XPublishService
             excerpt = post.Excerpt ?? "";
         }
 
+        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
         var account = await context.WebsiteXAccounts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new SocialPublishException("Connect an X account on this page first.");

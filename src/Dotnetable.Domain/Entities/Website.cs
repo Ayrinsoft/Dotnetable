@@ -121,6 +121,15 @@ public partial class Website
     /// </summary>
     public string ProductCodePrefix { get; set; } = "DN";
 
+    /// <summary>
+    /// Optional Cloudflare Worker origin. When set, Instagram, Telegram, and X API calls from this
+    /// server go to <c>{origin}/proxy/b64/{target}</c> instead of the official host. Empty means direct.
+    /// </summary>
+    public string? SocialProxyUrl { get; set; }
+
+    /// <summary>Shared secret sent as <c>X-Proxy-Key</c>. The worker must drop it before calling the API.</summary>
+    public string? SocialProxyKey { get; set; }
+
     /// <summary><see cref="Enums.FiscalPeriodCadence"/> — day / week / month / year accounting periods.</summary>
     public byte FiscalPeriodCadence { get; set; } = 3; // Monthly
 

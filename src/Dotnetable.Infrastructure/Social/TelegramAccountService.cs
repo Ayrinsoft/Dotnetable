@@ -37,6 +37,7 @@ public sealed class TelegramAccountService : ITelegramAccountService
         if (string.IsNullOrWhiteSpace(token))
             throw new SocialPublishException("Enter the bot token from BotFather.");
 
+        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
         var username = await _bot.GetUsernameAsync(token, ct);
         await _bot.EnsureChatAsync(token, chatId, ct);
         if (row is null)

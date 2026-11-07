@@ -9052,6 +9052,14 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SocialProxyKey")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SocialProxyUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
+
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")

@@ -697,6 +697,10 @@ window.DOCS_ADMIN = {
               en: "If a post or product row is sent while none of the three accounts is saved, confirm the message and the admin opens this page.",
               fa: "اگر پست یا محصولی را بفرستید و هیچ‌کدام از سه حساب ذخیره نشده باشد، پیام تأیید می‌آید و با تأیید همین صفحه باز می‌شود.",
             },
+            {
+              en: "Outbound proxy tab: save an https Cloudflare Worker origin when the server cannot reach the social APIs. Empty means a direct call. The worker script on that tab must be deployed. Instagram still fetches photo URLs itself.",
+              fa: "تب Outbound proxy: اگر سرور به API شبکه‌ها نمی‌رسد، آدرس https ورکر Cloudflare را ذخیره کنید. خالی یعنی تماس مستقیم. اسکریپت همان تب باید روی ورکر منتشر شود. اینستاگرام هنوز عکس را خودش از نشانی عمومی می‌گیرد.",
+            },
           ],
           related: ["posts", "products", "website-social"],
         },

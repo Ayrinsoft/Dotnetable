@@ -266,12 +266,17 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<CategoryService>(), sp.GetRequiredService<ICacheService>(),
             sp.GetRequiredService<ICacheInvalidationNotifier>(), sp.GetRequiredService<CacheOptions>()));
 
-        services.AddHttpClient<IInstagramGraph, InstagramGraphClient>();
+        services.AddTransient<SocialProxyHandler>();
+        services.AddHttpClient<IInstagramGraph, InstagramGraphClient>()
+            .AddHttpMessageHandler<SocialProxyHandler>();
         services.AddScoped<IInstagramMediaHost, InstagramMediaHost>();
         services.AddScoped<IInstagramAccountService, InstagramAccountService>();
         services.AddScoped<IInstagramPublishService, InstagramPublishService>();
-        services.AddHttpClient<ITelegramBot, TelegramBotClient>();
-        services.AddHttpClient<IXApi, XApiClient>();
+        services.AddHttpClient<ITelegramBot, TelegramBotClient>()
+            .AddHttpMessageHandler<SocialProxyHandler>();
+        services.AddHttpClient<IXApi, XApiClient>()
+            .AddHttpMessageHandler<SocialProxyHandler>();
+        services.AddScoped<ISocialProxySettings, SocialProxySettingsService>();
         services.AddScoped<ITelegramAccountService, TelegramAccountService>();
         services.AddScoped<IXAccountService, XAccountService>();
         services.AddScoped<TelegramPublishService>();

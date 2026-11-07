@@ -33,6 +33,7 @@ public partial class AppDbContext
         Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiSecret));
         Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessToken));
         Widen(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessTokenSecret));
+        Widen(modelBuilder.Entity<Website>().Property(e => e.SocialProxyKey)!);
 
         if (_settingKey is null) return;
 
@@ -53,6 +54,7 @@ public partial class AppDbContext
         Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.ApiSecret), key);
         Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessToken), key);
         Protect(modelBuilder.Entity<WebsiteXAccount>().Property(e => e.AccessTokenSecret), key);
+        Protect(modelBuilder.Entity<Website>().Property(e => e.SocialProxyKey)!, key);
     }
 
     private static void Widen<T>(PropertyBuilder<T> property) => property.Metadata.SetMaxLength(null);

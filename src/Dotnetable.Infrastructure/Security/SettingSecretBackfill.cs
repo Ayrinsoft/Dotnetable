@@ -88,6 +88,7 @@ public static class SettingSecretBackfill
         count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "ApiSecret", ct);
         count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "AccessToken", ct);
         count += await RewriteAsync(context, "WebsiteXAccounts", "WebsiteXAccountID", "AccessTokenSecret", ct);
+        count += await RewriteAsync(context, "Websites", "WebsiteID", "SocialProxyKey", ct);
         return count;
     }
 
@@ -124,6 +125,7 @@ public static class SettingSecretBackfill
             "WebsiteInstagramAccounts" => await MarkInstagramAsync(context, ids, ct),
             "WebsiteTelegramAccounts" => await MarkTelegramAsync(context, ids, ct),
             "WebsiteXAccounts" => await MarkXAsync(context, ids, valueColumn, ct),
+            "Websites" => await MarkWebsiteProxyAsync(context, ids, ct),
             _ => 0,
         };
 
@@ -204,6 +206,14 @@ public static class SettingSecretBackfill
         var rows = await context.WebsiteCaptchaSettings.Where(s => ids.Contains(s.WebsiteCaptchaSettingID)).ToListAsync(ct);
         foreach (var row in rows)
             context.Entry(row).Property(s => s.TurnstileSecretKey).IsModified = true;
+        return rows.Count;
+    }
+
+    private static async Task<int> MarkWebsiteProxyAsync(AppDbContext context, List<int> ids, CancellationToken ct)
+    {
+        var rows = await context.Websites.Where(w => ids.Contains(w.WebsiteID)).ToListAsync(ct);
+        foreach (var row in rows)
+            context.Entry(row).Property(w => w.SocialProxyKey).IsModified = true;
         return rows.Count;
     }
 

@@ -9396,6 +9396,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("SocialProxyKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SocialProxyUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
+
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")

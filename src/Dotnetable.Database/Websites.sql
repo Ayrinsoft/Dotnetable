@@ -34,6 +34,8 @@
     [FreeShippingMinOrderAmount]    DECIMAL (18, 4)  NOT NULL,
     [FreeShippingMinOrderAmountUsd] DECIMAL (18, 4)  NOT NULL,
     [ProductCodePrefix]             NVARCHAR (3)     DEFAULT (N'DN') NOT NULL,
+    [SocialProxyUrl]                NVARCHAR (300)   NULL,
+    [SocialProxyKey]                NVARCHAR (MAX)   NULL,
     [FiscalPeriodCadence]           TINYINT          DEFAULT (CONVERT([tinyint],(3))) NOT NULL,
     [FiscalYearStartMonth]          TINYINT          DEFAULT (CONVERT([tinyint],(1))) NOT NULL,
     [FiscalWeekStartDay]            TINYINT          DEFAULT (CONVERT([tinyint],(1))) NOT NULL,

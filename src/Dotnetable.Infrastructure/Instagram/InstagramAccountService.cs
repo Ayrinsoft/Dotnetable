@@ -3,6 +3,7 @@ using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Social;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Instagram;
@@ -38,6 +39,7 @@ public sealed class InstagramAccountService : IInstagramAccountService
         if (string.IsNullOrWhiteSpace(token))
             throw new InstagramException("Enter the Page access token.");
 
+        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
         var username = await _graph.GetUsernameAsync(igUserId, token, ct);
         if (row is null)
         {

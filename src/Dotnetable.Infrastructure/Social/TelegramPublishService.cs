@@ -46,6 +46,7 @@ public sealed class TelegramPublishService
             excerpt = post.Excerpt ?? "";
         }
 
+        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
         var account = await context.WebsiteTelegramAccounts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new SocialPublishException("Connect a Telegram bot on this page first.");

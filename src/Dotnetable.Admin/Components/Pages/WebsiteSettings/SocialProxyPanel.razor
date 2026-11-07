@@ -1,0 +1,120 @@
+@inject ISocialProxySettings Proxies
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-2">@L["social_proxy.title", "Outbound proxy"]</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3">@Intro</MudText>
+    <MudExpansionPanels Elevation="0" Class="mb-3">
+        <MudExpansionPanel Text="@L["posts.ig_open_help", "Show steps"]" Icon="@Icons.Material.Filled.Info" Expanded="_helpOpen" ExpandedChanged="OnHelpChanged">
+            <ol class="mb-3" style="padding-inline-start:1.25rem">
+                @foreach (var step in Steps)
+                {
+                    <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+                }
+            </ol>
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@L["social_proxy.worker", "Worker script"]</MudText>
+            <MudTextField Value="@SocialProxyWorker.Source" ReadOnly="true" Variant="Variant.Outlined" Lines="16" />
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    @if (_status?.BaseUrl is { Length: > 0 })
+    {
+        <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+            @string.Format(L["social_proxy.on", "API calls for this website go through {0}."], _status.BaseUrl)
+        </MudAlert>
+    }
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_baseUrl" Label="@L["social_proxy.url", "Worker address"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="https://worker-blue-v2.xapi.workers.dev/" HelperText="@L["social_proxy.url_hint", "Leave empty to call Instagram, Telegram, and X directly."]" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_key" Label="@L["social_proxy.key", "Proxy key"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          HelperText="@(_status?.HasKey == true ? L["social_proxy.key_keep", "Leave blank to keep the saved key."] : L["social_proxy.key_hint", "Optional. The same value as SECRET in the worker."])" />
+        </MudItem>
+    </MudGrid>
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["save", "Save"]</MudButton>
+        @if (_status?.HasKey == true)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Warning" Disabled="_busy" OnClick="ClearKeyAsync">@L["social_proxy.clear_key", "Remove key"]</MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+
+    private bool _busy;
+    private bool _helpOpen;
+    private int _loadedFor;
+    private SocialProxyStatus? _status;
+    private string _baseUrl = "";
+    private string _key = "";
+
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+
+    private string Intro => Persian
+        ? "اگر سرور به graph.facebook.com، api.telegram.org یا api.x.com وصل نمی‌شود، آدرس ورکر را ذخیره کنید. خالی یعنی درخواست مستقیم. اینستاگرام هنوز عکس را از نشانی عمومی خودش دانلود می‌کند؛ پروکسی فقط تماس API این سرور را رد می‌کند."
+        : "Save the worker address when this server cannot reach graph.facebook.com, api.telegram.org, or api.x.com. Empty means a direct call. Instagram still downloads the photo from its public address. The proxy only carries this server's API calls.";
+
+    private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
+
+    private static readonly string[] StepsFa =
+    [
+        "در Cloudflare یک Worker بسازید و اسکریپت زیر را جایگزین کد فعلی کنید.",
+        "اگر کلید می‌خواهید، همان متن را در SECRET اسکریپت و در فیلد کلید این صفحه بگذارید. اگر هر دو خالی باشند، بررسی کلید انجام نمی‌شود.",
+        "ورکر را روی آدرسی مثل https://worker-blue-v2.xapi.workers.dev منتشر کنید و همان آدرس را اینجا ذخیره کنید.",
+        "برنامه به‌جای آدرس رسمی، این مسیر را صدا می‌زند: {آدرس ورکر}/proxy/b64/{آدرس API به صورت base64url}. هدر Authorization و بدنه دست نمی‌خورد. برای X امضا هنوز روی api.x.com محاسبه می‌شود.",
+        "کلید با هدر X-Proxy-Key می‌رود و ورکر قبل از تماس با سرویس آن را حذف می‌کند.",
+    ];
+
+    private static readonly string[] StepsEn =
+    [
+        "Create a Cloudflare Worker and replace its script with the one below.",
+        "If you want a key, put the same text in the script SECRET and in the key field on this page. Leave both empty to skip the check.",
+        "Publish the worker at an address such as https://worker-blue-v2.xapi.workers.dev and save that address here.",
+        "The app calls {worker}/proxy/b64/{base64url of the real API URL}. Authorization and the body stay as they are. The X signature is still computed for api.x.com.",
+        "The key is sent as X-Proxy-Key. The worker removes it before calling the service.",
+    ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        _key = "";
+        _status = await Proxies.GetAsync(WebsiteId);
+        _baseUrl = _status.BaseUrl ?? "";
+    }
+
+    private void OnHelpChanged(bool value) => _helpOpen = value;
+
+    private async Task SaveAsync() => await WriteAsync(clearKey: false);
+
+    private async Task ClearKeyAsync() => await WriteAsync(clearKey: true);
+
+    private async Task WriteAsync(bool clearKey)
+    {
+        if (_busy || WebsiteId <= 0) return;
+        _busy = true;
+        try
+        {
+            await Proxies.SaveAsync(WebsiteId, _baseUrl, _key, clearKey);
+            _key = "";
+            _loadedFor = 0;
+            await OnParametersSetAsync();
+            Snackbar.Add(L["social_proxy.saved", "Proxy settings saved."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

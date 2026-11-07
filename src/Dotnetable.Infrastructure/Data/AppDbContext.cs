@@ -4277,6 +4277,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .HasDefaultValue("DN")
                 .HasComment("1–3 letter product code prefix; codes are {prefix}-{ProductID}.");
+            entity.Property(e => e.SocialProxyUrl)
+                .HasMaxLength(300)
+                .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
             entity.Property(e => e.IsPlatform)
                 .HasDefaultValue(false)
                 .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");

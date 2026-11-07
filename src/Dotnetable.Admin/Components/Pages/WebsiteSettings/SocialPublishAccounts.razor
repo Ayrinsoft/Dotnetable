@@ -20,9 +20,16 @@
     }
 </MudStack>
 
-<InstagramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
-<TelegramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
-<XAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pt-4" Class="app-card rounded-lg pa-2">
+    <MudTabPanel Text="@L["social_publish.accounts", "Accounts"]" Icon="@Icons.Material.Filled.Share">
+        <InstagramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+        <TelegramAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+        <XAccountPanel WebsiteId="_websiteId" CanEdit="true" />
+    </MudTabPanel>
+    <MudTabPanel Text="@L["social_proxy.title", "Outbound proxy"]" Icon="@Icons.Material.Filled.VpnLock">
+        <SocialProxyPanel WebsiteId="_websiteId" />
+    </MudTabPanel>
+</MudTabs>
 
 @code {
     private bool _isMaster;

@@ -9387,6 +9387,14 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("SocialProxyKey")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SocialProxyUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
+
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

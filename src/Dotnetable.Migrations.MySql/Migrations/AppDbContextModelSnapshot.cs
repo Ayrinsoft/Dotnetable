@@ -9054,6 +9054,14 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("SocialProxyKey")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("SocialProxyUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
+
                     b.Property<bool>("StorePricesInUsd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")

@@ -4,6 +4,7 @@ using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Infrastructure.Social;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dotnetable.Infrastructure.Instagram;
@@ -56,6 +57,7 @@ public sealed class InstagramPublishService : IInstagramPublishService
             excerpt = post.Excerpt ?? "";
         }
 
+        using var proxy = await SocialProxyLease.OpenAsync(context, websiteId, ct);
         var account = await context.WebsiteInstagramAccounts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new InstagramException("Connect an Instagram account on this page first.");
