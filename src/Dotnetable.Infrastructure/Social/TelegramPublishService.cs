@@ -31,12 +31,14 @@ public sealed class TelegramPublishService
         await using var context = await _contexts.CreateDbContextAsync(ct);
         int websiteId;
         string excerpt;
+        string? slug;
         if (product)
         {
             var row = await context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductID == ownerId, ct)
                 ?? throw new SocialPublishException("Product was not found.");
             websiteId = row.WebsiteID;
             excerpt = row.ShortDescription ?? "";
+            slug = row.Slug;
         }
         else
         {
@@ -44,6 +46,7 @@ public sealed class TelegramPublishService
                 ?? throw new SocialPublishException("Post was not found.");
             websiteId = post.WebsiteID;
             excerpt = post.Excerpt ?? "";
+            slug = post.Slug;
         }
 
         using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
@@ -52,8 +55,9 @@ public sealed class TelegramPublishService
             ?? throw new SocialPublishException("Connect a Telegram bot on this page first.");
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
         var caption = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
+        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
         var chosen = request.Items.Where(item => item.ToTelegram).ToList();
-        if (chosen.Count == 0 && string.IsNullOrWhiteSpace(caption))
+        if (chosen.Count == 0 && string.IsNullOrWhiteSpace(SocialCaption.Join(caption, link)))
             throw new SocialPublishException("Add a caption or at least one file for Telegram.");
 
         var files = new List<TelegramOutbound>();
@@ -61,7 +65,7 @@ public sealed class TelegramPublishService
             files.Add(await SocialMediaLoader.LoadAsync(context, _host, websiteId, site, item, ct));
 
         string? messageId = null;
-        var textParts = SocialPostPlanner.SplitText(caption, SocialPostPlanner.TelegramMessage);
+        var textParts = SocialCaption.Parts(caption, link, SocialPostPlanner.TelegramMessage);
         if (files.Count == 0)
         {
             if (textParts.Count == 0) throw new SocialPublishException("Add a caption or at least one file for Telegram.");
@@ -70,7 +74,8 @@ public sealed class TelegramPublishService
         }
         else
         {
-            var mediaCaption = caption.Length <= SocialPostPlanner.TelegramCaption ? caption : null;
+            var full = SocialCaption.Join(caption, link);
+            var mediaCaption = full.Length <= SocialPostPlanner.TelegramCaption ? full : null;
             if (mediaCaption is null)
             {
                 foreach (var part in textParts)

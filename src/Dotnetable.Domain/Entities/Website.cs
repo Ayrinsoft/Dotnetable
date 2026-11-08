@@ -130,6 +130,24 @@ public partial class Website
     /// <summary>Shared secret sent as <c>X-Proxy-Key</c>. The worker must drop it before calling the API.</summary>
     public string? SocialProxyKey { get; set; }
 
+    /// <summary>
+    /// Public origin used when a post or product is sent to Instagram, Telegram, or X.
+    /// Empty uses <see cref="WebsiteAddress"/>.
+    /// </summary>
+    public string? SocialLinkBaseUrl { get; set; }
+
+    /// <summary>Relative post path ending in <c>{slug}</c>. Empty keeps <c>Blog/Post/{slug}</c>.</summary>
+    public string? SocialPostPath { get; set; }
+
+    /// <summary>Relative page path ending in <c>{slug}</c>. Empty keeps <c>page/{slug}</c>.</summary>
+    public string? SocialPagePath { get; set; }
+
+    /// <summary>Relative product path ending in <c>{slug}</c>. Empty keeps <c>Shop/Product/{slug}</c>.</summary>
+    public string? SocialProductPath { get; set; }
+
+    /// <summary>Relative category path ending in <c>{slug}</c>. Empty keeps <c>Blog/Category/{slug}</c>.</summary>
+    public string? SocialCategoryPath { get; set; }
+
     /// <summary><see cref="Enums.FiscalPeriodCadence"/> — day / week / month / year accounting periods.</summary>
     public byte FiscalPeriodCadence { get; set; } = 3; // Monthly
 

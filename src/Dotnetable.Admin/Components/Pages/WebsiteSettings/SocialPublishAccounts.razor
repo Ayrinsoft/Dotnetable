@@ -29,6 +29,9 @@
     <MudTabPanel Text="@L["social_proxy.title", "Outbound proxy"]" Icon="@Icons.Material.Filled.VpnLock">
         <SocialProxyPanel WebsiteId="_websiteId" />
     </MudTabPanel>
+    <MudTabPanel Text="@L["social_links.title", "Public links"]" Icon="@Icons.Material.Filled.Link">
+        <SocialLinkPanel WebsiteId="_websiteId" />
+    </MudTabPanel>
 </MudTabs>
 
 @code {

@@ -4280,6 +4280,21 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SocialProxyUrl)
                 .HasMaxLength(300)
                 .HasComment("Optional https origin of a Cloudflare Worker that relays Instagram, Telegram, and X.");
+            entity.Property(e => e.SocialLinkBaseUrl)
+                .HasMaxLength(300)
+                .HasComment("Public origin appended to social captions. Empty uses WebsiteAddress.");
+            entity.Property(e => e.SocialPostPath)
+                .HasMaxLength(80)
+                .HasComment("Post path ending in {slug}. Empty keeps Blog/Post/{slug}.");
+            entity.Property(e => e.SocialPagePath)
+                .HasMaxLength(80)
+                .HasComment("Page path ending in {slug}. Empty keeps page/{slug}.");
+            entity.Property(e => e.SocialProductPath)
+                .HasMaxLength(80)
+                .HasComment("Product path ending in {slug}. Empty keeps Shop/Product/{slug}.");
+            entity.Property(e => e.SocialCategoryPath)
+                .HasMaxLength(80)
+                .HasComment("Category path ending in {slug}. Empty keeps Blog/Category/{slug}.");
             entity.Property(e => e.IsPlatform)
                 .HasDefaultValue(false)
                 .HasComment("Website 1 only. When true, other websites use website 1's product catalog and cannot add products or change product categories.");

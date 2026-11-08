@@ -31,12 +31,14 @@ public sealed class XPublishService
         await using var context = await _contexts.CreateDbContextAsync(ct);
         int websiteId;
         string excerpt;
+        string? slug;
         if (product)
         {
             var row = await context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductID == ownerId, ct)
                 ?? throw new SocialPublishException("Product was not found.");
             websiteId = row.WebsiteID;
             excerpt = row.ShortDescription ?? "";
+            slug = row.Slug;
         }
         else
         {
@@ -44,6 +46,7 @@ public sealed class XPublishService
                 ?? throw new SocialPublishException("Post was not found.");
             websiteId = post.WebsiteID;
             excerpt = post.Excerpt ?? "";
+            slug = post.Slug;
         }
 
         using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
@@ -51,7 +54,8 @@ public sealed class XPublishService
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new SocialPublishException("Connect an X account on this page first.");
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
-        var caption = (request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "").Trim();
+        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
+        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, SocialPostPlanner.XText);
         var chosen = request.Items.Where(item => item.ToX).ToList();
         if (chosen.Count == 0 && caption.Length == 0)
             throw new SocialPublishException("Add a caption or at least one file for X.");

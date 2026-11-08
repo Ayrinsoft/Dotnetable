@@ -9052,6 +9052,31 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SocialCategoryPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasComment("Category path ending in {slug}. Empty keeps Blog/Category/{slug}.");
+
+                    b.Property<string>("SocialLinkBaseUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasComment("Public origin appended to social captions. Empty uses WebsiteAddress.");
+
+                    b.Property<string>("SocialPagePath")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasComment("Page path ending in {slug}. Empty keeps page/{slug}.");
+
+                    b.Property<string>("SocialPostPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasComment("Post path ending in {slug}. Empty keeps Blog/Post/{slug}.");
+
+                    b.Property<string>("SocialProductPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasComment("Product path ending in {slug}. Empty keeps Shop/Product/{slug}.");
+
                     b.Property<string>("SocialProxyKey")
                         .HasColumnType("TEXT");
 

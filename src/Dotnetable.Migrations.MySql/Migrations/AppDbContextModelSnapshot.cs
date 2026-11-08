@@ -9054,6 +9054,31 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("SocialCategoryPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasComment("Category path ending in {slug}. Empty keeps Blog/Category/{slug}.");
+
+                    b.Property<string>("SocialLinkBaseUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasComment("Public origin appended to social captions. Empty uses WebsiteAddress.");
+
+                    b.Property<string>("SocialPagePath")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasComment("Page path ending in {slug}. Empty keeps page/{slug}.");
+
+                    b.Property<string>("SocialPostPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasComment("Post path ending in {slug}. Empty keeps Blog/Post/{slug}.");
+
+                    b.Property<string>("SocialProductPath")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasComment("Product path ending in {slug}. Empty keeps Shop/Product/{slug}.");
+
                     b.Property<string>("SocialProxyKey")
                         .HasColumnType("longtext");
 

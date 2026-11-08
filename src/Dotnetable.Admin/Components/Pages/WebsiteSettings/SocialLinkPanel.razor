@@ -1,0 +1,139 @@
+@using Dotnetable.Application.Social
+@inject ISocialLinkSettings Links
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-2">@L["social_links.title", "Public links"]</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3">@Intro</MudText>
+    <MudExpansionPanels Elevation="0" Class="mb-3">
+        <MudExpansionPanel Text="@L["posts.ig_open_help", "Show steps"]" Icon="@Icons.Material.Filled.Info" Expanded="_helpOpen" ExpandedChanged="OnHelpChanged">
+            <ol class="mb-0" style="padding-inline-start:1.25rem">
+                @foreach (var step in Steps)
+                {
+                    <li class="mb-1"><MudText Typo="Typo.body2">@step</MudText></li>
+                }
+            </ol>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_baseUrl" Label="@L["social_links.base", "Site address"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="@(_status?.WebsiteAddress ?? "https://example.com")"
+                          HelperText="@L["social_links.base_hint", "Leave empty to use the website address. The link is added on a new line at the end of the caption."]" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_postPath" Label="@L["social_links.post", "Post path"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="@SocialLinkPaths.DefaultPost" HelperText="@Preview(SocialLinkPaths.DefaultPost, _postPath, "sample-post")" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_pagePath" Label="@L["social_links.page", "Page path"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="@SocialLinkPaths.DefaultPage" HelperText="@Preview(SocialLinkPaths.DefaultPage, _pagePath, "about")" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_productPath" Label="@L["social_links.product", "Product path"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="@SocialLinkPaths.DefaultProduct" HelperText="@Preview(SocialLinkPaths.DefaultProduct, _productPath, "blue-mug")" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_categoryPath" Label="@L["social_links.category", "Category path"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Placeholder="@SocialLinkPaths.DefaultCategory" HelperText="@Preview(SocialLinkPaths.DefaultCategory, _categoryPath, "travel")" />
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" Disabled="_busy" OnClick="SaveAsync">@L["save", "Save"]</MudButton>
+</MudPaper>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+
+    private bool _busy;
+    private bool _helpOpen;
+    private int _loadedFor;
+    private SocialLinkStatus? _status;
+    private string _baseUrl = "";
+    private string _postPath = "";
+    private string _pagePath = "";
+    private string _productPath = "";
+    private string _categoryPath = "";
+
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+
+    private string Intro => Persian
+        ? "متن خلاصه همان می‌ماند. آدرس صفحه در خط جدید ته پیام تلگرام، اینستاگرام و X می‌آید تا قابل کلیک باشد. مسیر خالی یعنی همان آدرسی که فروشگاه الان دارد."
+        : "The short text stays as it is. The page address is added on a new line at the end of the Telegram, Instagram, and X message. An empty path keeps the address the storefront already uses.";
+
+    private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
+
+    private static readonly string[] StepsFa =
+    [
+        "آدرس سایت را بگذارید، مثل https://tvlm.ir. اگر خالی باشد از آدرس خود وب‌سایت استفاده می‌شود.",
+        "برای کوتاه شدن لینک، مسیر را عوض کنید. {slug} باید یک‌بار و در انتها باشد. مثال پست: p/{slug}. خالی یعنی Blog/Post/{slug}.",
+        "صفحه، محصول و دسته هم همین‌طورند. مسیر پیش‌فرض صفحه page/{slug}، محصول Shop/Product/{slug} و دسته Blog/Category/{slug} است.",
+        "فروشگاه مسیر کوتاه را به همان صفحه اصلی هدایت می‌کند. بعد از ذخیره، هم ادمین و هم سایت کاربری را یک‌بار اجرا کنید.",
+        "X متن را تا ۲۸۰ نویسه کوتاه می‌کند تا لینک ته پیام بماند. اینستاگرام تا ۲۲۰۰ و تلگرام لینک را ته آخرین بخش متن نگه می‌دارد.",
+    ];
+
+    private static readonly string[] StepsEn =
+    [
+        "Set the site address, such as https://tvlm.ir. Empty uses the website address already stored.",
+        "Shorten a path if you want. {slug} must appear once, at the end. A post example is p/{slug}. Empty keeps Blog/Post/{slug}.",
+        "Pages, products, and categories work the same way. Defaults are page/{slug}, Shop/Product/{slug}, and Blog/Category/{slug}.",
+        "The storefront redirects a short path to the page it already renders. Restart Admin and the public site after saving.",
+        "X keeps the link and shortens the text to 280 characters. Instagram allows 2200. Telegram keeps the link at the end of the last text part.",
+    ];
+
+    private string Preview(string fallback, string typed, string sample)
+    {
+        try
+        {
+            var url = SocialLinkPaths.Build(_status?.WebsiteAddress, _baseUrl, typed, fallback, sample);
+            return url ?? (Persian ? "آدرس سایت را وارد کنید." : "Enter the site address.");
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        _status = await Links.GetAsync(WebsiteId);
+        _baseUrl = _status.BaseUrl ?? "";
+        _postPath = _status.PostPath ?? "";
+        _pagePath = _status.PagePath ?? "";
+        _productPath = _status.ProductPath ?? "";
+        _categoryPath = _status.CategoryPath ?? "";
+    }
+
+    private void OnHelpChanged(bool value) => _helpOpen = value;
+
+    private async Task SaveAsync()
+    {
+        if (_busy || WebsiteId <= 0) return;
+        _busy = true;
+        try
+        {
+            await Links.SaveAsync(WebsiteId, new SocialLinkInput
+            {
+                BaseUrl = _baseUrl,
+                PostPath = _postPath,
+                PagePath = _pagePath,
+                ProductPath = _productPath,
+                CategoryPath = _categoryPath,
+            });
+            _loadedFor = 0;
+            await OnParametersSetAsync();
+            Snackbar.Add(L["social_links.saved", "Public links saved."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

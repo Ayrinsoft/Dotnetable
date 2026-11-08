@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Seo;
 using Dotnetable.Domain.Entities;
 using Microsoft.AspNetCore.Http;
@@ -415,6 +416,25 @@ public class ApiClient
             var response = await _http.GetAsync($"api/forms/{formId}/results", ct);
             if (response.StatusCode == HttpStatusCode.NoContent || !response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<FormPublicResultsDto>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    /// <summary>Public link templates for this storefront. Cached briefly. Null when the API is unreachable.</summary>
+    public async Task<SocialLinkStatus?> GetSocialLinksAsync(CancellationToken ct = default)
+    {
+        if (_cache.TryGetValue("social-links", out SocialLinkStatus? cached))
+            return cached;
+
+        try
+        {
+            var response = await _http.GetAsync("api/sociallinks", ct);
+            if (!response.IsSuccessStatusCode) return null;
+            var status = await response.Content.ReadFromJsonAsync<SocialLinkStatus>(cancellationToken: ct);
+            if (status is not null)
+                _cache.Set("social-links", status, TimeSpan.FromMinutes(2));
+            return status;
         }
         catch (HttpRequestException) { return null; }
         catch (NotSupportedException) { return null; }

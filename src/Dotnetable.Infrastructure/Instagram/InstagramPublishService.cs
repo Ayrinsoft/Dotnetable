@@ -42,12 +42,14 @@ public sealed class InstagramPublishService : IInstagramPublishService
         await using var context = await _contexts.CreateDbContextAsync(ct);
         int websiteId;
         string excerpt;
+        string? slug;
         if (product)
         {
             var row = await context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductID == ownerId, ct)
                 ?? throw new InstagramException("Product was not found.");
             websiteId = row.WebsiteID;
             excerpt = row.ShortDescription ?? "";
+            slug = row.Slug;
         }
         else
         {
@@ -55,6 +57,7 @@ public sealed class InstagramPublishService : IInstagramPublishService
                 ?? throw new InstagramException("Post was not found.");
             websiteId = post.WebsiteID;
             excerpt = post.Excerpt ?? "";
+            slug = post.Slug;
         }
 
         using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
@@ -66,7 +69,8 @@ public sealed class InstagramPublishService : IInstagramPublishService
             .Select(w => w.WebsiteAddress)
             .FirstOrDefaultAsync(ct);
 
-        var caption = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
+        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
+        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, InstagramPublishPlanner.MaxCaptionLength);
         var hosted = new List<string>();
         string? outbox = null;
         try

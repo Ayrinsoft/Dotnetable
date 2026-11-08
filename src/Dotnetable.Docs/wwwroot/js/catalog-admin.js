@@ -701,6 +701,10 @@ window.DOCS_ADMIN = {
               en: "Outbound proxy tab: save an https Cloudflare Worker origin when the server cannot reach the social APIs. Empty means a direct call. Deploy the worker script from that tab again if Telegram Check and save fails. Instagram still fetches photo URLs itself.",
               fa: "تب Outbound proxy: اگر سرور به API شبکه‌ها نمی‌رسد، آدرس https ورکر Cloudflare را ذخیره کنید. خالی یعنی تماس مستقیم. اگر Check and save تلگرام خطا داد، اسکریپت همان تب را دوباره روی ورکر منتشر کنید. اینستاگرام هنوز عکس را خودش از نشانی عمومی می‌گیرد.",
             },
+            {
+              en: "Public links tab: set the site address and optional short paths ending in {slug}. Empty paths stay Blog/Post/{slug}, page/{slug}, Shop/Product/{slug}, and Blog/Category/{slug}. The caption keeps its text and the URL is added on a new line. The storefront redirects a short path to the real page.",
+              fa: "تب Public links: آدرس سایت و مسیر کوتاه را که به {slug} ختم می‌شود تنظیم کنید. مسیر خالی همان Blog/Post/{slug}، page/{slug}، Shop/Product/{slug} و Blog/Category/{slug} می‌ماند. متن خلاصه می‌ماند و آدرس در خط جدید ته پیام می‌آید. فروشگاه مسیر کوتاه را به صفحه واقعی هدایت می‌کند.",
+            },
           ],
           related: ["posts", "products", "website-social"],
         },

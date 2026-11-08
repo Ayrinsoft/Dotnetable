@@ -1,3 +1,4 @@
+using Dotnetable.Application.Social;
 using Dotnetable.Web.Services;
 
 namespace Dotnetable.Web.Infrastructure;
@@ -23,6 +24,16 @@ public sealed class RedirectMiddleware
             return;
 
         var path = context.Request.Path.HasValue ? context.Request.Path.Value! : "/";
+        var links = await api.GetSocialLinksAsync(context.RequestAborted);
+        var shortTarget = links is null ? null : SocialLinkPaths.Redirect(path, links.Effective);
+        if (!string.IsNullOrWhiteSpace(shortTarget))
+        {
+            context.Response.Clear();
+            context.Response.StatusCode = StatusCodes.Status301MovedPermanently;
+            context.Response.Headers.Location = shortTarget;
+            return;
+        }
+
         var result = await api.ResolveRedirectAsync(path, context.RequestAborted);
         if (result is null || string.IsNullOrWhiteSpace(result.TargetPath))
             return;

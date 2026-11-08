@@ -9,6 +9,7 @@ public static class SocialPostPlanner
     public const int TelegramAlbum = 10;
     public const int TelegramCaption = 1024;
     public const int TelegramMessage = 4096;
+    public const int XText = 280;
 
     public static IReadOnlyList<XChunk> PlanX(IReadOnlyList<bool> isVideo)
     {
