@@ -178,7 +178,7 @@ public static class EmailTemplateDefaults
             EmailAccountType.Info),
 
         new(EmailTemplateKeys.AdminSiteNotification, "Admin — Site Notification",
-            "{{Action}} — {{SiteName}} ({{SiteUrl}})",
+            "{{Action}} — {{SiteName}} ({{SiteUrl}}) — {{SentAt}}",
             Layout("{{Action}}",
                 "<p style=\"margin:0 0 12px;\">Hello <strong>{{AdminName}}</strong>,</p>" +
                 "<p style=\"margin:0 0 12px;\">{{MessageBody}}</p>" +

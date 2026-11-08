@@ -158,7 +158,7 @@ public class SiteReportService : ISiteReportService
                     ["ReporterName"] = report.ReporterName,
                     ["Email"] = report.EmailAddress,
                     ["Kind"] = kindName,
-                    ["Subject"] = $"{report.Subject} — {siteLabel}",
+                    ["Subject"] = $"{report.Subject} — {siteLabel} — {AdminNotificationService.SubjectStamp(report.SiteReportID)}",
                     ["MessageBody"] = $"Site: {siteLabel}\n\n{report.MessageBody}",
                     ["PageUrl"] = report.PageUrl ?? "—",
                 },

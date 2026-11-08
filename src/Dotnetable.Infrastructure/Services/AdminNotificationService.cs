@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Email;
@@ -158,7 +159,7 @@ public class AdminNotificationService : IAdminNotificationService
         }
 
         var emailOk = await _email.IsConfiguredAsync(websiteId, ct);
-        var alert = await DescribeAlertAsync(context, websiteId, safeTitle, safeMessage, ct);
+        var alert = await DescribeAlertAsync(context, websiteId, safeTitle, safeMessage, relatedEntityId, ct);
         // One send per address. Site reports use their own template for the owner mailbox.
         var emailed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var r in recipients)
@@ -233,6 +234,7 @@ public class AdminNotificationService : IAdminNotificationService
                 ["AdminName"] = adminName,
                 ["Title"] = alert.Title,
                 ["Action"] = alert.Action,
+                ["SentAt"] = alert.SentAt,
                 ["MessageBody"] = alert.Html,
                 ["ActionUrl"] = actionUrl ?? string.Empty,
             },
@@ -242,9 +244,10 @@ public class AdminNotificationService : IAdminNotificationService
     /// <summary>
     /// Subject and body name the action and the website. Several sites can share one owner mailbox,
     /// and an already-seeded template only prints <c>{{Title}}</c> and <c>{{MessageBody}}</c>.
+    /// The subject ends with a unique stamp so each send is its own inbox thread.
     /// </summary>
     private static async Task<AlertCopy> DescribeAlertAsync(
-        AppDbContext context, int websiteId, string action, string message, CancellationToken ct)
+        AppDbContext context, int websiteId, string action, string message, int? relatedEntityId, CancellationToken ct)
     {
         var site = await context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == websiteId)
@@ -261,11 +264,20 @@ public class AdminNotificationService : IAdminNotificationService
             html += $" ({WebUtility.HtmlEncode(siteUrl)})";
         html += "<br><br>" + WebUtility.HtmlEncode(message).Replace("\n", "<br>");
 
+        var sentAt = SubjectStamp(relatedEntityId);
         return new AlertCopy(
-            Title: $"{safeAction} — {siteLabel}",
+            Title: $"{safeAction} — {siteLabel} — {sentAt}",
             Action: safeAction,
+            SentAt: sentAt,
             Html: html,
             Plain: $"Action: {safeAction}\nSite: {siteLabel}\n\n{message}");
+    }
+
+    /// <summary>Changes on every send so mail clients do not file the message under the previous one.</summary>
+    internal static string SubjectStamp(int? relatedEntityId)
+    {
+        var clock = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff' UTC'", CultureInfo.InvariantCulture);
+        return relatedEntityId is int id ? $"#{id} — {clock}" : clock;
     }
 
     private static string? FirstText(params string?[] values)
@@ -278,7 +290,7 @@ public class AdminNotificationService : IAdminNotificationService
         return null;
     }
 
-    private sealed record AlertCopy(string Title, string Action, string Html, string Plain);
+    private sealed record AlertCopy(string Title, string Action, string SentAt, string Html, string Plain);
 
     public async Task<PagedResult<AdminNotification>> GetPagedAsync(int memberId, GridQuery query, CancellationToken ct = default)
     {

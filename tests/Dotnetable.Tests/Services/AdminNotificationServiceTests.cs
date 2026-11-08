@@ -107,7 +107,8 @@ public class AdminNotificationServiceTests : IDisposable
             EmailTemplateKeys.AdminSiteNotification,
             "a@test.com",
             It.Is<IDictionary<string, string>>(t =>
-                t["Title"] == "New order — Test (test.com)"
+                t["Title"].StartsWith("New order — Test (test.com) — #1 — ")
+                && t["Title"].EndsWith(" UTC")
                 && t["Action"] == "New order"
                 && t["MessageBody"].Contains("Order #1 placed")
                 && t["MessageBody"].Contains("test.com")),
@@ -147,7 +148,7 @@ public class AdminNotificationServiceTests : IDisposable
         _emailMock.Verify(e => e.SendTemplateAsync(
             _website.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "site@test.com",
             It.Is<IDictionary<string, string>>(t =>
-                t["AdminName"] == "Mgr" && t["Title"] == "New contact message — Test (test.com)"),
+                t["AdminName"] == "Mgr" && t["Title"].StartsWith("New contact message — Test (test.com) — #1 — ")),
             "en", It.IsAny<CancellationToken>()), Times.Once);
         _emailMock.Verify(e => e.SendTemplateAsync(
             _website.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "a@test.com",
@@ -190,7 +191,7 @@ public class AdminNotificationServiceTests : IDisposable
         verify.AdminNotifications.Should().BeEmpty();
         _emailMock.Verify(e => e.SendTemplateAsync(
             child.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "owner@master.test",
-            It.Is<IDictionary<string, string>>(t => t["AdminName"] == "Mgr" && t["Title"] == "New customer registration — Child (child.test)"),
+            It.Is<IDictionary<string, string>>(t => t["AdminName"] == "Mgr" && t["Title"].StartsWith("New customer registration — Child (child.test) — #1 — ")),
             "en", It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -217,6 +218,33 @@ public class AdminNotificationServiceTests : IDisposable
         _emailMock.Verify(e => e.SendTemplateAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_EachSendGetsItsOwnSubject()
+    {
+        await SeedMemberAsync(isSiteAdmin: true, email: "a@test.com");
+        string? first = null;
+        string? second = null;
+        _emailMock.Setup(e => e.SendTemplateAsync(
+                _website.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "a@test.com",
+                It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, IDictionary<string, string>?, string?, CancellationToken>((_, _, _, tokens, _, _) =>
+            {
+                var title = tokens!["Title"];
+                if (first is null) first = title;
+                else second = title;
+            })
+            .Returns(Task.CompletedTask);
+
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.NewOrder, "New order", "One", "/orders/1", 1);
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.NewOrder, "New order", "Two", "/orders/2", 2);
+
+        first.Should().StartWith("New order — Test (test.com) — #1 — ");
+        second.Should().StartWith("New order — Test (test.com) — #2 — ");
+        first.Should().NotBe(second);
     }
 
     [Fact]
