@@ -225,7 +225,12 @@
         _sendX = _xOn;
     }
 
-    private void OnUseExcerpt(bool value) => _useExcerpt = value;
+    private void OnUseExcerpt(bool value)
+    {
+        _useExcerpt = value;
+        if (!value && string.IsNullOrWhiteSpace(_caption))
+            _caption = _excerpt;
+    }
     private void OnSendInstagram(bool value) => _sendInstagram = value;
     private void OnSendTelegram(bool value) => _sendTelegram = value;
     private void OnSendX(bool value) => _sendX = value;
