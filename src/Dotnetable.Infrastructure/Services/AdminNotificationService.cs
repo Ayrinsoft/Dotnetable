@@ -1,3 +1,4 @@
+using System.Net;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
@@ -15,6 +16,9 @@ namespace Dotnetable.Infrastructure.Services;
 /// Uses a short-lived DbContext from the factory (not the circuit-scoped one) so concurrent
 /// Blazor component init after login (layout + dashboard + nav) cannot race on one context.
 /// Channels: in-app + email template + WhatsApp when gateway is configured.
+/// The site owner (<c>Website.Email</c>, or website 1's email when this site has none) receives one
+/// email for every alert. No address on either site skips that email. SMTP still uses this site's
+/// account, then website 1's.
 /// </summary>
 public class AdminNotificationService : IAdminNotificationService
 {
@@ -51,7 +55,6 @@ public class AdminNotificationService : IAdminNotificationService
             .Select(m => new Recipient(m.MemberID, m.Email, m.Givenname, m.CellphoneNumber, m.CountryCode))
             .ToListAsync(ct);
 
-        if (admins.Count == 0) return;
         await DeliverAsync(context, websiteId, type, title, message, actionUrl, relatedEntityId, admins, ct);
     }
 
@@ -93,8 +96,6 @@ public class AdminNotificationService : IAdminNotificationService
                 .ToListAsync(ct);
         }
 
-        if (recipients.Count == 0) return;
-        // De-dupe by member id
         recipients = recipients.GroupBy(r => r.MemberID).Select(g => g.First()).ToList();
         await DeliverAsync(context, websiteId, type, title, message, actionUrl, relatedEntityId, recipients, ct);
     }
@@ -136,24 +137,30 @@ public class AdminNotificationService : IAdminNotificationService
         var safeMessage = Truncate(message, 1000);
         var safeUrl = actionUrl is null ? null : Truncate(actionUrl, 256);
 
-        foreach (var r in recipients)
+        if (recipients.Count > 0)
         {
-            context.AdminNotifications.Add(new AdminNotification
+            foreach (var r in recipients)
             {
-                MemberID = r.MemberID,
-                WebsiteID = websiteId,
-                NotificationType = (byte)type,
-                Title = safeTitle,
-                Message = safeMessage,
-                ActionUrl = safeUrl,
-                RelatedEntityID = relatedEntityId,
-                IsRead = false,
-                CreatedAt = now,
-            });
+                context.AdminNotifications.Add(new AdminNotification
+                {
+                    MemberID = r.MemberID,
+                    WebsiteID = websiteId,
+                    NotificationType = (byte)type,
+                    Title = safeTitle,
+                    Message = safeMessage,
+                    ActionUrl = safeUrl,
+                    RelatedEntityID = relatedEntityId,
+                    IsRead = false,
+                    CreatedAt = now,
+                });
+            }
+            await context.SaveChangesAsync(ct);
         }
-        await context.SaveChangesAsync(ct);
 
         var emailOk = await _email.IsConfiguredAsync(websiteId, ct);
+        var alert = await DescribeAlertAsync(context, websiteId, safeTitle, safeMessage, ct);
+        // One send per address. Site reports use their own template for the owner mailbox.
+        var emailed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var r in recipients)
         {
             using var logScope = MessageLogScope.Begin(MessageLogSources.Notification,
@@ -162,25 +169,19 @@ public class AdminNotificationService : IAdminNotificationService
 
             if (emailOk && !string.IsNullOrWhiteSpace(r.Email))
             {
-                try
+                var address = r.Email.Trim();
+                if (emailed.Add(address))
                 {
-                    await _email.SendTemplateAsync(
-                        websiteId,
-                        EmailTemplateKeys.AdminSiteNotification,
-                        r.Email,
-                        new Dictionary<string, string>
-                        {
-                            ["AdminName"] = string.IsNullOrWhiteSpace(r.Givenname) ? r.Email : r.Givenname,
-                            ["Title"] = safeTitle,
-                            ["MessageBody"] = safeMessage,
-                            ["ActionUrl"] = safeUrl ?? string.Empty,
-                        },
-                        languageCode: null,
-                        ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to email admin notification to {Email}", r.Email);
+                    try
+                    {
+                        await SendAlertAsync(websiteId, address,
+                            string.IsNullOrWhiteSpace(r.Givenname) ? address : r.Givenname,
+                            alert, safeUrl, languageCode: null, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to email admin notification to {Email}", r.Email);
+                    }
                 }
             }
 
@@ -191,8 +192,8 @@ public class AdminNotificationService : IAdminNotificationService
                 try
                 {
                     var wa = string.IsNullOrWhiteSpace(safeUrl)
-                        ? $"{safeTitle}\n{safeMessage}"
-                        : $"{safeTitle}\n{safeMessage}\n{safeUrl}";
+                        ? alert.Plain
+                        : $"{alert.Plain}\n{safeUrl}";
                     await _whatsApp.SendAsync(websiteId, r.CountryCode, r.Cellphone, wa, ct);
                 }
                 catch (Exception ex)
@@ -201,7 +202,83 @@ public class AdminNotificationService : IAdminNotificationService
                 }
             }
         }
+
+        // Site reports already mail the owner with SiteReportNotification.
+        if (type == AdminNotificationType.SiteReport || !emailOk)
+            return;
+
+        var owner = await SiteOwnerMail.ResolveAsync(context, websiteId, ct);
+        if (owner is null || !emailed.Add(owner.Email))
+            return;
+
+        try
+        {
+            await SendAlertAsync(websiteId, owner.Email, owner.Name, alert, safeUrl, owner.LanguageCode, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to email admin notification to site owner {Email}", owner.Email);
+        }
     }
+
+    private Task SendAlertAsync(
+        int websiteId, string toAddress, string adminName, AlertCopy alert, string? actionUrl,
+        string? languageCode, CancellationToken ct) =>
+        _email.SendTemplateAsync(
+            websiteId,
+            EmailTemplateKeys.AdminSiteNotification,
+            toAddress,
+            new Dictionary<string, string>
+            {
+                ["AdminName"] = adminName,
+                ["Title"] = alert.Title,
+                ["Action"] = alert.Action,
+                ["MessageBody"] = alert.Html,
+                ["ActionUrl"] = actionUrl ?? string.Empty,
+            },
+            languageCode,
+            ct);
+
+    /// <summary>
+    /// Subject and body name the action and the website. Several sites can share one owner mailbox,
+    /// and an already-seeded template only prints <c>{{Title}}</c> and <c>{{MessageBody}}</c>.
+    /// </summary>
+    private static async Task<AlertCopy> DescribeAlertAsync(
+        AppDbContext context, int websiteId, string action, string message, CancellationToken ct)
+    {
+        var site = await context.Websites.AsNoTracking()
+            .Where(w => w.WebsiteID == websiteId)
+            .Select(w => new { w.BrandName, w.TradeName, w.WebsiteAddress })
+            .FirstOrDefaultAsync(ct);
+
+        var siteName = FirstText(site?.BrandName, site?.TradeName) ?? $"Website {websiteId}";
+        var siteUrl = site?.WebsiteAddress?.Trim() ?? string.Empty;
+        var siteLabel = string.IsNullOrWhiteSpace(siteUrl) ? siteName : $"{siteName} ({siteUrl})";
+        var safeAction = string.IsNullOrWhiteSpace(action) ? "Notification" : action;
+
+        var html = $"Action: <strong>{WebUtility.HtmlEncode(safeAction)}</strong><br>Site: <strong>{WebUtility.HtmlEncode(siteName)}</strong>";
+        if (!string.IsNullOrWhiteSpace(siteUrl))
+            html += $" ({WebUtility.HtmlEncode(siteUrl)})";
+        html += "<br><br>" + WebUtility.HtmlEncode(message).Replace("\n", "<br>");
+
+        return new AlertCopy(
+            Title: $"{safeAction} — {siteLabel}",
+            Action: safeAction,
+            Html: html,
+            Plain: $"Action: {safeAction}\nSite: {siteLabel}\n\n{message}");
+    }
+
+    private static string? FirstText(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+        return null;
+    }
+
+    private sealed record AlertCopy(string Title, string Action, string Html, string Plain);
 
     public async Task<PagedResult<AdminNotification>> GetPagedAsync(int memberId, GridQuery query, CancellationToken ct = default)
     {

@@ -178,8 +178,8 @@ public static class EmailTemplateDefaults
             EmailAccountType.Info),
 
         new(EmailTemplateKeys.AdminSiteNotification, "Admin — Site Notification",
-            "{{Title}} — {{SiteName}}",
-            Layout("{{Title}}",
+            "{{Action}} — {{SiteName}} ({{SiteUrl}})",
+            Layout("{{Action}}",
                 "<p style=\"margin:0 0 12px;\">Hello <strong>{{AdminName}}</strong>,</p>" +
                 "<p style=\"margin:0 0 12px;\">{{MessageBody}}</p>" +
                 Button("{{ActionUrl}}", "Open in admin")),
@@ -189,7 +189,7 @@ public static class EmailTemplateDefaults
             "New site report on {{SiteName}}: {{Subject}}",
             Layout("New site report",
                 "<p style=\"margin:0 0 12px;\">Hello <strong>{{ManagerName}}</strong>,</p>" +
-                "<p style=\"margin:0 0 12px;\">A visitor reported a problem on {{SiteName}}.</p>" +
+                "<p style=\"margin:0 0 12px;\">A visitor reported a problem on <strong>{{SiteName}}</strong> ({{SiteUrl}}).</p>" +
                 $"<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:{PanelBg};border-radius:6px;margin:0 0 18px;\"><tr><td style=\"padding:16px 20px;\">" +
                 "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">" +
                 $"<tr><td style=\"color:{TextMuted};font-size:13px;padding:4px 0;\">Type</td><td align=\"right\" style=\"color:{DarkColor};font-size:13px;font-weight:600;\">{{{{Kind}}}}</td></tr>" +

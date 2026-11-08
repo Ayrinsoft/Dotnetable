@@ -134,36 +134,51 @@ public class SiteReportService : ISiteReportService
 
     private async Task EmailManagerAsync(AppDbContext _context, SiteReport report, string kindName, CancellationToken ct)
     {
+        var owner = await SiteOwnerMail.ResolveAsync(_context, report.WebsiteID, ct);
+        if (owner is null) return;
+        if (!await _email.IsConfiguredAsync(report.WebsiteID, ct)) return;
+
         var site = await _context.Websites.AsNoTracking()
             .Where(w => w.WebsiteID == report.WebsiteID)
-            .Select(w => new { w.Email, w.Manager, w.DefaultLanguageCode })
+            .Select(w => new { w.BrandName, w.TradeName, w.WebsiteAddress })
             .FirstOrDefaultAsync(ct);
-        if (site is null || string.IsNullOrWhiteSpace(site.Email)) return;
-        if (!await _email.IsConfiguredAsync(report.WebsiteID, ct)) return;
+        var siteName = FirstText(site?.BrandName, site?.TradeName) ?? $"Website {report.WebsiteID}";
+        var siteUrl = site?.WebsiteAddress?.Trim();
+        var siteLabel = string.IsNullOrWhiteSpace(siteUrl) ? siteName : $"{siteName} ({siteUrl})";
 
         try
         {
             await _email.SendTemplateAsync(
                 report.WebsiteID,
                 EmailTemplateKeys.SiteReportNotification,
-                site.Email.Trim(),
+                owner.Email,
                 new Dictionary<string, string>
                 {
-                    ["ManagerName"] = string.IsNullOrWhiteSpace(site.Manager) ? site.Email : site.Manager,
+                    ["ManagerName"] = owner.Name,
                     ["ReporterName"] = report.ReporterName,
                     ["Email"] = report.EmailAddress,
                     ["Kind"] = kindName,
-                    ["Subject"] = report.Subject,
-                    ["MessageBody"] = report.MessageBody,
+                    ["Subject"] = $"{report.Subject} — {siteLabel}",
+                    ["MessageBody"] = $"Site: {siteLabel}\n\n{report.MessageBody}",
                     ["PageUrl"] = report.PageUrl ?? "—",
                 },
-                site.DefaultLanguageCode,
+                owner.LanguageCode,
                 ct);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to email site report {ReportId} to the site manager", report.SiteReportID);
         }
+    }
+
+    private static string? FirstText(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+        return null;
     }
 
     internal static string KindName(SiteReportKind kind) => kind switch

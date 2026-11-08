@@ -28,4 +28,7 @@ public enum AdminNotificationType : byte
 
     /// <summary>A website asked website 1 to add a product or a product category.</summary>
     CatalogRequest = 16,
+
+    /// <summary>A visitor submitted a comment on a post or a page.</summary>
+    ContentComment = 17,
 }

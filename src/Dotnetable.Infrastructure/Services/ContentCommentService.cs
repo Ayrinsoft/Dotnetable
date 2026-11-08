@@ -2,6 +2,7 @@ using System.Net.Mail;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,10 +16,12 @@ public class ContentCommentService : IContentCommentService
     private const int UserAgentMaxLength = 512;
 
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IAdminNotificationService _notifications;
 
-    public ContentCommentService(IDbContextFactory<AppDbContext> contextFactory)
+    public ContentCommentService(IDbContextFactory<AppDbContext> contextFactory, IAdminNotificationService notifications)
     {
         _contextFactory = contextFactory;
+        _notifications = notifications;
     }
 
     public async Task<CommentSubmitResult> SubmitAsync(CommentSubmission submission, CancellationToken ct = default)
@@ -91,6 +94,17 @@ public class ContentCommentService : IContentCommentService
         };
         _context.ContentComments.Add(comment);
         await _context.SaveChangesAsync(ct);
+
+        var preview = body.Length <= 180 ? body : body[..180];
+        await _notifications.NotifySiteAdminsAsync(
+            submission.WebsiteId,
+            AdminNotificationType.ContentComment,
+            "New comment",
+            $"{name}: {preview}",
+            "/content/comments",
+            comment.ContentCommentID,
+            ct);
+
         return CommentSubmitResult.Ok(comment.ContentCommentID);
     }
 

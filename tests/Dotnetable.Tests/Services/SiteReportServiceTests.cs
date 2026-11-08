@@ -70,7 +70,28 @@ public class SiteReportServiceTests : IDisposable
             _site.WebsiteID,
             EmailTemplateKeys.SiteReportNotification,
             "one@test.com",
-            It.Is<IDictionary<string, string>>(t => t["Kind"] == "Inappropriate content" && t["PageUrl"] == "/posts/hello"),
+            It.Is<IDictionary<string, string>>(t =>
+                t["Kind"] == "Inappropriate content"
+                && t["PageUrl"] == "/posts/hello"
+                && t["Subject"].Contains("one.test")
+                && t["MessageBody"].Contains("one.test")),
+            "en",
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SiteWithoutEmail_EmailsWebsite1()
+    {
+        _other.Email = " ";
+        await _context.SaveChangesAsync();
+
+        await _service.CreateAsync(Report(_other.WebsiteID, "From the child site"));
+
+        _email.Verify(e => e.SendTemplateAsync(
+            _other.WebsiteID,
+            EmailTemplateKeys.SiteReportNotification,
+            "one@test.com",
+            It.Is<IDictionary<string, string>>(t => t["ManagerName"] == "Manager"),
             "en",
             It.IsAny<CancellationToken>()), Times.Once);
     }

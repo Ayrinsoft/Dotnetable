@@ -1,6 +1,5 @@
 using Dotnetable.Application;
 using Dotnetable.Application.DTOs;
-using Dotnetable.Application.Email;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
@@ -8,7 +7,6 @@ using Dotnetable.Infrastructure.Catalog;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Dotnetable.Infrastructure.Services;
 
@@ -16,19 +14,13 @@ public class CatalogRequestService : ICatalogRequestService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAdminNotificationService _notifications;
-    private readonly IEmailService _email;
-    private readonly ILogger<CatalogRequestService> _logger;
 
     public CatalogRequestService(
         IDbContextFactory<AppDbContext> contextFactory,
-        IAdminNotificationService notifications,
-        IEmailService email,
-        ILogger<CatalogRequestService> logger)
+        IAdminNotificationService notifications)
     {
         _contextFactory = contextFactory;
         _notifications = notifications;
-        _email = email;
-        _logger = logger;
     }
 
     public async Task<CatalogRequest> SubmitAsync(CatalogRequest request, CancellationToken ct = default)
@@ -90,7 +82,6 @@ public class CatalogRequestService : ICatalogRequestService
             "/catalog/requests",
             request.CatalogRequestID,
             ct);
-        await EmailContentMailboxAsync(context, title, message, ct);
         return request;
     }
 
@@ -126,41 +117,5 @@ public class CatalogRequestService : ICatalogRequestService
         request.ReviewedAt = DateTime.UtcNow;
         request.ReviewedByMemberID = reviewerMemberId > 0 ? reviewerMemberId : null;
         await context.SaveChangesAsync(ct);
-    }
-
-    private async Task EmailContentMailboxAsync(AppDbContext context, string title, string message, CancellationToken ct)
-    {
-        var site = await context.Websites.AsNoTracking()
-            .Where(w => w.WebsiteID == AppConstants.MasterWebsiteId)
-            .Select(w => new { w.Email, w.Manager, w.DefaultLanguageCode })
-            .FirstOrDefaultAsync(ct);
-        if (site is null || string.IsNullOrWhiteSpace(site.Email)) return;
-
-        var alreadyAdmin = await context.Members.AsNoTracking().AnyAsync(m =>
-            m.WebsiteID == AppConstants.MasterWebsiteId && m.Active && m.IsSiteAdmin
-            && m.Email == site.Email, ct);
-        if (alreadyAdmin) return;
-        if (!await _email.IsConfiguredAsync(AppConstants.MasterWebsiteId, ct)) return;
-
-        try
-        {
-            await _email.SendTemplateAsync(
-                AppConstants.MasterWebsiteId,
-                EmailTemplateKeys.AdminSiteNotification,
-                site.Email.Trim(),
-                new Dictionary<string, string>
-                {
-                    ["AdminName"] = string.IsNullOrWhiteSpace(site.Manager) ? site.Email : site.Manager,
-                    ["Title"] = title,
-                    ["MessageBody"] = message,
-                    ["ActionUrl"] = "/catalog/requests",
-                },
-                site.DefaultLanguageCode,
-                ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to email catalog request to website 1");
-        }
     }
 }

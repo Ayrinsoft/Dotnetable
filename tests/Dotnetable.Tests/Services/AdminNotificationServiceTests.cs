@@ -106,7 +106,11 @@ public class AdminNotificationServiceTests : IDisposable
             _website.WebsiteID,
             EmailTemplateKeys.AdminSiteNotification,
             "a@test.com",
-            It.Is<IDictionary<string, string>>(t => t["Title"] == "New order" && t["MessageBody"] == "Order #1 placed"),
+            It.Is<IDictionary<string, string>>(t =>
+                t["Title"] == "New order — Test (test.com)"
+                && t["Action"] == "New order"
+                && t["MessageBody"].Contains("Order #1 placed")
+                && t["MessageBody"].Contains("test.com")),
             It.IsAny<string?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -127,6 +131,89 @@ public class AdminNotificationServiceTests : IDisposable
 
         await using var verify = new AppDbContext(_options);
         verify.AdminNotifications.Should().HaveCount(1);
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_EmailsTheSiteOwnerAsWellAsAdmins()
+    {
+        await SeedMemberAsync(isSiteAdmin: true, email: "a@test.com");
+
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.ContactMessage, "New contact message", "Hi", "/messages/contacts/1", 1);
+
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            _website.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "site@test.com",
+            It.Is<IDictionary<string, string>>(t =>
+                t["AdminName"] == "Mgr" && t["Title"] == "New contact message — Test (test.com)"),
+            "en", It.IsAny<CancellationToken>()), Times.Once);
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            _website.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "a@test.com",
+            It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_DoesNotEmailTheOwnerTwiceWhenTheyAreTheAdmin()
+    {
+        await SeedMemberAsync(isSiteAdmin: true, email: "site@test.com");
+
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.NewOrder, "New order", "Order #1", "/orders/1", 1);
+
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            It.IsAny<int>(), EmailTemplateKeys.AdminSiteNotification, "site@test.com",
+            It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_UsesWebsite1EmailWhenTheSiteHasNone()
+    {
+        _website.Email = "   ";
+        var child = new Website
+        {
+            TradeName = "Child", BrandName = "Child", WebsiteAddress = "child.test",
+            AuthCode = Guid.NewGuid(), Active = true, Manager = "Child mgr", Mobile = "2",
+            Email = "", RegisterDate = DateOnly.FromDateTime(DateTime.Today),
+            DefaultLanguageCode = "fa", DefaultCurrencyCode = "USD",
+        };
+        _context.Websites.Add(child);
+        await _context.SaveChangesAsync();
+        _website.Email = "owner@master.test";
+        await _context.SaveChangesAsync();
+
+        await _service.NotifySiteAdminsAsync(
+            child.WebsiteID, AdminNotificationType.ClientRegistered, "New customer registration", "Sara registered.", "/clients/1", 1);
+
+        await using var verify = new AppDbContext(_options);
+        verify.AdminNotifications.Should().BeEmpty();
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            child.WebsiteID, EmailTemplateKeys.AdminSiteNotification, "owner@master.test",
+            It.Is<IDictionary<string, string>>(t => t["AdminName"] == "Mgr" && t["Title"] == "New customer registration — Child (child.test)"),
+            "en", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_SkipsOwnerEmailWhenNeitherSiteHasOne()
+    {
+        _website.Email = "";
+        await _context.SaveChangesAsync();
+
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.PaymentReceived, "Payment", "Paid", "/payments/1", 1);
+
+        _emailMock.Verify(e => e.SendTemplateAsync(
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task NotifySiteAdminsAsync_SiteReport_DoesNotSendTheGenericOwnerEmail()
+    {
+        await _service.NotifySiteAdminsAsync(
+            _website.WebsiteID, AdminNotificationType.SiteReport, "New site report", "A report", "/messages/reports/1", 1);
+
         _emailMock.Verify(e => e.SendTemplateAsync(
             It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<IDictionary<string, string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);

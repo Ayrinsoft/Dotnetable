@@ -1,10 +1,12 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
+using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace Dotnetable.Tests.Services;
@@ -24,13 +26,18 @@ public class ContentCommentServiceTests : IDisposable
 
     private readonly RelationalTestDb _db;
     private readonly AppDbContext _context;
+    private readonly Mock<IAdminNotificationService> _notifications = new();
     private readonly ContentCommentService _service;
 
     public ContentCommentServiceTests()
     {
         _db = new RelationalTestDb();
         _context = _db.NewContext();
-        _service = new ContentCommentService(new TestDbContextFactory(_db.Options));
+        _notifications.Setup(n => n.NotifySiteAdminsAsync(
+            It.IsAny<int>(), It.IsAny<AdminNotificationType>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _service = new ContentCommentService(new TestDbContextFactory(_db.Options), _notifications.Object);
         Seed();
     }
 
@@ -107,6 +114,15 @@ public class ContentCommentServiceTests : IDisposable
         stored.PostID.Should().Be(OpenPostId);
         stored.PageID.Should().BeNull();
         stored.AuthorEmail.Should().Be("g@example.com");
+
+        _notifications.Verify(n => n.NotifySiteAdminsAsync(
+            SiteId,
+            AdminNotificationType.ContentComment,
+            "New comment",
+            It.Is<string>(m => m.Contains("Nice post")),
+            "/content/comments",
+            stored.ContentCommentID,
+            It.IsAny<CancellationToken>()), Times.Once);
 
         (await _service.GetApprovedAsync(SiteId, CommentTarget.Post, OpenPostId, FirstPage)).Items.Should().BeEmpty();
 
