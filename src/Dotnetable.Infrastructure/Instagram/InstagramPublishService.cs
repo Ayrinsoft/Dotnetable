@@ -15,12 +15,18 @@ public sealed class InstagramPublishService : IInstagramPublishService
     private readonly IDbContextFactory<AppDbContext> _contexts;
     private readonly IInstagramGraph _graph;
     private readonly IInstagramMediaHost _host;
+    private readonly IShortLinkService? _shortLinks;
 
-    public InstagramPublishService(IDbContextFactory<AppDbContext> contexts, IInstagramGraph graph, IInstagramMediaHost host)
+    public InstagramPublishService(
+        IDbContextFactory<AppDbContext> contexts,
+        IInstagramGraph graph,
+        IInstagramMediaHost host,
+        IShortLinkService? shortLinks = null)
     {
         _contexts = contexts;
         _graph = graph;
         _host = host;
+        _shortLinks = shortLinks;
     }
 
     public async Task<IReadOnlyDictionary<int, string?>> GetLinksAsync(IReadOnlyCollection<int> postIds, CancellationToken ct = default)
@@ -70,9 +76,21 @@ public sealed class InstagramPublishService : IInstagramPublishService
             .Select(w => w.WebsiteAddress)
             .FirstOrDefaultAsync(ct);
 
-        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
-        var tags = SocialHashtags.Line(request.Hashtags);
-        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, InstagramPublishPlanner.MaxCaptionLength, tags);
+        string? link = null;
+        string? tags = null;
+        var source = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
+        if (!request.SkipAppend)
+        {
+            link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
+            link = await SocialLinks.MaybeShortAsync(_shortLinks, websiteId, link, request.ShortenLink, ct);
+            tags = SocialHashtags.Line(request.Hashtags);
+        }
+        else
+        {
+            source = request.Caption ?? "";
+        }
+
+        var caption = SocialCaption.Fit(source, link, InstagramPublishPlanner.MaxCaptionLength, tags);
         var hosted = new List<string>();
         string? outbox = null;
         try

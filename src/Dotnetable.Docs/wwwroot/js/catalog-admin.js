@@ -702,11 +702,39 @@ window.DOCS_ADMIN = {
               fa: "تب Outbound proxy: اگر سرور به API شبکه‌ها نمی‌رسد، آدرس https ورکر Cloudflare را ذخیره کنید. خالی یعنی تماس مستقیم. اگر Check and save تلگرام خطا داد، اسکریپت همان تب را دوباره روی ورکر منتشر کنید. اینستاگرام هنوز عکس را خودش از نشانی عمومی می‌گیرد.",
             },
             {
-              en: "Public links tab: set the site address and optional short paths ending in {slug}. Empty paths stay Blog/Post/{slug}, page/{slug}, Shop/Product/{slug}, and Blog/Category/{slug}. The caption keeps its text and the URL is added on a new line. The storefront redirects a short path to the real page.",
-              fa: "تب Public links: آدرس سایت و مسیر کوتاه را که به {slug} ختم می‌شود تنظیم کنید. مسیر خالی همان Blog/Post/{slug}، page/{slug}، Shop/Product/{slug} و Blog/Category/{slug} می‌ماند. متن خلاصه می‌ماند و آدرس در خط جدید ته پیام می‌آید. فروشگاه مسیر کوتاه را به صفحه واقعی هدایت می‌کند.",
+              en: "Public links tab: set the site address and optional short paths ending in {slug}. Empty paths stay Blog/Post/{slug}, page/{slug}, Shop/Product/{slug}, and Blog/Category/{slug}. The caption keeps its text. A blank line, then the URL, then a blank line, then the hashtags. The storefront redirects a short path to the real page.",
+              fa: "تب Public links: آدرس سایت و مسیر کوتاه را که به {slug} ختم می‌شود تنظیم کنید. مسیر خالی همان Blog/Post/{slug}، page/{slug}، Shop/Product/{slug} و Blog/Category/{slug} می‌ماند. متن خلاصه می‌ماند. یک سطر خالی، بعد آدرس، بعد یک سطر خالی، بعد هشتگ‌ها. فروشگاه مسیر کوتاه را به صفحه واقعی هدایت می‌کند.",
+            },
+            {
+              en: "The send window shows the final message. Edit that box if you want to add something; what you leave there is what is sent. “Shorten the site link” replaces the long address with /l/{code}. Manage those codes under Website → Short links. Changing the destination does not change the code. The public site asks the admin API for the real address and redirects.",
+              fa: "پنجره ارسال متن نهایی را نشان می‌دهد. اگر چیزی می‌خواهید اضافه کنید همان جعبه را ویرایش کنید؛ همان متن فرستاده می‌شود. «کوتاه کردن لینک سایت» آدرس بلند را با /l/{code} عوض می‌کند. این کدها در Website → Short links مدیریت می‌شوند. عوض کردن مقصد، کد را عوض نمی‌کند. سایت عمومی آدرس اصلی را از API ادمین می‌گیرد و هدایت می‌کند.",
             },
           ],
-          related: ["posts", "products", "website-social"],
+          related: ["posts", "products", "website-social", "website-short-links"],
+        },
+        {
+          id: "website-short-links",
+          title: { en: "Short links", fa: "لینک‌های کوتاه" },
+          adminPath: "/website/short-links",
+          summary: {
+            en: "Stable /l/{code} addresses for this website. The public site resolves the code here and redirects.",
+            fa: "آدرس‌های پایدار /l/{code} برای همین وب‌سایت. سایت عمومی کد را از اینجا می‌گیرد و هدایت می‌کند.",
+          },
+          purpose: {
+            en: "Keep a short code when the real page address changes, and keep social captions short when a Persian path is escaped.",
+            fa: "کد کوتاه وقتی آدرس واقعی عوض می‌شود ثابت می‌ماند، و متن شبکه اجتماعی وقتی مسیر فارسی اسکیپ می‌شود کوتاه می‌ماند.",
+          },
+          howTo: [
+            {
+              en: "Open Website → Short links. Create a full http or https address, or let the send window create one when “Shorten the site link” is ticked.",
+              fa: "Website → Short links را باز کنید. یک آدرس کامل http یا https بسازید، یا در پنجره ارسال با تیک «کوتاه کردن لینک سایت» همان کار را بکنید.",
+            },
+            {
+              en: "Edit the destination to point the same code somewhere else. Delete removes the code. The public path is /l/{code} on the site address from Public links.",
+              fa: "مقصد را ویرایش کنید تا همان کد جای دیگری برود. حذف، کد را برمی‌دارد. مسیر عمومی /l/{code} روی آدرس سایت در تب Public links است.",
+            },
+          ],
+          related: ["website-social-publish", "posts", "products"],
         },
         {
           id: "website-contact-info",

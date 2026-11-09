@@ -1,8 +1,11 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Dotnetable.Application.Social
+@using Dotnetable.Infrastructure.Social
 @inject IPostService Posts
 @inject IProductService Products
 @inject ISocialPublishService Publisher
+@inject ISocialLinkSettings LinkSettings
+@inject IShortLinkService ShortLinks
 @inject IInstagramAccountService InstagramAccounts
 @inject ITelegramAccountService TelegramAccounts
 @inject IXAccountService XAccounts
@@ -48,7 +51,7 @@
             }
             else
             {
-                <MudTextField @bind-Value="_caption" Label="@L["posts.ig_caption", "Caption"]" Variant="Variant.Outlined"
+                <MudTextField T="string" Value="_caption" ValueChanged="OnCaption" Label="@L["posts.ig_caption", "Caption"]" Variant="Variant.Outlined"
                               Lines="4" MaxLength="2200" Counter="2200" Class="mb-3" />
             }
             @if (_keywords.Count > 0)
@@ -66,6 +69,25 @@
                     }
                 </MudStack>
             }
+
+            <MudCheckBox T="bool" Value="_shorten" ValueChanged="OnShorten" Color="Color.Primary"
+                         Label="@L["posts.social_shorten", "Shorten the site link"]" />
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
+                @L["posts.social_shorten_hint", "A Persian address is very long after it is escaped. The short code stays the same if you later change where it goes, under Website → Short links."]
+            </MudText>
+            <MudText Typo="Typo.subtitle2">@L["posts.social_preview", "Message that will be sent"]</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">
+                @L["posts.social_preview_hint", "This is the text that goes out. Add or change anything here. A blank line sits before the link and before the hashtags."]
+            </MudText>
+            <MudTextField T="string" Value="_preview" ValueChanged="OnPreviewChanged" Variant="Variant.Outlined" Lines="8" Class="mb-1" />
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.caption" Color="@(_sendX && _preview.Length > 280 ? Color.Warning : Color.Secondary)">
+                    @string.Format(L["posts.social_preview_count", "{0} characters. X keeps 280 and still includes the link."], _preview.Length)
+                </MudText>
+                <MudButton Variant="Variant.Text" Disabled="@(!_finalEdited)" OnClick="ResetPreviewAsync">
+                    @L["posts.social_preview_reset", "Rebuild from the parts"]
+                </MudButton>
+            </MudStack>
 
             <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_media", "Photos and videos"]</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
@@ -192,6 +214,16 @@
     private string _title = "";
     private string _excerpt = "";
     private string _caption = "";
+    private string _preview = "";
+    private string _composed = "";
+    private bool _shorten = true;
+    private bool _finalEdited;
+    private bool _shortenFailed;
+    private bool _longLinkLoaded;
+    private string? _longLink;
+    private int _websiteId;
+    private bool _product;
+    private string _slug = "";
     private readonly List<string> _keywords = new();
     private readonly HashSet<string> _selectedKeywords = new(StringComparer.Ordinal);
     private string _link = "";
@@ -212,6 +244,8 @@
                 await LoadAccountsAsync(product.WebsiteID);
                 _title = product.Title;
                 _excerpt = product.ShortDescription ?? "";
+                _product = true;
+                _slug = product.Slug;
                 AddProductFiles(product);
             }
         }
@@ -223,6 +257,7 @@
                 await LoadAccountsAsync(post.WebsiteID);
                 _title = post.Title;
                 _excerpt = post.Excerpt ?? "";
+                _slug = post.Slug;
                 foreach (var keyword in SocialHashtags.Split(post.MetaKeywords))
                 {
                     _keywords.Add(keyword);
@@ -235,11 +270,13 @@
                     AddLibraryFile(post.FeaturedImageFile, InstagramMediaKind.Image);
             }
         }
+        await RefreshPreviewAsync();
         _loading = false;
     }
 
     private async Task LoadAccountsAsync(int websiteId)
     {
+        _websiteId = websiteId;
         _igOn = (await InstagramAccounts.GetAsync(websiteId)).Connected;
         _tgOn = (await TelegramAccounts.GetAsync(websiteId)).Connected;
         _xOn = (await XAccounts.GetAsync(websiteId)).Connected;
@@ -248,17 +285,83 @@
         _sendX = _xOn;
     }
 
-    private void ToggleKeyword(string keyword, bool on)
+    private async Task ToggleKeyword(string keyword, bool on)
     {
         if (on) _selectedKeywords.Add(keyword);
         else _selectedKeywords.Remove(keyword);
+        await RefreshPreviewAsync();
     }
 
-    private void OnUseExcerpt(bool value)
+    private async Task OnUseExcerpt(bool value)
     {
         _useExcerpt = value;
         if (!value && string.IsNullOrWhiteSpace(_caption))
             _caption = _excerpt;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task OnCaption(string value)
+    {
+        _caption = value;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task OnShorten(bool value)
+    {
+        _shorten = value;
+        if (value) _shortenFailed = false;
+        await RefreshPreviewAsync();
+    }
+
+    private Task OnPreviewChanged(string value)
+    {
+        _preview = value ?? "";
+        _finalEdited = !string.Equals(_preview, _composed, StringComparison.Ordinal);
+        return Task.CompletedTask;
+    }
+
+    private async Task ResetPreviewAsync()
+    {
+        _finalEdited = false;
+        await RefreshPreviewAsync();
+    }
+
+    private async Task<string?> CurrentLinkAsync()
+    {
+        if (!_longLinkLoaded && _websiteId > 0)
+        {
+            _longLinkLoaded = true;
+            var status = await LinkSettings.GetAsync(_websiteId);
+            _longLink = SocialLinkPaths.Build(
+                status.WebsiteAddress,
+                status.BaseUrl,
+                _product ? status.ProductPath : status.PostPath,
+                _product ? SocialLinkPaths.DefaultProduct : SocialLinkPaths.DefaultPost,
+                _slug);
+        }
+
+        if (string.IsNullOrWhiteSpace(_longLink)) return null;
+        if (!_shorten || _shortenFailed) return _longLink;
+        try
+        {
+            return await ShortLinks.ToPublicAsync(_websiteId, _longLink);
+        }
+        catch (Exception ex)
+        {
+            _shortenFailed = true;
+            Snackbar.Add(ex.Message, Severity.Warning);
+            return _longLink;
+        }
+    }
+
+    private async Task RefreshPreviewAsync()
+    {
+        var body = _useExcerpt ? _excerpt : _caption;
+        var tags = SocialHashtags.Line(_keywords.Where(keyword => _selectedKeywords.Contains(keyword)));
+        var link = await CurrentLinkAsync();
+        _composed = SocialCaption.Join(body, link, tags);
+        if (!_finalEdited)
+            _preview = _composed;
     }
     private void OnSendInstagram(bool value) => _sendInstagram = value;
     private void OnSendTelegram(bool value) => _sendTelegram = value;
@@ -466,13 +569,15 @@
         {
             var request = new InstagramPublishRequest
             {
-                Caption = _caption,
-                UsePrimaryExcerpt = _useExcerpt,
+                Caption = _finalEdited ? _preview : _caption,
+                UsePrimaryExcerpt = _finalEdited ? false : _useExcerpt,
+                SkipAppend = _finalEdited,
+                ShortenLink = _finalEdited ? false : _shorten,
                 CoverIndex = _coverIndex,
                 SendInstagram = _sendInstagram,
                 SendTelegram = _sendTelegram,
                 SendX = _sendX,
-                Hashtags = _keywords.Where(keyword => _selectedKeywords.Contains(keyword)).ToList(),
+                Hashtags = _finalEdited ? [] : _keywords.Where(keyword => _selectedKeywords.Contains(keyword)).ToList(),
                 Items = _items.Select(ToItem).ToList(),
                 VideoCover = _videoCover is null ? null : ToItem(_videoCover),
             };

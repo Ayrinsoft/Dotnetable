@@ -440,6 +440,27 @@ public class ApiClient
         catch (NotSupportedException) { return null; }
     }
 
+    /// <summary>The stored address for <c>/l/{code}</c>, or null. Not cached, so a destination edit applies on the next visit.</summary>
+    public async Task<string?> ResolveShortLinkAsync(string code, CancellationToken ct = default)
+    {
+        var token = (code ?? "").Trim();
+        if (token.Length == 0 || token.Length > 16) return null;
+        try
+        {
+            var response = await _http.GetAsync($"api/shortlinks/{Uri.EscapeDataString(token)}", ct);
+            if (!response.IsSuccessStatusCode) return null;
+            var body = await response.Content.ReadFromJsonAsync<ShortLinkResolveDto>(cancellationToken: ct);
+            return body?.Url;
+        }
+        catch (HttpRequestException) { return null; }
+        catch (NotSupportedException) { return null; }
+    }
+
+    private sealed class ShortLinkResolveDto
+    {
+        public string? Url { get; set; }
+    }
+
     /// <summary>Resolves a request path to a redirect target, or null when no rule matches / unreachable.</summary>
     public async Task<RedirectResultDto?> ResolveRedirectAsync(string path, CancellationToken ct = default)
     {

@@ -281,6 +281,7 @@ public static class ServiceCollectionExtensions
             .AddHttpMessageHandler<SocialProxyHandler>();
         services.AddScoped<ISocialProxySettings, SocialProxySettingsService>();
         services.AddScoped<ISocialLinkSettings, SocialLinkSettingsService>();
+        services.AddScoped<IShortLinkService, ShortLinkService>();
         services.AddScoped<ITelegramAccountService, TelegramAccountService>();
         services.AddScoped<IXAccountService, XAccountService>();
         services.AddScoped<TelegramPublishService>();

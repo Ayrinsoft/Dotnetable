@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Social;
 using Dotnetable.Domain.Entities;
@@ -13,12 +14,18 @@ public sealed class TelegramPublishService
     private readonly IDbContextFactory<AppDbContext> _contexts;
     private readonly IInstagramMediaHost _host;
     private readonly ITelegramBot _bot;
+    private readonly IShortLinkService? _shortLinks;
 
-    public TelegramPublishService(IDbContextFactory<AppDbContext> contexts, IInstagramMediaHost host, ITelegramBot bot)
+    public TelegramPublishService(
+        IDbContextFactory<AppDbContext> contexts,
+        IInstagramMediaHost host,
+        ITelegramBot bot,
+        IShortLinkService? shortLinks = null)
     {
         _contexts = contexts;
         _host = host;
         _bot = bot;
+        _shortLinks = shortLinks;
     }
 
     public Task PublishAsync(int postId, InstagramPublishRequest request, CancellationToken ct = default) =>
@@ -56,8 +63,18 @@ public sealed class TelegramPublishService
             ?? throw new SocialPublishException("Connect a Telegram bot on this page first.");
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
         var caption = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
-        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
-        var tags = SocialHashtags.Line(request.Hashtags);
+        string? link = null;
+        string? tags = null;
+        if (!request.SkipAppend)
+        {
+            link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
+            link = await SocialLinks.MaybeShortAsync(_shortLinks, websiteId, link, request.ShortenLink, ct);
+            tags = SocialHashtags.Line(request.Hashtags);
+        }
+        else
+        {
+            caption = request.Caption ?? "";
+        }
         var chosen = request.Items.Where(item => item.ToTelegram).ToList();
         if (chosen.Count == 0 && string.IsNullOrWhiteSpace(SocialCaption.Join(caption, link, tags)))
             throw new SocialPublishException("Add a caption or at least one file for Telegram.");

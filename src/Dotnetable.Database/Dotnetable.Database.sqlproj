@@ -84,6 +84,7 @@
     <Build Include="PriceLists.sql" />
     <Build Include="PriceListItems.sql" />
     <Build Include="WebsiteRedirects.sql" />
+    <Build Include="ShortLinks.sql" />
     <Build Include="PageTranslations.sql" />
     <Build Include="Pages.sql" />
     <Build Include="WebsiteClientAddresses.sql" />

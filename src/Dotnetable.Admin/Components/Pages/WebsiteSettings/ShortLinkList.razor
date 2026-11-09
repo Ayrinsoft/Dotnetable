@@ -1,0 +1,209 @@
+@page "/website/short-links"
+@attribute [Authorize(Policy = AdminPolicies.SocialPublishAccess)]
+@inject IShortLinkService ShortLinks
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["short_links", "Short links"] />
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudStack Spacing="0">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["short_links", "Short links"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["short_links.subtitle", "A short code on the public site. The site asks here for the real address. Changing that address keeps the code."]</MudText>
+    </MudStack>
+    @if (_isMaster)
+    {
+        <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                         Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                         Dense="true" Style="min-width:180px" />
+    }
+</MudStack>
+
+<MudPaper Class="app-card pa-4 mb-4" Elevation="0">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" md="9">
+            <MudTextField @bind-Value="_target" Label="@L["short_links.target", "Full http or https address"]" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="CreateAsync">
+                @L["short_links.create", "Create short link"]
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_rows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">@L["short_links.empty", "No short links yet. Sending a post with “Shorten the site link” creates one."]</MudAlert>
+}
+else
+{
+    <MudTable Items="_rows" Hover="true" Dense="true" Elevation="0" Class="app-card">
+        <HeaderContent>
+            <MudTh>@L["short_links.code", "Code"]</MudTh>
+            <MudTh>@L["short_links.public", "Public link"]</MudTh>
+            <MudTh>@L["short_links.target", "Full http or https address"]</MudTh>
+            <MudTh>@L["created", "Created"]</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@L["short_links.code", "Code"]">@context.Code</MudTd>
+            <MudTd DataLabel="@L["short_links.public", "Public link"]">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText Typo="Typo.body2">@context.PublicUrl</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                   title="@L["copy", "Copy"]" OnClick="@(() => CopyAsync(context.PublicUrl))" />
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="@L["short_links.target", "Full http or https address"]">
+                @if (_editingId == context.Id)
+                {
+                    <MudTextField @bind-Value="_editTarget" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">@context.TargetUrl</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="@L["created", "Created"]">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+            <MudTd>
+                @if (_editingId == context.Id)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Primary" Size="Size.Small" Disabled="_busy" OnClick="@(() => SaveAsync(context.Id))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="CancelEdit" />
+                }
+                else
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => BeginEdit(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" Disabled="_busy" OnClick="@(() => DeleteAsync(context))" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private bool _isMaster;
+    private bool _loading = true;
+    private bool _busy;
+    private int _websiteId;
+    private int? _editingId;
+    private string _target = "";
+    private string _editTarget = "";
+    private List<Website> _websites = new();
+    private List<ShortLinkRow> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        CancelEdit();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _rows = _websiteId > 0
+            ? (await ShortLinks.ListAsync(_websiteId)).ToList()
+            : new List<ShortLinkRow>();
+        _loading = false;
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_busy || _websiteId <= 0) return;
+        _busy = true;
+        try
+        {
+            await ShortLinks.CreateAsync(_websiteId, _target);
+            _target = "";
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void BeginEdit(ShortLinkRow row)
+    {
+        _editingId = row.Id;
+        _editTarget = row.TargetUrl;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _editTarget = "";
+    }
+
+    private async Task SaveAsync(int id)
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await ShortLinks.UpdateTargetAsync(_websiteId, id, _editTarget);
+            CancelEdit();
+            Snackbar.Add(L["saved", "Saved."], Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(ShortLinkRow row)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["short_links.delete", "Delete this short link"],
+            L["short_links.delete_confirm", "The code will stop working. The page it pointed at stays."],
+            yesText: L["delete", "Delete"], cancelText: L["cancel", "Cancel"]);
+        if (confirmed != true) return;
+        await ShortLinks.DeleteAsync(_websiteId, row.Id);
+        Snackbar.Add(L["deleted", "Deleted."], Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task CopyAsync(string url)
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            Snackbar.Add(L["copied", "Copied."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+    }
+}

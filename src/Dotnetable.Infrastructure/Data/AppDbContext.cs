@@ -361,6 +361,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WebsiteRedirect> WebsiteRedirects { get; set; }
 
+    public virtual DbSet<ShortLink> ShortLinks { get; set; }
+
     public virtual DbSet<WebsiteScript> WebsiteScripts { get; set; }
 
     public virtual DbSet<WebsiteSeoSetting> WebsiteSeoSettings { get; set; }
@@ -4671,6 +4673,20 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteIPs_Websites");
+        });
+
+        modelBuilder.Entity<ShortLink>(entity =>
+        {
+            entity.ToTable("ShortLinks");
+            entity.HasIndex(e => new { e.WebsiteID, e.Code }, "IX_ShortLinks_WebsiteID_Code").IsUnique();
+            entity.HasIndex(e => new { e.WebsiteID, e.TargetUrl }, "IX_ShortLinks_WebsiteID_TargetUrl");
+            entity.Property(e => e.Code).HasMaxLength(16);
+            entity.Property(e => e.TargetUrl).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.HasOne(d => d.Website).WithMany()
+                .HasForeignKey(d => d.WebsiteID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ShortLinks_Websites");
         });
 
         modelBuilder.Entity<WebsiteRedirect>(entity =>

@@ -7721,6 +7721,40 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.ToTable("ShippingRates");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ShortLink", b =>
+                {
+                    b.Property<int>("ShortLinkID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShortLinkID"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ShortLinkID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Code" }, "IX_ShortLinks_WebsiteID_Code")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WebsiteID", "TargetUrl" }, "IX_ShortLinks_WebsiteID_TargetUrl");
+
+                    b.ToTable("ShortLinks", (string)null);
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.SiteReport", b =>
                 {
                     b.Property<int>("SiteReportID")
@@ -13632,6 +13666,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Navigation("ShippingMethod");
 
                     b.Navigation("State");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.ShortLink", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_ShortLinks_Websites");
+
+                    b.Navigation("Website");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.SiteReport", b =>

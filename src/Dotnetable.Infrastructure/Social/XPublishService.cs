@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Social;
 using Dotnetable.Domain.Entities;
@@ -13,12 +14,18 @@ public sealed class XPublishService
     private readonly IDbContextFactory<AppDbContext> _contexts;
     private readonly IInstagramMediaHost _host;
     private readonly IXApi _api;
+    private readonly IShortLinkService? _shortLinks;
 
-    public XPublishService(IDbContextFactory<AppDbContext> contexts, IInstagramMediaHost host, IXApi api)
+    public XPublishService(
+        IDbContextFactory<AppDbContext> contexts,
+        IInstagramMediaHost host,
+        IXApi api,
+        IShortLinkService? shortLinks = null)
     {
         _contexts = contexts;
         _host = host;
         _api = api;
+        _shortLinks = shortLinks;
     }
 
     public Task PublishAsync(int postId, InstagramPublishRequest request, CancellationToken ct = default) =>
@@ -55,9 +62,21 @@ public sealed class XPublishService
             .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
             ?? throw new SocialPublishException("Connect an X account on this page first.");
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
-        var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
-        var tags = SocialHashtags.Line(request.Hashtags);
-        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, SocialPostPlanner.XText, tags);
+        string? link = null;
+        string? tags = null;
+        var source = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
+        if (!request.SkipAppend)
+        {
+            link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
+            link = await SocialLinks.MaybeShortAsync(_shortLinks, websiteId, link, request.ShortenLink, ct);
+            tags = SocialHashtags.Line(request.Hashtags);
+        }
+        else
+        {
+            source = request.Caption ?? "";
+        }
+
+        var caption = SocialCaption.Fit(source, link, SocialPostPlanner.XText, tags);
         var chosen = request.Items.Where(item => item.ToX).ToList();
         if (chosen.Count == 0 && caption.Length == 0)
             throw new SocialPublishException("Add a caption or at least one file for X.");

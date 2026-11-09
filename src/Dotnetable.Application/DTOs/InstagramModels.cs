@@ -76,4 +76,10 @@ public sealed class InstagramPublishRequest
 
     /// <summary>Keywords the admin left ticked. Stored phrases, not hashtags. Empty sends none.</summary>
     public List<string> Hashtags { get; set; } = new();
+
+    /// <summary>When true, the public address is replaced with <c>/l/{code}</c> before it is appended.</summary>
+    public bool ShortenLink { get; set; }
+
+    /// <summary>When true, <see cref="Caption"/> is the whole message. The link and hashtags are not added again.</summary>
+    public bool SkipAppend { get; set; }
 }

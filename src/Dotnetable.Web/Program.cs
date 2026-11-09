@@ -188,6 +188,15 @@ app.MapControllerRoute(
     pattern: "price-lists/{slug}",
     defaults: new { controller = "PriceList", action = "Detail" });
 
+app.MapGet("/l/{code}", async (string code, ApiClient api, CancellationToken ct) =>
+{
+    var url = await api.ResolveShortLinkAsync(code, ct);
+    if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        return Results.Redirect(uri.AbsoluteUri, permanent: false);
+    return Results.NotFound();
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

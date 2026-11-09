@@ -155,6 +155,8 @@ public sealed class SocialPublishService : ISocialPublishService
             VideoCover = request.VideoCover,
             SendInstagram = true,
             Hashtags = request.Hashtags,
+            ShortenLink = request.ShortenLink,
+            SkipAppend = request.SkipAppend,
             Items = chosen.Select(pair => pair.item).ToList(),
         };
     }

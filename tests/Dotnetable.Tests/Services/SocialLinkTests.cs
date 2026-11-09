@@ -12,14 +12,14 @@ public class SocialLinkTests
     public void Join_PutsTheAddressOnTheNextLine()
     {
         SocialCaption.Join("A short note", "https://tvlm.ir/Blog/Post/cafe")
-            .Should().Be("A short note\nhttps://tvlm.ir/Blog/Post/cafe");
+            .Should().Be("A short note\n\nhttps://tvlm.ir/Blog/Post/cafe");
     }
 
     [Fact]
     public void Join_DoesNotRepeatAnAddressAlreadyAtTheEnd()
     {
         SocialCaption.Join("Note\nhttps://tvlm.ir/p/cafe", "https://tvlm.ir/p/cafe")
-            .Should().Be("Note\nhttps://tvlm.ir/p/cafe");
+            .Should().Be("Note\n\nhttps://tvlm.ir/p/cafe");
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class SocialLinkTests
     public void Join_PutsHashtagsAfterTheLink()
     {
         SocialCaption.Join("note", "https://tvlm.ir/p/cafe", "#آیتم_1 #آیتم_2")
-            .Should().Be("note\nhttps://tvlm.ir/p/cafe\n#آیتم_1 #آیتم_2");
+            .Should().Be("note\n\nhttps://tvlm.ir/p/cafe\n\n#آیتم_1 #آیتم_2");
     }
 
     [Fact]
