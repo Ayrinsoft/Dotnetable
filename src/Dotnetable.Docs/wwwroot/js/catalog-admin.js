@@ -726,8 +726,8 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Open Website → Short links. Create a full http or https address, or let the send window create one when “Shorten the site link” is ticked.",
-              fa: "Website → Short links را باز کنید. یک آدرس کامل http یا https بسازید، یا در پنجره ارسال با تیک «کوتاه کردن لینک سایت» همان کار را بکنید.",
+              en: "Open Website → Short links. Enter any page path, such as /page/about or /Shop/Product/mug, or any full http or https address. The send window can also create one when “Shorten the site link” is ticked.",
+              fa: "Website → Short links را باز کنید. مسیر هر صفحه را وارد کنید، مثل /page/about یا /Shop/Product/mug، یا هر آدرس کامل http یا https. پنجره ارسال هم با تیک «کوتاه کردن لینک سایت» یکی می‌سازد.",
             },
             {
               en: "Edit the destination to point the same code somewhere else. Delete removes the code. The public path is /l/{code} on the site address from Public links.",

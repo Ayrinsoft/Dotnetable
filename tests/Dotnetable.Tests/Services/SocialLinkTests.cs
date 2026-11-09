@@ -89,6 +89,25 @@ public class SocialLinkTests
             .Should().Be("note\n\nhttps://tvlm.ir/p/cafe\n\n#آیتم_1 #آیتم_2");
     }
 
+    [Theory]
+    [InlineData("/page/about", "https://tvlm.ir/page/about")]
+    [InlineData("Blog/Post/cafe", "https://tvlm.ir/Blog/Post/cafe")]
+    [InlineData("/Shop/Product/mug?ref=1", "https://tvlm.ir/Shop/Product/mug?ref=1")]
+    [InlineData("https://other.example/cook/1", "https://other.example/cook/1")]
+    public void RequireTarget_AcceptsAnyPageOrAnyHttpAddress(string raw, string expected)
+    {
+        ShortLinkService.RequireTarget(raw, "https://tvlm.ir").Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("//evil.example/phish")]
+    public void RequireTarget_RejectsANonHttpAddress(string raw)
+    {
+        var act = () => ShortLinkService.RequireTarget(raw, "https://tvlm.ir");
+        act.Should().Throw<SocialPublishException>();
+    }
+
     [Fact]
     public void Redirect_LeavesTheRealRouteAlone()
     {

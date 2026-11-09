@@ -30,36 +30,37 @@ public sealed class ShortLinkService : IShortLinkService
 
     public async Task<string> ToPublicAsync(int websiteId, string targetUrl, CancellationToken ct = default)
     {
-        var target = RequireTarget(targetUrl);
         await using var context = await _contexts.CreateDbContextAsync(ct);
+        var origin = await OriginAsync(context, websiteId, ct);
+        var target = RequireTarget(targetUrl, origin);
         var code = await context.ShortLinks.AsNoTracking()
             .Where(s => s.WebsiteID == websiteId && s.TargetUrl == target)
             .Select(s => s.Code)
             .FirstOrDefaultAsync(ct);
         code ??= await InsertAsync(context, websiteId, target, ct);
-        var origin = await OriginAsync(context, websiteId, ct);
         return origin is null ? target : origin + "/l/" + code;
     }
 
     public async Task<ShortLinkRow> CreateAsync(int websiteId, string targetUrl, CancellationToken ct = default)
     {
-        var target = RequireTarget(targetUrl);
         await using var context = await _contexts.CreateDbContextAsync(ct);
+        var origin = await OriginAsync(context, websiteId, ct);
+        var target = RequireTarget(targetUrl, origin);
         var existing = await context.ShortLinks.AsNoTracking()
             .FirstOrDefaultAsync(s => s.WebsiteID == websiteId && s.TargetUrl == target, ct);
         if (existing is not null)
-            return ToRow(existing, await OriginAsync(context, websiteId, ct));
+            return ToRow(existing, origin);
 
         var code = await InsertAsync(context, websiteId, target, ct);
         var row = await context.ShortLinks.AsNoTracking()
             .FirstAsync(s => s.WebsiteID == websiteId && s.Code == code, ct);
-        return ToRow(row, await OriginAsync(context, websiteId, ct));
+        return ToRow(row, origin);
     }
 
     public async Task UpdateTargetAsync(int websiteId, int shortLinkId, string targetUrl, CancellationToken ct = default)
     {
-        var target = RequireTarget(targetUrl);
         await using var context = await _contexts.CreateDbContextAsync(ct);
+        var target = RequireTarget(targetUrl, await OriginAsync(context, websiteId, ct));
         var row = await context.ShortLinks.FirstOrDefaultAsync(s => s.ShortLinkID == shortLinkId && s.WebsiteID == websiteId, ct)
             ?? throw new SocialPublishException("That short link was not found.");
         row.TargetUrl = target;
@@ -140,13 +141,32 @@ public sealed class ShortLinkService : IShortLinkService
         PublicUrl = origin is null ? "/l/" + row.Code : origin + "/l/" + row.Code,
     };
 
-    internal static string RequireTarget(string? targetUrl)
+    /// <summary>
+    /// A full http(s) address is stored as-is. A site path such as <c>/page/about</c> is joined to this website's origin.
+    /// </summary>
+    internal static string RequireTarget(string? targetUrl, string? origin)
     {
-        var target = targetUrl?.Trim() ?? "";
-        if (!Uri.TryCreate(target, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            throw new SocialPublishException("The address must be a full http or https link.");
-        return target;
+        var target = (targetUrl ?? "").Trim();
+        if (target.Length == 0)
+            throw new SocialPublishException("Enter a page path or a full http or https link.");
+        if (target.Contains('\\') || target.StartsWith("//", StringComparison.Ordinal))
+            throw new SocialPublishException("The address must be a page on this site, or a full http or https link.");
+
+        if (Uri.TryCreate(target, UriKind.Absolute, out var absolute))
+        {
+            if (absolute.Scheme != Uri.UriSchemeHttp && absolute.Scheme != Uri.UriSchemeHttps)
+                throw new SocialPublishException("The address must be a page on this site, or a full http or https link.");
+            return absolute.AbsoluteUri;
+        }
+
+        if (string.IsNullOrEmpty(origin))
+            throw new SocialPublishException("Set the site address on Social publishing first, or paste a full http or https link.");
+
+        var path = target.StartsWith('/') ? target : "/" + target;
+        if (!Uri.TryCreate(origin.TrimEnd('/') + path, UriKind.Absolute, out var combined)
+            || (combined.Scheme != Uri.UriSchemeHttp && combined.Scheme != Uri.UriSchemeHttps))
+            throw new SocialPublishException("That page path could not be turned into a link.");
+        return combined.AbsoluteUri;
     }
 
     private static string NewCode()

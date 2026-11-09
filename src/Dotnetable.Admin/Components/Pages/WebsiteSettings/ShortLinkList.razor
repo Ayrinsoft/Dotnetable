@@ -13,7 +13,7 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudStack Spacing="0">
         <MudText Typo="Typo.h5" Class="fw-bold">@L["short_links", "Short links"]</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["short_links.subtitle", "A short code on the public site. The site asks here for the real address. Changing that address keeps the code."]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@L["short_links.subtitle", "Any page on this site, or any http or https address. Visitors open /l/{code} and the site redirects. Changing the destination keeps the code."]</MudText>
     </MudStack>
     @if (_isMaster)
     {
@@ -26,7 +26,8 @@
 <MudPaper Class="app-card pa-4 mb-4" Elevation="0">
     <MudGrid Spacing="2">
         <MudItem xs="12" md="9">
-            <MudTextField @bind-Value="_target" Label="@L["short_links.target", "Full http or https address"]" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_target" Label="@L["short_links.target", "Page path or full link"]" Variant="Variant.Outlined"
+                          HelperText="@L["short_links.target_hint", "Examples: /page/about, /Blog/Post/cafe, /Shop/Product/mug, or https://example.com/any-page"]" />
         </MudItem>
         <MudItem xs="12" md="3" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="CreateAsync">
@@ -42,7 +43,7 @@
 }
 else if (_rows.Count == 0)
 {
-    <MudAlert Severity="Severity.Info">@L["short_links.empty", "No short links yet. Sending a post with “Shorten the site link” creates one."]</MudAlert>
+    <MudAlert Severity="Severity.Info">@L["short_links.empty", "No short links yet. Add any page path or full address. Sending a post with “Shorten the site link” also creates one."]</MudAlert>
 }
 else
 {
@@ -50,7 +51,7 @@ else
         <HeaderContent>
             <MudTh>@L["short_links.code", "Code"]</MudTh>
             <MudTh>@L["short_links.public", "Public link"]</MudTh>
-            <MudTh>@L["short_links.target", "Full http or https address"]</MudTh>
+            <MudTh>@L["short_links.destination", "Destination"]</MudTh>
             <MudTh>@L["created", "Created"]</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
@@ -63,7 +64,7 @@ else
                                    title="@L["copy", "Copy"]" OnClick="@(() => CopyAsync(context.PublicUrl))" />
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="@L["short_links.target", "Full http or https address"]">
+            <MudTd DataLabel="@L["short_links.destination", "Destination"]">
                 @if (_editingId == context.Id)
                 {
                     <MudTextField @bind-Value="_editTarget" Variant="Variant.Outlined" Margin="Margin.Dense" />
