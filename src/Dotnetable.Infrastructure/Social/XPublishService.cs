@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Instagram;
+using Dotnetable.Application.Social;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Instagram;
@@ -55,7 +56,8 @@ public sealed class XPublishService
             ?? throw new SocialPublishException("Connect an X account on this page first.");
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
         var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
-        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, SocialPostPlanner.XText);
+        var tags = SocialHashtags.Line(request.Hashtags);
+        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, SocialPostPlanner.XText, tags);
         var chosen = request.Items.Where(item => item.ToX).ToList();
         if (chosen.Count == 0 && caption.Length == 0)
             throw new SocialPublishException("Add a caption or at least one file for X.");

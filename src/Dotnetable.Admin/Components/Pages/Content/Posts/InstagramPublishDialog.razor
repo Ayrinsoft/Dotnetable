@@ -1,4 +1,5 @@
 @using Microsoft.AspNetCore.Components.Forms
+@using Dotnetable.Application.Social
 @inject IPostService Posts
 @inject IProductService Products
 @inject ISocialPublishService Publisher
@@ -50,12 +51,27 @@
                 <MudTextField @bind-Value="_caption" Label="@L["posts.ig_caption", "Caption"]" Variant="Variant.Outlined"
                               Lines="4" MaxLength="2200" Counter="2200" Class="mb-3" />
             }
+            @if (_keywords.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-2">@L["posts.social_hashtags", "Hashtags"]</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">
+                    @L["posts.social_hashtags_hint", "Tick the keywords to add. Each one is sent as a hashtag on the last line."]
+                </MudText>
+                <MudStack Row="true" Spacing="1" Class="mb-3 flex-wrap">
+                    @foreach (var word in _keywords)
+                    {
+                        var keyword = word;
+                        <MudCheckBox T="bool" Value="_selectedKeywords.Contains(keyword)" Color="Color.Primary"
+                                     ValueChanged="@(on => ToggleKeyword(keyword, on))" Label="@keyword" />
+                    }
+                </MudStack>
+            }
 
             <MudText Typo="Typo.subtitle2" Class="mb-2">@L["posts.ig_media", "Photos and videos"]</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-2">
                 @(ProductId > 0
-                    ? L["products.social_media_hint", "Upload a file, paste a public https link, or use this product's photos and videos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."]
-                    : L["posts.social_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Tick a network on each file. Instagram still needs a public https address. Uploaded and cropped files are deleted after Instagram accepts them."])
+                    ? L["products.social_media_hint", "Upload a file, paste a public https link, or use this product's photos and videos and crop them. Tick a network on each file. Instagram still needs a public https address. A file uploaded here is removed from storage when sending finishes. A photo already in the library stays."]
+                    : L["posts.social_media_hint", "Upload a file, paste a public https link, or use this post's photos and crop them. Tick a network on each file. Instagram still needs a public https address. A file uploaded here is removed from storage when sending finishes. A photo already in the library stays."])
             </MudText>
 
             <MudStack Spacing="2" Class="mb-3">
@@ -176,6 +192,8 @@
     private string _title = "";
     private string _excerpt = "";
     private string _caption = "";
+    private readonly List<string> _keywords = new();
+    private readonly HashSet<string> _selectedKeywords = new(StringComparer.Ordinal);
     private string _link = "";
     private string _coverLink = "";
     private InstagramMediaKind _linkKind = InstagramMediaKind.Image;
@@ -205,6 +223,11 @@
                 await LoadAccountsAsync(post.WebsiteID);
                 _title = post.Title;
                 _excerpt = post.Excerpt ?? "";
+                foreach (var keyword in SocialHashtags.Split(post.MetaKeywords))
+                {
+                    _keywords.Add(keyword);
+                    _selectedKeywords.Add(keyword);
+                }
                 var images = await Posts.GetImagesAsync(PostId);
                 foreach (var image in images.Where(i => i.FileRecord is not null))
                     AddLibraryFile(image.FileRecord!, InstagramMediaKind.Image);
@@ -223,6 +246,12 @@
         _sendInstagram = _igOn;
         _sendTelegram = _tgOn;
         _sendX = _xOn;
+    }
+
+    private void ToggleKeyword(string keyword, bool on)
+    {
+        if (on) _selectedKeywords.Add(keyword);
+        else _selectedKeywords.Remove(keyword);
     }
 
     private void OnUseExcerpt(bool value)
@@ -443,6 +472,7 @@
                 SendInstagram = _sendInstagram,
                 SendTelegram = _sendTelegram,
                 SendX = _sendX,
+                Hashtags = _keywords.Where(keyword => _selectedKeywords.Contains(keyword)).ToList(),
                 Items = _items.Select(ToItem).ToList(),
                 VideoCover = _videoCover is null ? null : ToItem(_videoCover),
             };

@@ -73,4 +73,7 @@ public sealed class InstagramPublishRequest
     public bool SendTelegram { get; set; }
 
     public bool SendX { get; set; }
+
+    /// <summary>Keywords the admin left ticked. Stored phrases, not hashtags. Empty sends none.</summary>
+    public List<string> Hashtags { get; set; } = new();
 }

@@ -76,6 +76,20 @@ public class SocialLinkTests
     }
 
     [Fact]
+    public void Hashtags_TurnCommaSeparatedKeywordsIntoTags()
+    {
+        SocialHashtags.Split("آیتم 1، آیتم 2").Should().Equal("آیتم 1", "آیتم 2");
+        SocialHashtags.Line(["آیتم 1", "آیتم 2"]).Should().Be("#آیتم_1 #آیتم_2");
+    }
+
+    [Fact]
+    public void Join_PutsHashtagsAfterTheLink()
+    {
+        SocialCaption.Join("note", "https://tvlm.ir/p/cafe", "#آیتم_1 #آیتم_2")
+            .Should().Be("note\nhttps://tvlm.ir/p/cafe\n#آیتم_1 #آیتم_2");
+    }
+
+    [Fact]
     public void Redirect_LeavesTheRealRouteAlone()
     {
         var map = new SocialLinkMap();

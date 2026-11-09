@@ -114,16 +114,27 @@ public sealed class InstagramMediaHost : IInstagramMediaHost
     {
         foreach (var url in urls.Distinct(StringComparer.Ordinal))
         {
-            if (!_hosted.TryRemove(url, out var id)) continue;
+            if (string.IsNullOrWhiteSpace(url)) continue;
+            var id = _hosted.TryRemove(url, out var tracked) ? tracked : await FindTemporaryAsync(url, ct);
+            if (id is not int fileId) continue;
             try
             {
-                await _files.SoftDeleteAsync(id, ct);
+                await _files.SoftDeleteAsync(fileId, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // The Instagram post is already recorded. A leftover row is titled "Instagram temporary".
+                // The network post is already recorded. A leftover row is titled "Instagram temporary".
             }
         }
+    }
+
+    private async Task<int?> FindTemporaryAsync(string url, CancellationToken ct)
+    {
+        await using var context = await _contexts.CreateDbContextAsync(ct);
+        return await context.FileRecords.AsNoTracking()
+            .Where(f => f.CNDUrl == url && f.Title == "Instagram temporary" && !f.IsDeleted)
+            .Select(f => (int?)f.FileRecordID)
+            .FirstOrDefaultAsync(ct);
     }
 
     private async Task<int> ActiveStorageIdAsync(int websiteId, CancellationToken ct)

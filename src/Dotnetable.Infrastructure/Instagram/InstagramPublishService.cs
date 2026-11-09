@@ -2,6 +2,7 @@ using System.Text.Json;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Application.Social;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
 using Dotnetable.Infrastructure.Social;
@@ -70,7 +71,8 @@ public sealed class InstagramPublishService : IInstagramPublishService
             .FirstOrDefaultAsync(ct);
 
         var link = await SocialLinks.ForContentAsync(context, websiteId, product, slug, ct);
-        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, InstagramPublishPlanner.MaxCaptionLength);
+        var tags = SocialHashtags.Line(request.Hashtags);
+        var caption = SocialCaption.Fit(request.UsePrimaryExcerpt ? excerpt : request.Caption, link, InstagramPublishPlanner.MaxCaptionLength, tags);
         var hosted = new List<string>();
         string? outbox = null;
         try

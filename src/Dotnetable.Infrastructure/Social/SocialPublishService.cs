@@ -154,6 +154,7 @@ public sealed class SocialPublishService : ISocialPublishService
             CoverIndex = newCover,
             VideoCover = request.VideoCover,
             SendInstagram = true,
+            Hashtags = request.Hashtags,
             Items = chosen.Select(pair => pair.item).ToList(),
         };
     }
