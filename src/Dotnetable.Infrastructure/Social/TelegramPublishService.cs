@@ -84,21 +84,23 @@ public sealed class TelegramPublishService
             files.Add(await SocialMediaLoader.LoadAsync(context, _host, websiteId, site, item, ct));
 
         string? messageId = null;
-        var textParts = SocialCaption.Parts(caption, link, SocialPostPlanner.TelegramMessage, tags);
+        var textParts = SocialCaption.Parts(caption, link, SocialPostPlanner.TelegramMessage, tags)
+            .Select(part => SocialCaption.TelegramHtml(part, link))
+            .ToList();
         if (files.Count == 0)
         {
             if (textParts.Count == 0) throw new SocialPublishException("Add a caption or at least one file for Telegram.");
             foreach (var part in textParts)
-                messageId = await _bot.SendTextAsync(account.BotToken, account.ChatId, part, ct) ?? messageId;
+                messageId = await _bot.SendTextAsync(account.BotToken, account.ChatId, part, ct, link) ?? messageId;
         }
         else
         {
-            var full = SocialCaption.Join(caption, link, tags);
+            var full = SocialCaption.TelegramHtml(SocialCaption.Join(caption, link, tags), link);
             var mediaCaption = full.Length <= SocialPostPlanner.TelegramCaption ? full : null;
             if (mediaCaption is null)
             {
                 foreach (var part in textParts)
-                    messageId = await _bot.SendTextAsync(account.BotToken, account.ChatId, part, ct) ?? messageId;
+                    messageId = await _bot.SendTextAsync(account.BotToken, account.ChatId, part, ct, link) ?? messageId;
             }
 
             var albums = SocialPostPlanner.PlanTelegram(files.Count);

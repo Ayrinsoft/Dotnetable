@@ -77,7 +77,7 @@
             </MudText>
             <MudText Typo="Typo.subtitle2">@L["posts.social_preview", "Message that will be sent"]</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">
-                @L["posts.social_preview_hint", "This is the text that goes out. Add or change anything here. A blank line sits before the link and before the hashtags."]
+                @L["posts.social_preview_hint", "This is the text that goes out. Add or change anything here. A blank line sits before the link and before the hashtags. On Telegram the address is sent as the word اینجا inside «برای اطلاعات بیشتر اینجا کلیک کنید», and the page card still loads under the message. Instagram and X keep the address itself."]
             </MudText>
             <MudTextField T="string" Value="_preview" ValueChanged="OnPreviewChanged" Variant="Variant.Outlined" Lines="8" Class="mb-1" />
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">

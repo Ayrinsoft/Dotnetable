@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace Dotnetable.Infrastructure.Social;
 
 /// <summary>
@@ -82,6 +84,22 @@ public static class SocialCaption
         if (url.Length > 0 && url.Length <= limit) return url;
         if (limit < 1 || tail.Length <= limit) return tail;
         return tail[..limit];
+    }
+
+    /// <summary>
+    /// Telegram HTML. The public address becomes «برای اطلاعات بیشتر اینجا کلیک کنید» and the word اینجا is the link.
+    /// The rest of the text is escaped so a caption cannot break the message.
+    /// </summary>
+    public static string TelegramHtml(string? plain, string? link)
+    {
+        var html = WebUtility.HtmlEncode(plain ?? "");
+        var url = (link ?? "").Trim();
+        if (url.Length == 0) return html;
+        var encodedUrl = WebUtility.HtmlEncode(url);
+        var sentence = "برای اطلاعات بیشتر <a href=\"" + encodedUrl + "\">اینجا</a> کلیک کنید";
+        if (html.Contains(encodedUrl, StringComparison.Ordinal))
+            return html.Replace(encodedUrl, sentence, StringComparison.Ordinal);
+        return html.Length == 0 ? sentence : html + "\n\n" + sentence;
     }
 
     private static string StripTrailingTail(string? body, string? link, string? hashtags)

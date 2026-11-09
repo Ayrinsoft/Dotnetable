@@ -8,7 +8,7 @@ public interface ITelegramBot
 
     Task EnsureChatAsync(string botToken, string chatId, CancellationToken ct = default);
 
-    Task<string?> SendTextAsync(string botToken, string chatId, string text, CancellationToken ct = default);
+    Task<string?> SendTextAsync(string botToken, string chatId, string text, CancellationToken ct = default, string? previewUrl = null);
 
     Task<string?> SendPhotoAsync(string botToken, string chatId, TelegramOutbound photo, string? caption, CancellationToken ct = default);
 

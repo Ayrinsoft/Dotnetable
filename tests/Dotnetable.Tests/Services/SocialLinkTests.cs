@@ -109,6 +109,21 @@ public class SocialLinkTests
     }
 
     [Fact]
+    public void TelegramHtml_TurnsTheAddressIntoTheWordHere()
+    {
+        var plain = SocialCaption.Join("note", "https://tvlm.ir/l/LK2873H32", "#cafe");
+        SocialCaption.TelegramHtml(plain, "https://tvlm.ir/l/LK2873H32")
+            .Should().Be("note\n\nبرای اطلاعات بیشتر <a href=\"https://tvlm.ir/l/LK2873H32\">اینجا</a> کلیک کنید\n\n#cafe");
+    }
+
+    [Fact]
+    public void TelegramHtml_EscapesCaptionMarkup()
+    {
+        SocialCaption.TelegramHtml("a < b & c", null)
+            .Should().Be("a &lt; b &amp; c");
+    }
+
+    [Fact]
     public void Redirect_LeavesTheRealRouteAlone()
     {
         var map = new SocialLinkMap();

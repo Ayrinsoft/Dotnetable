@@ -27,9 +27,25 @@ public sealed class TelegramBotClient : ITelegramBot
         using var doc = await GetAsync(botToken, "getChat?chat_id=" + Uri.EscapeDataString(chatId), ct);
     }
 
-    public async Task<string?> SendTextAsync(string botToken, string chatId, string text, CancellationToken ct = default)
+    public async Task<string?> SendTextAsync(string botToken, string chatId, string text, CancellationToken ct = default, string? previewUrl = null)
     {
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["chat_id"] = chatId, ["text"] = text });
+        var fields = new Dictionary<string, string>
+        {
+            ["chat_id"] = chatId,
+            ["text"] = text,
+            ["parse_mode"] = "HTML",
+        };
+        if (!string.IsNullOrWhiteSpace(previewUrl))
+        {
+            fields["link_preview_options"] = JsonSerializer.Serialize(new
+            {
+                is_disabled = false,
+                url = previewUrl,
+                prefer_large_media = true,
+                show_above_text = false,
+            });
+        }
+        using var form = new FormUrlEncodedContent(fields);
         using var doc = await PostAsync(botToken, "sendMessage", form, ct);
         return MessageId(doc.RootElement);
     }
@@ -54,7 +70,11 @@ public sealed class TelegramBotClient : ITelegramBot
                 ["type"] = item.IsVideo ? "video" : "photo",
                 ["media"] = "attach://" + key,
             };
-            if (i == 0 && !string.IsNullOrWhiteSpace(caption)) entry["caption"] = caption;
+            if (i == 0 && !string.IsNullOrWhiteSpace(caption))
+            {
+                entry["caption"] = caption;
+                entry["parse_mode"] = "HTML";
+            }
             media.Add(entry);
             var file = new ByteArrayContent(item.Bytes);
             file.Headers.ContentType = new MediaTypeHeaderValue(item.IsVideo ? (string.IsNullOrWhiteSpace(item.MimeType) ? "video/mp4" : item.MimeType) : "image/jpeg");
@@ -70,7 +90,11 @@ public sealed class TelegramBotClient : ITelegramBot
     {
         using var form = new MultipartFormDataContent();
         form.Add(new StringContent(chatId), "chat_id");
-        if (!string.IsNullOrWhiteSpace(caption)) form.Add(new StringContent(caption), "caption");
+        if (!string.IsNullOrWhiteSpace(caption))
+        {
+            form.Add(new StringContent(caption), "caption");
+            form.Add(new StringContent("HTML"), "parse_mode");
+        }
         var bytes = new ByteArrayContent(file.Bytes);
         bytes.Headers.ContentType = new MediaTypeHeaderValue(file.IsVideo ? (string.IsNullOrWhiteSpace(file.MimeType) ? "video/mp4" : file.MimeType) : "image/jpeg");
         form.Add(bytes, field, string.IsNullOrWhiteSpace(file.FileName) ? field : file.FileName);
