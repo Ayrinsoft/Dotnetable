@@ -4,6 +4,9 @@
 
 <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-4">
     <MudText Typo="Typo.h6" Class="mb-2">@L["posts.x_help_title", "X — connect your account"]</MudText>
+    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.Paid">
+        @BillingWarning
+    </MudAlert>
     <MudExpansionPanels Elevation="0" Class="mb-3">
         <MudExpansionPanel Text="@L["posts.ig_open_help", "Show steps"]" Icon="@Icons.Material.Filled.Info" Expanded="_helpOpen" ExpandedChanged="OnHelpChanged">
             <MudText Typo="Typo.body2" Class="mb-2">@Intro</MudText>
@@ -63,6 +66,9 @@
     private string _accessToken = "";
     private string _accessSecret = "";
     private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+    private string BillingWarning => Persian
+        ? "ارسال پیام از طریق API ایکس رایگان نیست و مشمول هزینه می‌شود."
+        : "Sending messages through the X API is not free. X charges for each send.";
     private string Intro => Persian
         ? "پست با کلیدهای خود کاربر در developer.x.com ارسال می‌شود. هیچ‌کدام از کلیدها بعد از ذخیره نشان داده نمی‌شوند."
         : "Posts are sent with the user keys from developer.x.com. None of the keys are shown again after you save.";
