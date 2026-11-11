@@ -45,7 +45,7 @@ public sealed class TelegramPublishService
             var row = await context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductID == ownerId, ct)
                 ?? throw new SocialPublishException("Product was not found.");
             websiteId = row.WebsiteID;
-            excerpt = row.ShortDescription ?? "";
+            excerpt = await SocialContentText.ExcerptAsync(context, product: true, ownerId, row.ShortDescription ?? "", request.ContentLanguageCode, ct);
             slug = row.Slug;
         }
         else
@@ -53,14 +53,12 @@ public sealed class TelegramPublishService
             var post = await context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.PostID == ownerId, ct)
                 ?? throw new SocialPublishException("Post was not found.");
             websiteId = post.WebsiteID;
-            excerpt = post.Excerpt ?? "";
+            excerpt = await SocialContentText.ExcerptAsync(context, product: false, ownerId, post.Excerpt ?? "", request.ContentLanguageCode, ct);
             slug = post.Slug;
         }
 
         using var proxy = SocialProxyLease.Open(await SocialProxyLease.ReadAsync(context, websiteId, ct));
-        var account = await context.WebsiteTelegramAccounts.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.WebsiteID == websiteId && a.IsActive, ct)
-            ?? throw new SocialPublishException("Connect a Telegram bot on this page first.");
+        var account = await SocialAccountLookup.TelegramAsync(context, websiteId, request.TelegramAccountId, ct);
         var site = await context.Websites.AsNoTracking().Where(w => w.WebsiteID == websiteId).Select(w => w.WebsiteAddress).FirstOrDefaultAsync(ct);
         var caption = request.UsePrimaryExcerpt ? excerpt : request.Caption ?? "";
         string? link = null;

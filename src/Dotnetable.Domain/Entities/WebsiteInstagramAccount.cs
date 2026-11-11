@@ -2,12 +2,18 @@ using System;
 
 namespace Dotnetable.Domain.Entities;
 
-/// <summary>The Instagram professional account a website publishes to. One row per website.</summary>
+/// <summary>An Instagram professional account a website publishes to. A website may have several, for different languages or purposes.</summary>
 public partial class WebsiteInstagramAccount
 {
     public int WebsiteInstagramAccountID { get; set; }
 
     public int WebsiteID { get; set; }
+
+    /// <summary>Name the admin gives this channel, such as the language or the purpose.</summary>
+    public string Title { get; set; } = "";
+
+    /// <summary>Content language this channel is for. Empty means any language.</summary>
+    public string? LanguageCode { get; set; }
 
     /// <summary>Instagram professional account id (the Graph API user id, not the page id).</summary>
     public string IgUserId { get; set; } = null!;

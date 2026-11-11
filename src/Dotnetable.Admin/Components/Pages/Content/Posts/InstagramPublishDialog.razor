@@ -9,6 +9,7 @@
 @inject IInstagramAccountService InstagramAccounts
 @inject ITelegramAccountService TelegramAccounts
 @inject IXAccountService XAccounts
+@inject ILanguageService Languages
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -26,19 +27,68 @@
         {
             <MudText Typo="Typo.body2" Class="mb-2">@_title</MudText>
             <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap">
-                <MudCheckBox T="bool" Value="_sendInstagram" ValueChanged="OnSendInstagram" Color="Color.Primary" Disabled="@(!_igOn)"
-                             Label="@L["posts.ig_network", "Instagram"]" />
-                <MudCheckBox T="bool" Value="_sendTelegram" ValueChanged="OnSendTelegram" Color="Color.Primary" Disabled="@(!_tgOn)"
-                             Label="@L["posts.tg_network", "Telegram"]" />
-                <MudCheckBox T="bool" Value="_sendX" ValueChanged="OnSendX" Color="Color.Primary" Disabled="@(!_xOn)"
-                             Label="@L["posts.x_network", "X"]" />
+                @if (_igAccounts.Count > 0)
+                {
+                    <MudCheckBox T="bool" Value="_sendInstagram" ValueChanged="OnSendInstagram" Color="Color.Primary"
+                                 Label="@L["posts.ig_network", "Instagram"]" />
+                }
+                @if (_tgAccounts.Count > 0)
+                {
+                    <MudCheckBox T="bool" Value="_sendTelegram" ValueChanged="OnSendTelegram" Color="Color.Primary"
+                                 Label="@L["posts.tg_network", "Telegram"]" />
+                }
+                @if (_xAccounts.Count > 0)
+                {
+                    <MudCheckBox T="bool" Value="_sendX" ValueChanged="OnSendX" Color="Color.Primary"
+                                 Label="@L["posts.x_network", "X"]" />
+                }
             </MudStack>
-            @if (!_igOn && !_tgOn && !_xOn)
+            @if (_igAccounts.Count == 0 && _tgAccounts.Count == 0 && _xAccounts.Count == 0)
             {
                 <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@L["posts.social_missing_body", "Instagram, Telegram, and X have no saved account for this website. Open Social publishing under Website if you want to fill them in."]</MudAlert>
             }
+            @if (_sendInstagram && _igAccounts.Count > 1)
+            {
+                <MudSelect T="int" Value="_igAccountId" ValueChanged="OnIgAccount" Class="mb-2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Label="@L["posts.social_ig_channel", "Instagram channel"]">
+                    @foreach (var account in _igAccounts)
+                    {
+                        <MudSelectItem T="int" Value="@account.AccountId">@ChannelLabel(account.Title, account.Username ?? account.IgUserId, account.LanguageCode)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            @if (_sendTelegram && _tgAccounts.Count > 1)
+            {
+                <MudSelect T="int" Value="_tgAccountId" ValueChanged="OnTgAccount" Class="mb-2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Label="@L["posts.social_tg_channel", "Telegram channel"]">
+                    @foreach (var account in _tgAccounts)
+                    {
+                        <MudSelectItem T="int" Value="@account.AccountId">@ChannelLabel(account.Title, account.ChatId, account.LanguageCode)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            @if (_sendX && _xAccounts.Count > 1)
+            {
+                <MudSelect T="int" Value="_xAccountId" ValueChanged="OnXAccount" Class="mb-2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Label="@L["posts.social_x_channel", "X channel"]">
+                    @foreach (var account in _xAccounts)
+                    {
+                        <MudSelectItem T="int" Value="@account.AccountId">@ChannelLabel(account.Title, account.Username, account.LanguageCode)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
             <MudCheckBox T="bool" Value="_useExcerpt" ValueChanged="OnUseExcerpt" Color="Color.Primary"
-                         Label="@(ProductId > 0 ? L["products.social_use_short", "Use the short description"] : L["posts.ig_use_excerpt", "Use the summary (primary language)"])" />
+                         Label="@(ProductId > 0 ? L["products.social_use_short", "Use the short description"] : L["posts.social_use_summary", "Use the saved summary"])" />
+            @if (_useExcerpt && _langs.Count > 1)
+            {
+                <MudSelect T="string" Value="_langCode" ValueChanged="OnLanguage" Class="mb-2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Label="@L["posts.social_content_language", "Summary language"]">
+                    @foreach (var lang in _langs)
+                    {
+                        <MudSelectItem T="string" Value="@lang.Code">@lang.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
             @if (_useExcerpt)
             {
                 <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
@@ -130,9 +180,18 @@
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Crop" Size="Size.Small" OnClick="@(() => CropAsync(index))" />
                             }
-                            <MudCheckBox T="bool" Value="_items[index].ToInstagram" ValueChanged="@(v => _items[index].ToInstagram = v)" Disabled="@(!_sendInstagram)" Label="IG" />
-                            <MudCheckBox T="bool" Value="_items[index].ToTelegram" ValueChanged="@(v => _items[index].ToTelegram = v)" Disabled="@(!_sendTelegram)" Label="TG" />
-                            <MudCheckBox T="bool" Value="_items[index].ToX" ValueChanged="@(v => _items[index].ToX = v)" Disabled="@(!_sendX)" Label="X" />
+                            @if (_sendInstagram)
+                            {
+                                <MudCheckBox T="bool" Value="_items[index].ToInstagram" ValueChanged="@(v => _items[index].ToInstagram = v)" Label="IG" />
+                            }
+                            @if (_sendTelegram)
+                            {
+                                <MudCheckBox T="bool" Value="_items[index].ToTelegram" ValueChanged="@(v => _items[index].ToTelegram = v)" Label="TG" />
+                            }
+                            @if (_sendX)
+                            {
+                                <MudCheckBox T="bool" Value="_items[index].ToX" ValueChanged="@(v => _items[index].ToX = v)" Label="X" />
+                            }
                             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveAt(index))" />
                         </MudStack>
                     </MudPaper>
@@ -205,12 +264,17 @@
     private bool _loading = true;
     private bool _busy;
     private bool _useExcerpt = true;
-    private bool _igOn;
-    private bool _tgOn;
-    private bool _xOn;
     private bool _sendInstagram;
     private bool _sendTelegram;
     private bool _sendX;
+    private int _igAccountId;
+    private int _tgAccountId;
+    private int _xAccountId;
+    private List<InstagramAccountStatus> _igAccounts = new();
+    private List<TelegramAccountStatus> _tgAccounts = new();
+    private List<XAccountStatus> _xAccounts = new();
+    private readonly List<ContentLang> _langs = new();
+    private string _langCode = "";
     private string _title = "";
     private string _excerpt = "";
     private string _caption = "";
@@ -243,9 +307,9 @@
             {
                 await LoadAccountsAsync(product.WebsiteID);
                 _title = product.Title;
-                _excerpt = product.ShortDescription ?? "";
                 _product = true;
                 _slug = product.Slug;
+                LoadProductLanguages(product);
                 AddProductFiles(product);
             }
         }
@@ -256,13 +320,8 @@
             {
                 await LoadAccountsAsync(post.WebsiteID);
                 _title = post.Title;
-                _excerpt = post.Excerpt ?? "";
                 _slug = post.Slug;
-                foreach (var keyword in SocialHashtags.Split(post.MetaKeywords))
-                {
-                    _keywords.Add(keyword);
-                    _selectedKeywords.Add(keyword);
-                }
+                LoadPostLanguages(post);
                 var images = await Posts.GetImagesAsync(PostId);
                 foreach (var image in images.Where(i => i.FileRecord is not null))
                     AddLibraryFile(image.FileRecord!, InstagramMediaKind.Image);
@@ -277,12 +336,131 @@
     private async Task LoadAccountsAsync(int websiteId)
     {
         _websiteId = websiteId;
-        _igOn = (await InstagramAccounts.GetAsync(websiteId)).Connected;
-        _tgOn = (await TelegramAccounts.GetAsync(websiteId)).Connected;
-        _xOn = (await XAccounts.GetAsync(websiteId)).Connected;
-        _sendInstagram = _igOn;
-        _sendTelegram = _tgOn;
-        _sendX = _xOn;
+        _igAccounts = (await InstagramAccounts.ListAsync(websiteId)).Where(account => account.Connected).ToList();
+        _tgAccounts = (await TelegramAccounts.ListAsync(websiteId)).Where(account => account.Connected).ToList();
+        _xAccounts = (await XAccounts.ListAsync(websiteId)).Where(account => account.Connected).ToList();
+        _sendInstagram = _igAccounts.Count > 0;
+        _sendTelegram = _tgAccounts.Count > 0;
+        _sendX = _xAccounts.Count > 0;
+        _langs.Clear();
+        var languages = await Languages.GetActiveForWebsiteAsync(websiteId);
+        _siteLanguages = languages;
+        _defaultLanguage = languages.FirstOrDefault(language => language.IsDefault)?.LanguageCode
+            ?? languages.FirstOrDefault()?.LanguageCode
+            ?? "";
+    }
+
+    private List<Language> _siteLanguages = new();
+    private string _defaultLanguage = "";
+
+    private void LoadPostLanguages(Post post)
+    {
+        if (string.IsNullOrWhiteSpace(_defaultLanguage) && post.PostTranslations.Count == 0)
+        {
+            _excerpt = post.Excerpt ?? "";
+            FillKeywords(post.MetaKeywords);
+            PickChannels();
+            return;
+        }
+        AddLanguage(string.IsNullOrWhiteSpace(_defaultLanguage) ? "primary" : _defaultLanguage, post.Excerpt, post.MetaKeywords);
+        foreach (var translation in post.PostTranslations)
+        {
+            if (SameLanguage(translation.LanguageCode, _defaultLanguage)) continue;
+            AddLanguage(translation.LanguageCode, translation.Excerpt, translation.MetaKeywords);
+        }
+        ApplyLanguage(_langs.FirstOrDefault()?.Code ?? "");
+        PickChannels();
+    }
+
+    private void LoadProductLanguages(Product product)
+    {
+        if (string.IsNullOrWhiteSpace(_defaultLanguage) && product.ProductTranslations.Count == 0)
+        {
+            _excerpt = product.ShortDescription ?? "";
+            PickChannels();
+            return;
+        }
+        AddLanguage(string.IsNullOrWhiteSpace(_defaultLanguage) ? "primary" : _defaultLanguage, product.ShortDescription, null);
+        foreach (var translation in product.ProductTranslations)
+        {
+            if (SameLanguage(translation.LanguageCode, _defaultLanguage)) continue;
+            AddLanguage(translation.LanguageCode, translation.ShortDescription, null);
+        }
+        ApplyLanguage(_langs.FirstOrDefault()?.Code ?? "");
+        PickChannels();
+    }
+
+    private void AddLanguage(string? code, string? excerpt, string? keywords)
+    {
+        var key = string.IsNullOrWhiteSpace(code) ? _defaultLanguage : code.Trim();
+        if (key.Length == 0 || _langs.Any(lang => SameLanguage(lang.Code, key))) return;
+        var known = _siteLanguages.FirstOrDefault(language => SameLanguage(language.LanguageCode, key));
+        _langs.Add(new ContentLang
+        {
+            Code = key,
+            Name = known is null ? key : known.Name + " (" + known.LanguageCode + ")",
+            Excerpt = excerpt ?? "",
+            Keywords = keywords,
+        });
+    }
+
+    private void ApplyLanguage(string code)
+    {
+        var lang = _langs.FirstOrDefault(item => SameLanguage(item.Code, code)) ?? _langs.FirstOrDefault();
+        if (lang is null) return;
+        _langCode = lang.Code;
+        _excerpt = lang.Excerpt;
+        FillKeywords(lang.Keywords);
+    }
+
+    private void FillKeywords(string? keywords)
+    {
+        _keywords.Clear();
+        _selectedKeywords.Clear();
+        foreach (var keyword in SocialHashtags.Split(keywords))
+        {
+            _keywords.Add(keyword);
+            _selectedKeywords.Add(keyword);
+        }
+    }
+
+    private void PickChannels()
+    {
+        _igAccountId = SocialChannelChoice.Prefer(_igAccounts.Select(account => (account.AccountId, account.LanguageCode)).ToList(), _langCode);
+        _tgAccountId = SocialChannelChoice.Prefer(_tgAccounts.Select(account => (account.AccountId, account.LanguageCode)).ToList(), _langCode);
+        _xAccountId = SocialChannelChoice.Prefer(_xAccounts.Select(account => (account.AccountId, account.LanguageCode)).ToList(), _langCode);
+    }
+
+    private static bool SameLanguage(string? left, string? right) =>
+        string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static string ChannelLabel(string? title, string? handle, string? language) =>
+        SocialChannelChoice.Format(title, handle, language);
+
+    private async Task OnLanguage(string code)
+    {
+        ApplyLanguage(code);
+        PickChannels();
+        _finalEdited = false;
+        await RefreshPreviewAsync();
+    }
+
+    private Task OnIgAccount(int id)
+    {
+        _igAccountId = id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnTgAccount(int id)
+    {
+        _tgAccountId = id;
+        return Task.CompletedTask;
+    }
+
+    private Task OnXAccount(int id)
+    {
+        _xAccountId = id;
+        return Task.CompletedTask;
     }
 
     private async Task ToggleKeyword(string keyword, bool on)
@@ -577,6 +755,12 @@
                 SendInstagram = _sendInstagram,
                 SendTelegram = _sendTelegram,
                 SendX = _sendX,
+                InstagramAccountId = _sendInstagram && _igAccountId > 0 ? _igAccountId : null,
+                TelegramAccountId = _sendTelegram && _tgAccountId > 0 ? _tgAccountId : null,
+                XAccountId = _sendX && _xAccountId > 0 ? _xAccountId : null,
+                ContentLanguageCode = _useExcerpt && !string.IsNullOrWhiteSpace(_langCode) && !SameLanguage(_langCode, _defaultLanguage)
+                    ? _langCode
+                    : null,
                 Hashtags = _finalEdited ? [] : _keywords.Where(keyword => _selectedKeywords.Contains(keyword)).ToList(),
                 Items = _items.Select(ToItem).ToList(),
                 VideoCover = _videoCover is null ? null : ToItem(_videoCover),
@@ -629,5 +813,13 @@
         public bool ToX { get; set; } = true;
         public string? PreviewUrl { get; set; }
         public string Label { get; set; } = "";
+    }
+
+    private sealed class ContentLang
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Excerpt { get; set; } = "";
+        public string? Keywords { get; set; }
     }
 }

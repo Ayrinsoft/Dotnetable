@@ -3,6 +3,7 @@ using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Infrastructure.Data;
+using Dotnetable.Application.Social;
 using Dotnetable.Infrastructure.Social;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +22,18 @@ public sealed class InstagramAccountService : IInstagramAccountService
 
     public async Task<InstagramAccountStatus> GetAsync(int websiteId, CancellationToken ct = default)
     {
+        var rows = await ListAsync(websiteId, ct);
+        return rows.FirstOrDefault(row => row.Connected) ?? new InstagramAccountStatus();
+    }
+
+    public async Task<IReadOnlyList<InstagramAccountStatus>> ListAsync(int websiteId, CancellationToken ct = default)
+    {
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        var row = await context.WebsiteInstagramAccounts.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
-        return Status(row);
+        var rows = await context.WebsiteInstagramAccounts.AsNoTracking()
+            .Where(a => a.WebsiteID == websiteId)
+            .OrderBy(a => a.WebsiteInstagramAccountID)
+            .ToListAsync(ct);
+        return rows.Select(Status).ToList();
     }
 
     public async Task<InstagramAccountStatus> SaveAsync(int websiteId, InstagramAccountInput input, CancellationToken ct = default)
@@ -32,9 +41,10 @@ public sealed class InstagramAccountService : IInstagramAccountService
         var igUserId = (input.IgUserId ?? "").Trim();
         if (igUserId.Length == 0)
             throw new InstagramException("Enter the Instagram account id.");
+        var (title, language) = SocialChannelChoice.Read(input.Title, input.LanguageCode);
 
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        var row = await context.WebsiteInstagramAccounts.FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
+        var row = await FindAsync(context, websiteId, input.AccountId, ct);
         var token = string.IsNullOrWhiteSpace(input.AccessToken) ? row?.AccessToken : input.AccessToken.Trim();
         if (string.IsNullOrWhiteSpace(token))
             throw new InstagramException("Enter the Page access token.");
@@ -47,6 +57,8 @@ public sealed class InstagramAccountService : IInstagramAccountService
             context.WebsiteInstagramAccounts.Add(row);
         }
 
+        row.Title = title;
+        row.LanguageCode = language;
         row.IgUserId = igUserId;
         row.AccessToken = token;
         row.PageId = string.IsNullOrWhiteSpace(input.PageId) ? null : input.PageId.Trim();
@@ -57,18 +69,31 @@ public sealed class InstagramAccountService : IInstagramAccountService
         return Status(row);
     }
 
-    public async Task DisconnectAsync(int websiteId, CancellationToken ct = default)
+    public async Task DisconnectAsync(int websiteId, int accountId, CancellationToken ct = default)
     {
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        await context.WebsiteInstagramAccounts.Where(a => a.WebsiteID == websiteId).ExecuteDeleteAsync(ct);
+        await context.WebsiteInstagramAccounts
+            .Where(a => a.WebsiteID == websiteId && a.WebsiteInstagramAccountID == accountId)
+            .ExecuteDeleteAsync(ct);
     }
 
-    private static InstagramAccountStatus Status(WebsiteInstagramAccount? row) => new()
+    private static async Task<WebsiteInstagramAccount?> FindAsync(AppDbContext context, int websiteId, int accountId, CancellationToken ct)
     {
-        Connected = row is { IsActive: true } && !string.IsNullOrWhiteSpace(row.IgUserId) && !string.IsNullOrWhiteSpace(row.AccessToken),
-        IgUserId = row?.IgUserId,
-        Username = row?.Username,
-        PageId = row?.PageId,
-        HasToken = !string.IsNullOrWhiteSpace(row?.AccessToken),
+        if (accountId <= 0) return null;
+        return await context.WebsiteInstagramAccounts
+            .FirstOrDefaultAsync(a => a.WebsiteInstagramAccountID == accountId && a.WebsiteID == websiteId, ct)
+            ?? throw new SocialPublishException("That Instagram channel was not found.");
+    }
+
+    private static InstagramAccountStatus Status(WebsiteInstagramAccount row) => new()
+    {
+        AccountId = row.WebsiteInstagramAccountID,
+        Title = row.Title,
+        LanguageCode = row.LanguageCode,
+        Connected = row.IsActive && !string.IsNullOrWhiteSpace(row.IgUserId) && !string.IsNullOrWhiteSpace(row.AccessToken),
+        IgUserId = row.IgUserId,
+        Username = row.Username,
+        PageId = row.PageId,
+        HasToken = !string.IsNullOrWhiteSpace(row.AccessToken),
     };
 }

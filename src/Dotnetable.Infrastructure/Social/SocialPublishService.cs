@@ -154,6 +154,8 @@ public sealed class SocialPublishService : ISocialPublishService
             CoverIndex = newCover,
             VideoCover = request.VideoCover,
             SendInstagram = true,
+            InstagramAccountId = request.InstagramAccountId,
+            ContentLanguageCode = request.ContentLanguageCode,
             Hashtags = request.Hashtags,
             ShortenLink = request.ShortenLink,
             SkipAppend = request.SkipAppend,

@@ -1,0 +1,30 @@
+@inject IPageLocalizer L
+
+@if (Items.Count > 0)
+{
+    <MudText Typo="Typo.subtitle2" Class="mb-2">@SavedLabel</MudText>
+    @foreach (var item in Items)
+    {
+        <MudPaper Outlined="true" Class="pa-2 mb-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.body2">@item.Label</MudText>
+                <MudStack Row="true" Spacing="1">
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="@(EditingId == item.Id)" OnClick="@(() => OnEdit.InvokeAsync(item.Id))">@EditLabel</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnRemove.InvokeAsync(item.Id))">@RemoveLabel</MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public IReadOnlyList<SocialChannelRow> Items { get; set; } = [];
+    [Parameter] public int EditingId { get; set; }
+    [Parameter] public EventCallback<int> OnEdit { get; set; }
+    [Parameter] public EventCallback<int> OnRemove { get; set; }
+
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+    private string SavedLabel => Persian ? "کانال‌های ذخیره‌شده" : "Saved channels";
+    private string EditLabel => Persian ? "ویرایش" : "Edit";
+    private string RemoveLabel => Persian ? "حذف" : "Remove";
+}

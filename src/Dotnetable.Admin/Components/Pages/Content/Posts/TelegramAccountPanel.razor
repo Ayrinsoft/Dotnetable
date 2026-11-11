@@ -1,3 +1,4 @@
+@using Dotnetable.Application.Social
 @inject ITelegramAccountService Accounts
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -17,28 +18,23 @@
     </MudExpansionPanels>
     @if (CanEdit)
     {
-        @if (_status?.Connected == true)
-        {
-            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                @(string.IsNullOrWhiteSpace(_status.Username)
-                    ? string.Format(L["posts.tg_connected_chat", "Telegram is connected to {0}."], _status.ChatId)
-                    : string.Format(L["posts.tg_connected_as", "Bot @{0} posts to {1}."], _status.Username, _status.ChatId))
-            </MudAlert>
-        }
+        <SocialChannelList Items="_rows" EditingId="_accountId" OnEdit="Edit" OnRemove="DisconnectAsync" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@(_accountId > 0 ? EditLabel : AddLabel)</MudText>
+        <SocialChannelNameFields WebsiteId="WebsiteId" @bind-Title="_title" @bind-LanguageCode="_language" />
         <MudGrid Spacing="2">
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_chatId" Label="@L["posts.tg_chat", "Chat id (@channel or numeric)"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_token" Label="@L["posts.tg_token", "Bot token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                              InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
+                              InputType="InputType.Password" HelperText="@(_editingHasToken ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
             </MudItem>
         </MudGrid>
         <MudStack Row="true" Spacing="2" Class="mt-2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.tg_save", "Check and save"]</MudButton>
-            @if (_status?.Connected == true)
+            @if (_accountId > 0)
             {
-                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.tg_disconnect", "Disconnect"]</MudButton>
+                <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="StartNew">@AddLabel</MudButton>
             }
         </MudStack>
     }
@@ -51,13 +47,23 @@
     private bool _busy;
     private bool _helpOpen;
     private int _loadedFor;
-    private TelegramAccountStatus? _status;
+    private int _accountId;
+    private bool _editingHasToken;
+    private List<TelegramAccountStatus> _accounts = new();
+    private string _title = "";
+    private string _language = "";
     private string _chatId = "";
     private string _token = "";
+    private string AddLabel => Persian ? "کانال دیگر" : "Add another channel";
+    private string EditLabel => Persian ? "ویرایش این کانال" : "Edit this channel";
+    private IReadOnlyList<SocialChannelRow> _rows => _accounts
+        .Select(account => new SocialChannelRow(account.AccountId, SocialChannelChoice.Format(account.Title, account.ChatId, account.LanguageCode)
+            + (string.IsNullOrWhiteSpace(account.Username) ? "" : " · @" + account.Username.TrimStart('@'))))
+        .ToList();
     private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
     private string Intro => Persian
-        ? "ربات باید مدیر کانال یا گروهی باشد که پست در آن منتشر می‌شود. توکن بعد از ذخیره نشان داده نمی‌شود."
-        : "The bot must be an administrator of the channel or group that receives the post. The token is not shown again after you save.";
+        ? "ربات باید مدیر کانال یا گروهی باشد که پست در آن منتشر می‌شود. توکن بعد از ذخیره نشان داده نمی‌شود. برای زبان یا کارکرد دیگر، کانال دیگری اضافه کنید."
+        : "The bot must be an administrator of the channel or group that receives the post. The token is not shown again after you save. Add another channel when the language or the purpose is different.";
     private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
     private static readonly string[] StepsFa =
     [
@@ -82,9 +88,30 @@
     {
         if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
         _loadedFor = WebsiteId;
+        StartNew();
+        _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+    }
+
+    private void StartNew()
+    {
+        _accountId = 0;
+        _editingHasToken = false;
+        _title = "";
+        _language = "";
+        _chatId = "";
         _token = "";
-        _status = await Accounts.GetAsync(WebsiteId);
-        _chatId = _status.ChatId ?? "";
+    }
+
+    private void Edit(int accountId)
+    {
+        var account = _accounts.FirstOrDefault(a => a.AccountId == accountId);
+        if (account is null) return;
+        _accountId = account.AccountId;
+        _editingHasToken = account.HasToken;
+        _title = account.Title;
+        _language = account.LanguageCode ?? "";
+        _chatId = account.ChatId ?? "";
+        _token = "";
     }
 
     private void OnHelpChanged(bool value) => _helpOpen = value;
@@ -95,8 +122,16 @@
         _busy = true;
         try
         {
-            _status = await Accounts.SaveAsync(WebsiteId, new TelegramAccountInput { ChatId = _chatId, BotToken = _token });
-            _token = "";
+            await Accounts.SaveAsync(WebsiteId, new TelegramAccountInput
+            {
+                AccountId = _accountId,
+                Title = _title,
+                LanguageCode = _language,
+                ChatId = _chatId,
+                BotToken = _token,
+            });
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+            StartNew();
             Snackbar.Add(L["posts.tg_saved", "Telegram bot saved."], Severity.Success);
         }
         catch (Exception ex)
@@ -109,15 +144,15 @@
         }
     }
 
-    private async Task DisconnectAsync()
+    private async Task DisconnectAsync(int accountId)
     {
         if (_busy) return;
         _busy = true;
         try
         {
-            await Accounts.DisconnectAsync(WebsiteId);
-            _status = new TelegramAccountStatus();
-            _chatId = "";
+            await Accounts.DisconnectAsync(WebsiteId, accountId);
+            if (_accountId == accountId) StartNew();
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
             _token = "";
             Snackbar.Add(L["posts.tg_disconnected", "Telegram disconnected."], Severity.Success);
         }

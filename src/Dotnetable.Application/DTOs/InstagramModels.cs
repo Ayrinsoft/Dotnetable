@@ -5,6 +5,9 @@ namespace Dotnetable.Application.DTOs;
 /// <summary>What the admin may see about the connected Instagram account. The token itself is never returned.</summary>
 public sealed class InstagramAccountStatus
 {
+    public int AccountId { get; init; }
+    public string Title { get; init; } = "";
+    public string? LanguageCode { get; init; }
     public bool Connected { get; init; }
     public string? IgUserId { get; init; }
     public string? Username { get; init; }
@@ -15,6 +18,10 @@ public sealed class InstagramAccountStatus
 /// <summary>Fields the admin saves. A blank token keeps the token already stored.</summary>
 public sealed class InstagramAccountInput
 {
+    /// <summary>Zero adds a channel. A positive id updates that channel.</summary>
+    public int AccountId { get; set; }
+    public string Title { get; set; } = "";
+    public string? LanguageCode { get; set; }
     public string IgUserId { get; set; } = "";
     public string? AccessToken { get; set; }
     public string? PageId { get; set; }
@@ -73,6 +80,18 @@ public sealed class InstagramPublishRequest
     public bool SendTelegram { get; set; }
 
     public bool SendX { get; set; }
+
+    /// <summary>Instagram channel to use. Null uses the only saved channel.</summary>
+    public int? InstagramAccountId { get; set; }
+
+    /// <summary>Telegram channel to use. Null uses the only saved channel.</summary>
+    public int? TelegramAccountId { get; set; }
+
+    /// <summary>X channel to use. Null uses the only saved channel.</summary>
+    public int? XAccountId { get; set; }
+
+    /// <summary>Translation language for the summary. Null or a missing translation uses the primary text.</summary>
+    public string? ContentLanguageCode { get; set; }
 
     /// <summary>Keywords the admin left ticked. Stored phrases, not hashtags. Empty sends none.</summary>
     public List<string> Hashtags { get; set; } = new();

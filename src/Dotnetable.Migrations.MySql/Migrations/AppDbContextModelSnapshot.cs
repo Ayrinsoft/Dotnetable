@@ -9567,9 +9567,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("PageId")
                         .HasMaxLength(40)
                         .HasColumnType("varchar(40)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
@@ -9583,8 +9592,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteInstagramAccountID");
 
-                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteInstagramAccounts_WebsiteID")
-                        .IsUnique();
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteInstagramAccounts_WebsiteID");
 
                     b.ToTable("WebsiteInstagramAccounts");
                 });
@@ -9855,6 +9863,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
 
@@ -9867,8 +9884,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteTelegramAccountID");
 
-                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteTelegramAccounts_WebsiteID")
-                        .IsUnique();
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteTelegramAccounts_WebsiteID");
 
                     b.ToTable("WebsiteTelegramAccounts");
                 });
@@ -10087,6 +10103,15 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("LanguageCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime");
 
@@ -10099,8 +10124,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.HasKey("WebsiteXAccountID");
 
-                    b.HasIndex(new[] { "WebsiteID" }, "UQ_WebsiteXAccounts_WebsiteID")
-                        .IsUnique();
+                    b.HasIndex(new[] { "WebsiteID" }, "IX_WebsiteXAccounts_WebsiteID");
 
                     b.ToTable("WebsiteXAccounts");
                 });
@@ -14084,8 +14108,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteInstagramAccount", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithOne("WebsiteInstagramAccount")
-                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteInstagramAccount", "WebsiteID")
+                        .WithMany("WebsiteInstagramAccounts")
+                        .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteInstagramAccounts_Websites");
 
@@ -14161,8 +14185,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteTelegramAccount", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithOne("WebsiteTelegramAccount")
-                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteTelegramAccount", "WebsiteID")
+                        .WithMany("WebsiteTelegramAccounts")
+                        .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteTelegramAccounts_Websites");
 
@@ -14252,8 +14276,8 @@ namespace Dotnetable.Migrations.MySql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.WebsiteXAccount", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
-                        .WithOne("WebsiteXAccount")
-                        .HasForeignKey("Dotnetable.Domain.Entities.WebsiteXAccount", "WebsiteID")
+                        .WithMany("WebsiteXAccounts")
+                        .HasForeignKey("WebsiteID")
                         .IsRequired()
                         .HasConstraintName("FK_WebsiteXAccounts_Websites");
 
@@ -15226,7 +15250,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteIPs");
 
-                    b.Navigation("WebsiteInstagramAccount");
+                    b.Navigation("WebsiteInstagramAccounts");
 
                     b.Navigation("WebsiteRedirects");
 
@@ -15240,7 +15264,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteStorageSettings");
 
-                    b.Navigation("WebsiteTelegramAccount");
+                    b.Navigation("WebsiteTelegramAccounts");
 
                     b.Navigation("WebsiteThemes");
 
@@ -15252,7 +15276,7 @@ namespace Dotnetable.Migrations.MySql.Migrations
 
                     b.Navigation("WebsiteWhatsAppSettings");
 
-                    b.Navigation("WebsiteXAccount");
+                    b.Navigation("WebsiteXAccounts");
 
                     b.Navigation("Wishlists");
                 });

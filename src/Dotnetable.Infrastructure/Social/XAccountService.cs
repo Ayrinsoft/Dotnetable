@@ -1,4 +1,5 @@
 using Dotnetable.Application.DTOs;
+using Dotnetable.Application.Social;
 using Dotnetable.Application.Instagram;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Domain.Entities;
@@ -20,15 +21,25 @@ public sealed class XAccountService : IXAccountService
 
     public async Task<XAccountStatus> GetAsync(int websiteId, CancellationToken ct = default)
     {
+        var rows = await ListAsync(websiteId, ct);
+        return rows.FirstOrDefault(row => row.Connected) ?? new XAccountStatus();
+    }
+
+    public async Task<IReadOnlyList<XAccountStatus>> ListAsync(int websiteId, CancellationToken ct = default)
+    {
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        var row = await context.WebsiteXAccounts.AsNoTracking().FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
-        return Status(row);
+        var rows = await context.WebsiteXAccounts.AsNoTracking()
+            .Where(a => a.WebsiteID == websiteId)
+            .OrderBy(a => a.WebsiteXAccountID)
+            .ToListAsync(ct);
+        return rows.Select(Status).ToList();
     }
 
     public async Task<XAccountStatus> SaveAsync(int websiteId, XAccountInput input, CancellationToken ct = default)
     {
+        var (title, language) = SocialChannelChoice.Read(input.Title, input.LanguageCode);
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        var row = await context.WebsiteXAccounts.FirstOrDefaultAsync(a => a.WebsiteID == websiteId, ct);
+        var row = await FindAsync(context, websiteId, input.AccountId, ct);
         var apiKey = Keep(input.ApiKey, row?.ApiKey);
         var apiSecret = Keep(input.ApiSecret, row?.ApiSecret);
         var accessToken = Keep(input.AccessToken, row?.AccessToken);
@@ -44,6 +55,8 @@ public sealed class XAccountService : IXAccountService
             context.WebsiteXAccounts.Add(row);
         }
 
+        row.Title = title;
+        row.LanguageCode = language;
         row.ApiKey = apiKey;
         row.ApiSecret = apiSecret;
         row.AccessToken = accessToken;
@@ -55,25 +68,37 @@ public sealed class XAccountService : IXAccountService
         return Status(row);
     }
 
-    public async Task DisconnectAsync(int websiteId, CancellationToken ct = default)
+    public async Task DisconnectAsync(int websiteId, int accountId, CancellationToken ct = default)
     {
         await using var context = await _contexts.CreateDbContextAsync(ct);
-        await context.WebsiteXAccounts.Where(a => a.WebsiteID == websiteId).ExecuteDeleteAsync(ct);
+        await context.WebsiteXAccounts
+            .Where(a => a.WebsiteID == websiteId && a.WebsiteXAccountID == accountId)
+            .ExecuteDeleteAsync(ct);
+    }
+
+    private static async Task<WebsiteXAccount?> FindAsync(AppDbContext context, int websiteId, int accountId, CancellationToken ct)
+    {
+        if (accountId <= 0) return null;
+        return await context.WebsiteXAccounts
+            .FirstOrDefaultAsync(a => a.WebsiteXAccountID == accountId && a.WebsiteID == websiteId, ct)
+            ?? throw new SocialPublishException("That X channel was not found.");
     }
 
     private static string? Keep(string? incoming, string? saved) =>
         string.IsNullOrWhiteSpace(incoming) ? (string.IsNullOrWhiteSpace(saved) ? null : saved) : incoming.Trim();
 
-    private static XAccountStatus Status(WebsiteXAccount? row) => new()
+    private static XAccountStatus Status(WebsiteXAccount row) => new()
     {
-        Connected = row is { IsActive: true }
+        AccountId = row.WebsiteXAccountID,
+        Title = row.Title,
+        LanguageCode = row.LanguageCode,
+        Connected = row.IsActive
             && !string.IsNullOrWhiteSpace(row.ApiKey)
             && !string.IsNullOrWhiteSpace(row.ApiSecret)
             && !string.IsNullOrWhiteSpace(row.AccessToken)
             && !string.IsNullOrWhiteSpace(row.AccessTokenSecret),
-        Username = row?.Username,
-        HasKeys = row is not null
-            && !string.IsNullOrWhiteSpace(row.ApiKey)
+        Username = row.Username,
+        HasKeys = !string.IsNullOrWhiteSpace(row.ApiKey)
             && !string.IsNullOrWhiteSpace(row.ApiSecret)
             && !string.IsNullOrWhiteSpace(row.AccessToken)
             && !string.IsNullOrWhiteSpace(row.AccessTokenSecret),

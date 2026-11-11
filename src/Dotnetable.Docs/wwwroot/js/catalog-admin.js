@@ -681,8 +681,8 @@ window.DOCS_ADMIN = {
           title: { en: "Social publishing", fa: "انتشار در شبکه‌ها" },
           adminPath: "/website/social-accounts",
           summary: {
-            en: "One Instagram, Telegram, and X account per website, used when a post or product is sent.",
-            fa: "یک حساب اینستاگرام، تلگرام و X برای هر وب‌سایت، برای ارسال پست یا محصول.",
+            en: "Instagram, Telegram, and X channels used when a post or product is sent. A website can keep more than one of each, named for a language or a purpose.",
+            fa: "کانال‌های اینستاگرام، تلگرام و X برای ارسال پست یا محصول. هر وب‌سایت می‌تواند برای زبان یا کارکرد متفاوت بیش از یکی از هر کدام داشته باشد.",
           },
           purpose: {
             en: "Keep the API tokens off the post and product lists. The send button stays on those lists.",
@@ -690,8 +690,8 @@ window.DOCS_ADMIN = {
           },
           howTo: [
             {
-              en: "Open Website → Social publishing. Each network has its own form. Show steps is closed until you open it.",
-              fa: "Website → Social publishing را باز کنید. هر شبکه فرم خودش را دارد. «Show steps» تا وقتی بازش نکنید بسته است.",
+              en: "Open Website → Social publishing. Each network has its own form. Give the channel a name and, if you want, a content language, then check and save. Add another channel for a different language or purpose. Show steps is closed until you open it.",
+              fa: "Website → Social publishing را باز کنید. هر شبکه فرم خودش را دارد. برای کانال یک نام و در صورت نیاز زبان محتوا بگذارید و ذخیره کنید. برای زبان یا کارکرد دیگر کانال دیگری اضافه کنید. «Show steps» تا وقتی بازش نکنید بسته است.",
             },
             {
               en: "If a post or product row is sent while none of the three accounts is saved, confirm the message and the admin opens this page.",
@@ -923,8 +923,8 @@ window.DOCS_ADMIN = {
               fa: "در بخش Photos چند عکس بگذارید. عکس اول کاور است و همان `featuredImageUrl` می‌ماند. اگر بیشتر از یکی باشد، صفحه پست آن‌ها را اسلایدشو نشان می‌دهد؛ API پست تکی آن‌ها را در آرایه `images` می‌فرستد.",
             },
             {
-              en: "Save Instagram, Telegram, and X under Website → Social publishing. The row button opens one window. Tick the networks, then tick which files go to each one (for example five photos on Instagram and two on Telegram, with X left off). The caption can be typed or taken from the primary-language summary. Instagram still needs a public https address and deletes its temporary files after it accepts them. Sending again is allowed. A green mark on the row means that network has received the post before. The mark does not show a count or a time. If none of the accounts is saved, the list asks before opening Social publishing.",
-              fa: "حساب اینستاگرام، تلگرام و X را در Website → Social publishing ذخیره کنید. دکمه هر ردیف یک پنجره باز می‌کند. شبکه را تیک بزنید و بعد مشخص کنید کدام فایل به کدام شبکه برود (مثلاً پنج عکس برای اینستاگرام و دو عکس برای تلگرام، بدون X). کپشن را می‌توان نوشت یا از خلاصه زبان اصلی گرفت. اینستاگرام هنوز نشانی https عمومی می‌خواهد و فایل موقت را بعد از پذیرش پاک می‌کند. ارسال دوباره مجاز است. علامت سبز روی ردیف یعنی آن شبکه قبلاً این پست را گرفته است و تعداد یا زمان را نشان نمی‌دهد. اگر هیچ حسابی ذخیره نشده باشد، فهرست قبل از رفتن به Social publishing تأیید می‌گیرد.",
+              en: "Save Instagram, Telegram, and X under Website → Social publishing. A website can have more than one channel on each network. The row button opens one window. Only networks that have a saved channel are shown, and you can tick all of them in one send. When a network has more than one channel, pick that network's channel. When the summary is used and the post has more than one language, pick the language. Then tick which files go to each selected network. Instagram still needs a public https address and deletes its temporary files after it accepts them. Sending again is allowed. A green mark on the row means that network has received the post before. The mark does not show a count or a time. If none of the accounts is saved, the list asks before opening Social publishing.",
+              fa: "حساب اینستاگرام، تلگرام و X را در Website → Social publishing ذخیره کنید. هر وب‌سایت می‌تواند روی هر شبکه بیش از یک کانال داشته باشد. دکمه هر ردیف یک پنجره باز می‌کند. فقط شبکه‌ای که کانال ذخیره‌شده دارد دیده می‌شود و می‌توان هر سه را در یک ارسال تیک زد. اگر یک شبکه بیش از یک کانال دارد، کانال همان شبکه را انتخاب کنید. اگر خلاصه استفاده می‌شود و پست بیش از یک زبان دارد، زبان را انتخاب کنید. بعد مشخص کنید کدام فایل به کدام شبکه انتخاب‌شده برود. اینستاگرام هنوز نشانی https عمومی می‌خواهد و فایل موقت را بعد از پذیرش پاک می‌کند. ارسال دوباره مجاز است. علامت سبز روی ردیف یعنی آن شبکه قبلاً این پست را گرفته است و تعداد یا زمان را نشان نمی‌دهد. اگر هیچ حسابی ذخیره نشده باشد، فهرست قبل از رفتن به Social publishing تأیید می‌گیرد.",
             },
             {
               en: "On the post editor, open **Sample file and agent prompt**. Download the sample JSON, or copy the prompt into an AI assistant, paste your article under it (or ask it to write the article), then choose the JSON file it returns. The file fills the text fields and, when present, `location` (latitude, longitude, optional numeric kind, the main-language address, and `addresses` for other languages). Categories and the featured image stay as they are until you save.",
@@ -1408,8 +1408,8 @@ window.DOCS_ADMIN = {
               fa: "اختیاری: پیشوند کد کالا را در Websites → ویرایش سایت عوض کنید (پیش‌فرض **DN**).",
             },
             {
-              en: "Instagram, Telegram, and X use the same one-per-website accounts as posts, saved under Website → Social publishing. The row button opens the same window. Tick the networks, then tick which files go to each one. The caption can be typed or taken from the short description. Product photos and videos fill the window. Instagram still needs a public https address and deletes its temporary files after it accepts them. Sending again is allowed. A green mark on the row means that network has received the product before. The mark does not show a count or a time. If none of the accounts is saved, the list asks before opening Social publishing.",
-              fa: "اینستاگرام، تلگرام و X همان حساب‌های هر وب‌سایت پست‌ها هستند و در Website → Social publishing ذخیره می‌شوند. دکمه هر ردیف همان پنجره را باز می‌کند. شبکه را تیک بزنید و بعد مشخص کنید کدام فایل به کدام شبکه برود. کپشن را می‌توان نوشت یا از توضیح کوتاه گرفت. عکس و ویدیوی محصول در پنجره می‌آید. اینستاگرام هنوز نشانی https عمومی می‌خواهد و فایل موقت را بعد از پذیرش پاک می‌کند. ارسال دوباره مجاز است. علامت سبز روی ردیف یعنی آن شبکه قبلاً این محصول را گرفته است و تعداد یا زمان را نشان نمی‌دهد. اگر هیچ حسابی ذخیره نشده باشد، فهرست قبل از رفتن به Social publishing تأیید می‌گیرد.",
+              en: "Instagram, Telegram, and X use the same website channels as posts, saved under Website → Social publishing. A website can have more than one channel on each network. The row button opens the same window. Only networks that have a saved channel are shown, and you can tick all of them in one send. When a network has more than one channel, pick that network's channel. When the short description is used and the product has more than one language, pick the language. Then tick which files go to each selected network. Product photos and videos fill the window. Instagram still needs a public https address and deletes its temporary files after it accepts them. Sending again is allowed. A green mark on the row means that network has received the product before. The mark does not show a count or a time. If none of the accounts is saved, the list asks before opening Social publishing.",
+              fa: "اینستاگرام، تلگرام و X همان کانال‌های وب‌سایت پست‌ها هستند و در Website → Social publishing ذخیره می‌شوند. هر وب‌سایت می‌تواند روی هر شبکه بیش از یک کانال داشته باشد. دکمه هر ردیف همان پنجره را باز می‌کند. فقط شبکه‌ای که کانال ذخیره‌شده دارد دیده می‌شود و می‌توان هر سه را در یک ارسال تیک زد. اگر یک شبکه بیش از یک کانال دارد، کانال همان شبکه را انتخاب کنید. اگر توضیح کوتاه استفاده می‌شود و محصول بیش از یک زبان دارد، زبان را انتخاب کنید. بعد مشخص کنید کدام فایل به کدام شبکه انتخاب‌شده برود. عکس و ویدیوی محصول در پنجره می‌آید. اینستاگرام هنوز نشانی https عمومی می‌خواهد و فایل موقت را بعد از پذیرش پاک می‌کند. ارسال دوباره مجاز است. علامت سبز روی ردیف یعنی آن شبکه قبلاً این محصول را گرفته است و تعداد یا زمان را نشان نمی‌دهد. اگر هیچ حسابی ذخیره نشده باشد، فهرست قبل از رفتن به Social publishing تأیید می‌گیرد.",
             },
           ],
           sections: [

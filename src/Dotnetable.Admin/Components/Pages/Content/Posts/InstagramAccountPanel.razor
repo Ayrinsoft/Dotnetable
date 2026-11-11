@@ -1,3 +1,4 @@
+@using Dotnetable.Application.Social
 @inject IInstagramAccountService Accounts
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -18,15 +19,9 @@
 
     @if (CanEdit)
     {
-        @if (_status?.Connected == true)
-        {
-            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                @(string.IsNullOrWhiteSpace(_status.Username)
-                    ? L["posts.ig_connected", "Instagram is connected."]
-                    : string.Format(L["posts.ig_connected_as", "Connected as @{0}."], _status.Username))
-            </MudAlert>
-        }
-
+        <SocialChannelList Items="_rows" EditingId="_accountId" OnEdit="Edit" OnRemove="DisconnectAsync" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@(_accountId > 0 ? EditLabel : AddLabel)</MudText>
+        <SocialChannelNameFields WebsiteId="WebsiteId" @bind-Title="_title" @bind-LanguageCode="_language" />
         <MudGrid Spacing="2">
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_igUserId" Label="@L["posts.ig_user_id", "Instagram account id"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -36,14 +31,14 @@
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_token" Label="@L["posts.ig_token", "Page access token"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                              InputType="InputType.Password" HelperText="@(_status?.HasToken == true ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
+                              InputType="InputType.Password" HelperText="@(_editingHasToken ? L["posts.ig_token_keep", "Leave blank to keep the saved token."] : null)" />
             </MudItem>
         </MudGrid>
         <MudStack Row="true" Spacing="2" Class="mt-2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.ig_save", "Check and save"]</MudButton>
-            @if (_status?.Connected == true)
+            @if (_accountId > 0)
             {
-                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.ig_disconnect", "Disconnect"]</MudButton>
+                <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="StartNew">@AddLabel</MudButton>
             }
         </MudStack>
     }
@@ -56,16 +51,22 @@
     private bool _busy;
     private bool _helpOpen;
     private int _loadedFor;
-    private InstagramAccountStatus? _status;
+    private int _accountId;
+    private bool _editingHasToken;
+    private List<InstagramAccountStatus> _accounts = new();
+    private string _title = "";
+    private string _language = "";
     private string _igUserId = "";
     private string _pageId = "";
     private string _token = "";
+    private string AddLabel => Persian ? "کانال دیگر" : "Add another channel";
+    private string EditLabel => Persian ? "ویرایش این کانال" : "Edit this channel";
 
     private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
 
     private string Intro => Persian
-        ? "اینستاگرام فقط از حساب حرفه‌ای (بیزینس یا کریتور) که به یک صفحه فیسبوک وصل است پست می‌گیرد. توکن را اینجا بگذارید. خود توکن بعد از ذخیره نشان داده نمی‌شود."
-        : "Instagram accepts posts only from a professional account (Business or Creator) linked to a Facebook Page. Paste the token here. It is not shown again after you save.";
+        ? "اینستاگرام فقط از حساب حرفه‌ای (بیزینس یا کریتور) که به یک صفحه فیسبوک وصل است پست می‌گیرد. توکن را اینجا بگذارید. خود توکن بعد از ذخیره نشان داده نمی‌شود. برای زبان یا کارکرد دیگر، کانال دیگری اضافه کنید."
+        : "Instagram accepts posts only from a professional account (Business or Creator) linked to a Facebook Page. Paste the token here. It is not shown again after you save. Add another channel when the language or the purpose is different.";
 
     private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
 
@@ -93,10 +94,36 @@
     {
         if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
         _loadedFor = WebsiteId;
+        StartNew();
+        _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+    }
+
+    private IReadOnlyList<SocialChannelRow> _rows => _accounts
+        .Select(account => new SocialChannelRow(account.AccountId, SocialChannelChoice.Format(account.Title, account.Username ?? account.IgUserId, account.LanguageCode)))
+        .ToList();
+
+    private void StartNew()
+    {
+        _accountId = 0;
+        _editingHasToken = false;
+        _title = "";
+        _language = "";
+        _igUserId = "";
+        _pageId = "";
         _token = "";
-        _status = await Accounts.GetAsync(WebsiteId);
-        _igUserId = _status.IgUserId ?? "";
-        _pageId = _status.PageId ?? "";
+    }
+
+    private void Edit(int accountId)
+    {
+        var account = _accounts.FirstOrDefault(a => a.AccountId == accountId);
+        if (account is null) return;
+        _accountId = account.AccountId;
+        _editingHasToken = account.HasToken;
+        _title = account.Title;
+        _language = account.LanguageCode ?? "";
+        _igUserId = account.IgUserId ?? "";
+        _pageId = account.PageId ?? "";
+        _token = "";
     }
 
     private void OnHelpChanged(bool value) => _helpOpen = value;
@@ -107,13 +134,18 @@
         _busy = true;
         try
         {
-            _status = await Accounts.SaveAsync(WebsiteId, new InstagramAccountInput
+            await Accounts.SaveAsync(WebsiteId, new InstagramAccountInput
             {
+                AccountId = _accountId,
+                Title = _title,
+                LanguageCode = _language,
                 IgUserId = _igUserId,
                 PageId = _pageId,
                 AccessToken = _token,
             });
             _token = "";
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+            StartNew();
             Snackbar.Add(L["posts.ig_saved", "Instagram account saved."], Severity.Success);
         }
         catch (Exception ex)
@@ -126,17 +158,15 @@
         }
     }
 
-    private async Task DisconnectAsync()
+    private async Task DisconnectAsync(int accountId)
     {
         if (_busy) return;
         _busy = true;
         try
         {
-            await Accounts.DisconnectAsync(WebsiteId);
-            _status = new InstagramAccountStatus();
-            _igUserId = "";
-            _pageId = "";
-            _token = "";
+            await Accounts.DisconnectAsync(WebsiteId, accountId);
+            if (_accountId == accountId) StartNew();
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
             Snackbar.Add(L["posts.ig_disconnected", "Instagram disconnected."], Severity.Success);
         }
         catch (Exception ex)

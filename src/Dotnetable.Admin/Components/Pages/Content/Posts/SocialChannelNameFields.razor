@@ -1,0 +1,46 @@
+@inject ILanguageService Languages
+@inject IPageLocalizer L
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" md="6">
+        <MudTextField Value="Title" ValueChanged="TitleChanged" Label="@L["posts.social_channel_name", "Channel name"]"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="80" Counter="80"
+                      HelperText="@NameHint" />
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudSelect T="string" Value="LanguageCode" ValueChanged="LanguageCodeChanged" Label="@L["posts.social_channel_language", "Content language"]"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="@LanguageHint">
+            <MudSelectItem T="string" Value="@("")">@AnyLanguage</MudSelectItem>
+            @foreach (var lang in _languages)
+            {
+                <MudSelectItem T="string" Value="@lang.LanguageCode">@lang.Name (@lang.LanguageCode)</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public int WebsiteId { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public EventCallback<string> TitleChanged { get; set; }
+    [Parameter] public string LanguageCode { get; set; } = "";
+    [Parameter] public EventCallback<string> LanguageCodeChanged { get; set; }
+
+    private int _loadedFor;
+    private List<Language> _languages = new();
+    private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
+    private string NameHint => Persian
+        ? "مثلاً اخبار فارسی یا فروشگاه انگلیسی. هر وب‌سایت می‌تواند چند کانال داشته باشد."
+        : "For example, Persian news or the English shop. A website can have more than one channel.";
+    private string LanguageHint => Persian
+        ? "وقتی خلاصه را می‌فرستید، کانالی که زبانش همین باشد پیشنهاد می‌شود. خالی یعنی هر زبان."
+        : "When the summary is used, a channel with this language is suggested. Empty means any language.";
+    private string AnyLanguage => Persian ? "هر زبان" : "Any language";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
+        _loadedFor = WebsiteId;
+        _languages = await Languages.GetActiveForWebsiteAsync(WebsiteId);
+    }
+}

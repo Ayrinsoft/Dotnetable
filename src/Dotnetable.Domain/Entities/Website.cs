@@ -325,11 +325,11 @@ public partial class Website
 
     public virtual ICollection<WebsiteFeature> WebsiteFeatures { get; set; } = new List<WebsiteFeature>();
 
-    public virtual WebsiteInstagramAccount? WebsiteInstagramAccount { get; set; }
+    public virtual ICollection<WebsiteInstagramAccount> WebsiteInstagramAccounts { get; set; } = new List<WebsiteInstagramAccount>();
 
-    public virtual WebsiteTelegramAccount? WebsiteTelegramAccount { get; set; }
+    public virtual ICollection<WebsiteTelegramAccount> WebsiteTelegramAccounts { get; set; } = new List<WebsiteTelegramAccount>();
 
-    public virtual WebsiteXAccount? WebsiteXAccount { get; set; }
+    public virtual ICollection<WebsiteXAccount> WebsiteXAccounts { get; set; } = new List<WebsiteXAccount>();
 
     public virtual ICollection<WebsiteIP> WebsiteIPs { get; set; } = new List<WebsiteIP>();
 

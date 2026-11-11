@@ -1,3 +1,4 @@
+@using Dotnetable.Application.Social
 @inject IXAccountService Accounts
 @inject ISnackbar Snackbar
 @inject IPageLocalizer L
@@ -20,18 +21,13 @@
     </MudExpansionPanels>
     @if (CanEdit)
     {
-        @if (_status?.Connected == true)
-        {
-            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-                @(string.IsNullOrWhiteSpace(_status.Username)
-                    ? L["posts.x_connected", "X is connected."]
-                    : string.Format(L["posts.x_connected_as", "Connected as @{0}."], _status.Username))
-            </MudAlert>
-        }
+        <SocialChannelList Items="_rows" EditingId="_accountId" OnEdit="Edit" OnRemove="DisconnectAsync" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@(_accountId > 0 ? EditLabel : AddLabel)</MudText>
+        <SocialChannelNameFields WebsiteId="WebsiteId" @bind-Title="_title" @bind-LanguageCode="_language" />
         <MudGrid Spacing="2">
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_apiKey" Label="@L["posts.x_key", "API key"]" Variant="Variant.Outlined" Margin="Margin.Dense"
-                              InputType="InputType.Password" HelperText="@(_status?.HasKeys == true ? L["posts.x_keep", "Leave a field blank to keep the saved value."] : null)" />
+                              InputType="InputType.Password" HelperText="@(_editingHasKeys ? L["posts.x_keep", "Leave a field blank to keep the saved value."] : null)" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_apiSecret" Label="@L["posts.x_secret", "API key secret"]" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
@@ -45,9 +41,9 @@
         </MudGrid>
         <MudStack Row="true" Spacing="2" Class="mt-2">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy" OnClick="SaveAsync">@L["posts.x_save", "Check and save"]</MudButton>
-            @if (_status?.Connected == true)
+            @if (_accountId > 0)
             {
-                <MudButton Variant="Variant.Text" Color="Color.Error" Disabled="_busy" OnClick="DisconnectAsync">@L["posts.x_disconnect", "Disconnect"]</MudButton>
+                <MudButton Variant="Variant.Text" Disabled="_busy" OnClick="StartNew">@AddLabel</MudButton>
             }
         </MudStack>
     }
@@ -60,18 +56,27 @@
     private bool _busy;
     private bool _helpOpen;
     private int _loadedFor;
-    private XAccountStatus? _status;
+    private int _accountId;
+    private bool _editingHasKeys;
+    private List<XAccountStatus> _accounts = new();
+    private string _title = "";
+    private string _language = "";
     private string _apiKey = "";
     private string _apiSecret = "";
     private string _accessToken = "";
     private string _accessSecret = "";
+    private string AddLabel => Persian ? "کانال دیگر" : "Add another channel";
+    private string EditLabel => Persian ? "ویرایش این کانال" : "Edit this channel";
+    private IReadOnlyList<SocialChannelRow> _rows => _accounts
+        .Select(account => new SocialChannelRow(account.AccountId, SocialChannelChoice.Format(account.Title, account.Username, account.LanguageCode)))
+        .ToList();
     private bool Persian => L.LanguageCode.StartsWith("fa", StringComparison.OrdinalIgnoreCase);
     private string BillingWarning => Persian
         ? "ارسال پیام از طریق API ایکس رایگان نیست و مشمول هزینه می‌شود."
         : "Sending messages through the X API is not free. X charges for each send.";
     private string Intro => Persian
-        ? "پست با کلیدهای خود کاربر در developer.x.com ارسال می‌شود. هیچ‌کدام از کلیدها بعد از ذخیره نشان داده نمی‌شوند."
-        : "Posts are sent with the user keys from developer.x.com. None of the keys are shown again after you save.";
+        ? "پست با کلیدهای خود کاربر در developer.x.com ارسال می‌شود. هیچ‌کدام از کلیدها بعد از ذخیره نشان داده نمی‌شوند. برای زبان یا کارکرد دیگر، کانال دیگری اضافه کنید."
+        : "Posts are sent with the user keys from developer.x.com. None of the keys are shown again after you save. Add another channel when the language or the purpose is different.";
     private IEnumerable<string> Steps => Persian ? StepsFa : StepsEn;
     private static readonly string[] StepsFa =
     [
@@ -96,8 +101,28 @@
     {
         if (WebsiteId <= 0 || WebsiteId == _loadedFor) return;
         _loadedFor = WebsiteId;
+        StartNew();
+        _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+    }
+
+    private void StartNew()
+    {
+        _accountId = 0;
+        _editingHasKeys = false;
+        _title = "";
+        _language = "";
         ClearSecrets();
-        _status = await Accounts.GetAsync(WebsiteId);
+    }
+
+    private void Edit(int accountId)
+    {
+        var account = _accounts.FirstOrDefault(a => a.AccountId == accountId);
+        if (account is null) return;
+        _accountId = account.AccountId;
+        _editingHasKeys = account.HasKeys;
+        _title = account.Title;
+        _language = account.LanguageCode ?? "";
+        ClearSecrets();
     }
 
     private void OnHelpChanged(bool value) => _helpOpen = value;
@@ -108,14 +133,18 @@
         _busy = true;
         try
         {
-            _status = await Accounts.SaveAsync(WebsiteId, new XAccountInput
+            await Accounts.SaveAsync(WebsiteId, new XAccountInput
             {
+                AccountId = _accountId,
+                Title = _title,
+                LanguageCode = _language,
                 ApiKey = _apiKey,
                 ApiSecret = _apiSecret,
                 AccessToken = _accessToken,
                 AccessTokenSecret = _accessSecret,
             });
-            ClearSecrets();
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
+            StartNew();
             Snackbar.Add(L["posts.x_saved", "X account saved."], Severity.Success);
         }
         catch (Exception ex)
@@ -128,15 +157,15 @@
         }
     }
 
-    private async Task DisconnectAsync()
+    private async Task DisconnectAsync(int accountId)
     {
         if (_busy) return;
         _busy = true;
         try
         {
-            await Accounts.DisconnectAsync(WebsiteId);
-            _status = new XAccountStatus();
-            ClearSecrets();
+            await Accounts.DisconnectAsync(WebsiteId, accountId);
+            if (_accountId == accountId) StartNew();
+            _accounts = (await Accounts.ListAsync(WebsiteId)).ToList();
             Snackbar.Add(L["posts.x_disconnected", "X disconnected."], Severity.Success);
         }
         catch (Exception ex)

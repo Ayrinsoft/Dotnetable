@@ -39,14 +39,16 @@ public partial class AppDbContext
 
         modelBuilder.Entity<WebsiteInstagramAccount>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteInstagramAccounts_WebsiteID").IsUnique();
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteInstagramAccounts_WebsiteID");
+            entity.Property(e => e.Title).HasMaxLength(80);
+            entity.Property(e => e.LanguageCode).HasMaxLength(10);
             entity.Property(e => e.IgUserId).HasMaxLength(40);
             entity.Property(e => e.PageId).HasMaxLength(40);
             entity.Property(e => e.Username).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Website).WithOne(p => p.WebsiteInstagramAccount)
-                .HasForeignKey<WebsiteInstagramAccount>(d => d.WebsiteID)
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteInstagramAccounts)
+                .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteInstagramAccounts_Websites");
         });
@@ -77,13 +79,15 @@ public partial class AppDbContext
 
         modelBuilder.Entity<WebsiteTelegramAccount>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteTelegramAccounts_WebsiteID").IsUnique();
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteTelegramAccounts_WebsiteID");
+            entity.Property(e => e.Title).HasMaxLength(80);
+            entity.Property(e => e.LanguageCode).HasMaxLength(10);
             entity.Property(e => e.ChatId).HasMaxLength(80);
             entity.Property(e => e.Username).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Website).WithOne(p => p.WebsiteTelegramAccount)
-                .HasForeignKey<WebsiteTelegramAccount>(d => d.WebsiteID)
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteTelegramAccounts)
+                .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteTelegramAccounts_Websites");
         });
@@ -127,12 +131,14 @@ public partial class AppDbContext
 
         modelBuilder.Entity<WebsiteXAccount>(entity =>
         {
-            entity.HasIndex(e => e.WebsiteID, "UQ_WebsiteXAccounts_WebsiteID").IsUnique();
+            entity.HasIndex(e => e.WebsiteID, "IX_WebsiteXAccounts_WebsiteID");
+            entity.Property(e => e.Title).HasMaxLength(80);
+            entity.Property(e => e.LanguageCode).HasMaxLength(10);
             entity.Property(e => e.Username).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Website).WithOne(p => p.WebsiteXAccount)
-                .HasForeignKey<WebsiteXAccount>(d => d.WebsiteID)
+            entity.HasOne(d => d.Website).WithMany(p => p.WebsiteXAccounts)
+                .HasForeignKey(d => d.WebsiteID)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WebsiteXAccounts_Websites");
         });
