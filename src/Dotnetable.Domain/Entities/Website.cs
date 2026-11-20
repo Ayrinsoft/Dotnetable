@@ -58,6 +58,22 @@ public partial class Website
 
     public int? FaveIconFileID { get; set; }
 
+    /// <summary>Public brand color as #rrggbb. Empty keeps the theme default. Returned by api/siteinfo.</summary>
+    public string? PrimaryColor { get; set; }
+
+    /// <summary>Second public brand color as #rrggbb. Empty keeps the theme default.</summary>
+    public string? SecondaryColor { get; set; }
+
+    /// <summary>Page background for light mode, #rrggbb. Empty keeps the theme paper color.</summary>
+    public string? BackgroundColor { get; set; }
+
+    /// <summary>Page background for dark mode, #rrggbb. Empty keeps the theme's dark paper.</summary>
+    public string? DarkBackgroundColor { get; set; }
+
+    public int? BackgroundImageFileID { get; set; }
+
+    public int? DarkBackgroundImageFileID { get; set; }
+
     public string DefaultCurrencyCode { get; set; } = null!;
 
     /// <summary>
@@ -236,6 +252,10 @@ public partial class Website
     public virtual ICollection<LoginTry> LoginTries { get; set; } = new List<LoginTry>();
 
     public virtual FileRecord? LogoFile { get; set; }
+
+    public virtual FileRecord? BackgroundImageFile { get; set; }
+
+    public virtual FileRecord? DarkBackgroundImageFile { get; set; }
 
     public virtual ICollection<MediaSet> MediaSets { get; set; } = new List<MediaSet>();
 

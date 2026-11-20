@@ -9288,6 +9288,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<Guid>("AuthCode")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BackgroundColor")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<int?>("BackgroundImageFileID")
+                        .HasColumnType("int");
+
                     b.Property<string>("BrandName")
                         .IsRequired()
                         .HasMaxLength(60)
@@ -9297,6 +9305,14 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<Guid?>("CatalogAgentKey")
                         .HasColumnType("uniqueidentifier")
                         .HasComment("Secret for POST /api/product-agent. Not the public storefront key.");
+
+                    b.Property<string>("DarkBackgroundColor")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<int?>("DarkBackgroundImageFileID")
+                        .HasColumnType("int");
 
                     b.Property<string>("DefaultCurrencyCode")
                         .IsRequired()
@@ -9379,6 +9395,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<bool>("PricesIncludeTax")
                         .HasColumnType("bit");
 
+                    b.Property<string>("PrimaryColor")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
+
                     b.Property<string>("ProductCodePrefix")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -9409,6 +9430,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<string>("SecondaryColor")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
 
                     b.Property<string>("SellerEconomicCode")
                         .HasMaxLength(50)
@@ -9497,6 +9523,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.HasKey("WebsiteID");
 
                     b.HasIndex("TaxCountryID");
+
+                    b.HasIndex(new[] { "BackgroundImageFileID" }, "IX_Websites_BackgroundImageFileID");
+
+                    b.HasIndex(new[] { "DarkBackgroundImageFileID" }, "IX_Websites_DarkBackgroundImageFileID");
 
                     b.HasIndex(new[] { "DefaultCurrencyCode" }, "IX_Websites_DefaultCurrencyCode");
 
@@ -14341,6 +14371,16 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Website", b =>
                 {
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "BackgroundImageFile")
+                        .WithMany("WebsiteBackgroundImageFiles")
+                        .HasForeignKey("BackgroundImageFileID")
+                        .HasConstraintName("FK_Websites_FileRecords_Background");
+
+                    b.HasOne("Dotnetable.Domain.Entities.FileRecord", "DarkBackgroundImageFile")
+                        .WithMany("WebsiteDarkBackgroundImageFiles")
+                        .HasForeignKey("DarkBackgroundImageFileID")
+                        .HasConstraintName("FK_Websites_FileRecords_DarkBackground");
+
                     b.HasOne("Dotnetable.Domain.Entities.Currency", "DefaultCurrencyCodeNavigation")
                         .WithMany("Websites")
                         .HasForeignKey("DefaultCurrencyCode")
@@ -14361,6 +14401,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .WithMany("TaxJurisdictionWebsites")
                         .HasForeignKey("TaxCountryID")
                         .HasConstraintName("FK_Websites_TaxCountries");
+
+                    b.Navigation("BackgroundImageFile");
+
+                    b.Navigation("DarkBackgroundImageFile");
 
                     b.Navigation("DefaultCurrencyCodeNavigation");
 
@@ -14989,7 +15033,11 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
 
                     b.Navigation("Vendors");
 
+                    b.Navigation("WebsiteBackgroundImageFiles");
+
                     b.Navigation("WebsiteClients");
+
+                    b.Navigation("WebsiteDarkBackgroundImageFiles");
 
                     b.Navigation("WebsiteFaveIconFiles");
 

@@ -2,6 +2,7 @@ using Dotnetable.Application;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Domain;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -222,6 +223,8 @@ public class WebsiteService : IWebsiteService
         var website = await context.Websites.AsNoTracking()
             .Include(w => w.LogoFile)
             .Include(w => w.FaveIconFile)
+            .Include(w => w.BackgroundImageFile)
+            .Include(w => w.DarkBackgroundImageFile)
             .Include(w => w.WebsiteSocialLinks)
             .Include(w => w.WebsiteContactInfos).ThenInclude(c => c.WebsiteContactInfoTranslations)
             .Include(w => w.WebsiteSeoSettings)
@@ -237,6 +240,12 @@ public class WebsiteService : IWebsiteService
             FavIconUrl = website.FaveIconFile?.CNDUrl,
             Email = website.Email,
             Phone = website.Mobile,
+            PrimaryColor = BrandColor.Normalize(website.PrimaryColor),
+            SecondaryColor = BrandColor.Normalize(website.SecondaryColor),
+            BackgroundColor = BrandColor.Normalize(website.BackgroundColor),
+            DarkBackgroundColor = BrandColor.Normalize(website.DarkBackgroundColor),
+            BackgroundImageUrl = website.BackgroundImageFile?.CNDUrl,
+            DarkBackgroundImageUrl = website.DarkBackgroundImageFile?.CNDUrl,
             DefaultLanguageCode = website.DefaultLanguageCode,
             DefaultMetaTitle = seo?.DefaultMetaTitle,
             DefaultMetaDescription = seo?.DefaultMetaDescription,

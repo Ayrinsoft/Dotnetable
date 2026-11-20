@@ -290,7 +290,29 @@ public class WebsiteServiceTests : IDisposable
         info.DefaultLanguageCode.Should().Be("en");
         info.TitleSeparator.Should().Be("·"); // default when no SEO row exists
         info.LogoUrl.Should().BeNull();
+        info.PrimaryColor.Should().BeNull();
+        info.SecondaryColor.Should().BeNull();
         info.SocialLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetSiteInfoAsync_PublishesNormalizedBrandColors()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        w.PrimaryColor = "#0F6E78";
+        w.SecondaryColor = "#e07";
+        w.BackgroundColor = "#F6F1E8";
+        w.DarkBackgroundColor = "#12181f";
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+
+        var info = await _service.GetSiteInfoAsync(w.WebsiteID);
+
+        info!.PrimaryColor.Should().Be("#0f6e78");
+        info.SecondaryColor.Should().Be("#ee0077");
+        info.BackgroundColor.Should().Be("#f6f1e8");
+        info.DarkBackgroundColor.Should().Be("#12181f");
+        info.BackgroundImageUrl.Should().BeNull();
     }
 
     [Fact]

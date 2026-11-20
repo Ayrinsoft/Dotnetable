@@ -6,6 +6,7 @@
 :root {
     --site-primary: #ff5e3a;
     --site-primary-dark: #e8431f;
+    --site-accent: var(--site-primary);
     --site-dark: #1d2433;
     --site-darker: #141a26;
     --site-muted: #6b7280;
@@ -18,7 +19,11 @@
 body {
     font-family: "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
     color: var(--site-dark);
-    background: #fff;
+    background-color: var(--site-bg, #fff);
+    background-image: var(--site-bg-image, none);
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
 }
 
 a { text-decoration: none; }
@@ -167,7 +172,7 @@ a { text-decoration: none; }
 .site-footer { background: var(--site-darker); color: rgba(255, 255, 255, .7); padding: 4rem 0 1.5rem; }
 .site-footer h5 { color: #fff; font-weight: 700; margin-bottom: 1.2rem; }
 .site-footer a { color: rgba(255, 255, 255, .7); }
-.site-footer a:hover { color: var(--site-primary); }
+.site-footer a:hover { color: var(--site-accent); }
 .site-footer .footer-bottom { border-top: 1px solid rgba(255, 255, 255, .1); margin-top: 2.5rem; padding-top: 1.5rem; }
 
 /* ---------- Auth modal ---------- */

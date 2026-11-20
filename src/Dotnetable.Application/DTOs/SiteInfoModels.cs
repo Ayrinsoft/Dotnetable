@@ -10,6 +10,23 @@ public sealed class SiteInfoDto
     public string? FavIconUrl { get; init; }
     public string? Email { get; init; }
     public string? Phone { get; init; }
+
+    /// <summary>Optional #rrggbb. Null when the website has no brand color; themes keep their default.</summary>
+    public string? PrimaryColor { get; init; }
+
+    /// <summary>Optional #rrggbb accent. Null when unset.</summary>
+    public string? SecondaryColor { get; init; }
+
+    /// <summary>Optional light-mode page background, #rrggbb.</summary>
+    public string? BackgroundColor { get; init; }
+
+    /// <summary>Optional dark-mode page background, #rrggbb.</summary>
+    public string? DarkBackgroundColor { get; init; }
+
+    public string? BackgroundImageUrl { get; init; }
+
+    public string? DarkBackgroundImageUrl { get; init; }
+
     public string DefaultLanguageCode { get; init; } = "en";
     public string? DefaultMetaTitle { get; init; }
     public string? DefaultMetaDescription { get; init; }

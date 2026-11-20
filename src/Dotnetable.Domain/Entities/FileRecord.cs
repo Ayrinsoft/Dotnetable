@@ -117,6 +117,10 @@ public partial class FileRecord
 
     public virtual ICollection<Website> WebsiteLogoFiles { get; set; } = new List<Website>();
 
+    public virtual ICollection<Website> WebsiteBackgroundImageFiles { get; set; } = new List<Website>();
+
+    public virtual ICollection<Website> WebsiteDarkBackgroundImageFiles { get; set; } = new List<Website>();
+
     public virtual WebsiteStorageSetting WebsiteStorageSettings { get; set; } = null!;
 
     public virtual ICollection<WebsiteWatermarkSetting> WebsiteWatermarkSettings { get; set; } = new List<WebsiteWatermarkSetting>();
