@@ -1,0 +1,512 @@
+@page "/website/profile"
+@attribute [Authorize(Policy = AdminPolicies.WebsiteProfileAccess)]
+@inject IWebsiteService WebsiteService
+@inject IFileService FileService
+@inject ILocalizationService Localization
+@inject ILocationService LocationService
+@inject AuthenticationStateProvider AuthState
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["website.profile", "Site profile"] />
+
+<MudStack Spacing="0" Class="mb-6">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5" Class="fw-bold">@L["website.profile", "Site profile"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @L["website.profile.subtitle", "Name, logo, favicon, colors, tax identity and the extra text the public site shows. Each website edits only itself."]
+            </MudText>
+        </MudStack>
+        @if (_isMaster)
+        {
+            <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                             Label="@L["website", "Website"]" Variant="Variant.Outlined"
+                             Dense="true" Style="min-width:180px" />
+        }
+    </MudStack>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+else if (_missing)
+{
+    <MudAlert Severity="Severity.Warning">@L["website.profile.missing", "This login is not tied to a website."]</MudAlert>
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Class="me-1" />
+                    @L["website.section.basic", "Basic Information"]
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_tradeName" Label="@L["trade_name", "Trade Name"]" Variant="Variant.Outlined" Required="true" MaxLength="32" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_brandName" Label="@L["brand_name", "Brand Name"]" Variant="Variant.Outlined" Required="true" MaxLength="60"
+                                      HelperText="@L["website.profile.brand_hint", "This is the name visitors see in the header, footer and page title."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_manager" Label="@L["manager", "Manager"]" Variant="Variant.Outlined" Required="true" MaxLength="30" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_mobile" Label="@L["mobile", "Mobile"]" Variant="Variant.Outlined" Required="true" MaxLength="15"
+                                      HelperText="@L["website.mobile_hint", "Manager number. The public site shows Contact Info first (phone, mobile, support). This number is only a fallback when Contact Info has no phone."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_email" Label="@L["email", "Email"]" Variant="Variant.Outlined" Required="true" MaxLength="60" InputType="InputType.Email" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-4">
+                    <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Small" Class="me-1" />
+                    @L["website.section.branding", "Branding"]
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body2" Class="mb-1">@L["logo", "Logo"]</MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                @if (_logoFile is { CNDUrl: not null })
+                                {
+                                    <img src="@(_logoFile.ThumbnailCDN ?? _logoFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                }
+                            </div>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickLogoAsync">@L["choose", "Choose"]</MudButton>
+                            @if (_logoFileId is not null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearLogo" />
+                            }
+                        </MudStack>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body2" Class="mb-1">@L["favicon", "Favicon"]</MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <div class="border rounded" style="width:64px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                @if (_faveFile is { CNDUrl: not null })
+                                {
+                                    <img src="@(_faveFile.ThumbnailCDN ?? _faveFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                }
+                            </div>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickFaveAsync">@L["choose", "Choose"]</MudButton>
+                            @if (_faveFileId is not null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearFave" />
+                            }
+                        </MudStack>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_primaryColor" Label="@L["website.primary_color", "Primary color"]" Variant="Variant.Outlined" MaxLength="7" Placeholder="#0f6e78" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_secondaryColor" Label="@L["website.secondary_color", "Secondary color"]" Variant="Variant.Outlined" MaxLength="7" Placeholder="#e07a45" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_backgroundColor" Label="@L["website.background_color", "Background color (light)"]" Variant="Variant.Outlined" MaxLength="7" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_darkBackgroundColor" Label="@L["website.dark_background_color", "Background color (dark)"]" Variant="Variant.Outlined" MaxLength="7" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body2" Class="mb-1">@L["website.background_image", "Background image (light)"]</MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <div class="border rounded" style="width:96px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                @if (_backgroundFile is { CNDUrl: not null })
+                                {
+                                    <img src="@(_backgroundFile.ThumbnailCDN ?? _backgroundFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                }
+                            </div>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickBackgroundAsync">@L["choose", "Choose"]</MudButton>
+                            @if (_backgroundFileId is not null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearBackground" />
+                            }
+                        </MudStack>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.body2" Class="mb-1">@L["website.dark_background_image", "Background image (dark)"]</MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <div class="border rounded" style="width:96px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                @if (_darkBackgroundFile is { CNDUrl: not null })
+                                {
+                                    <img src="@(_darkBackgroundFile.ThumbnailCDN ?? _darkBackgroundFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                }
+                            </div>
+                            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickDarkBackgroundAsync">@L["choose", "Choose"]</MudButton>
+                            @if (_darkBackgroundFileId is not null)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearDarkBackground" />
+                            }
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+                    <MudIcon Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small" Class="me-1" />
+                    @L["website.section.tax", "Tax & seller registration"]
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    @L["website.profile.tax_hint", "Legal name and codes are shown on the public site footer and contact page when you fill them in. Rate tables stay under Sales → Tax Rates."]
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="4">
+                        <MudSwitch T="bool" @bind-Value="_taxEnabled" Color="Color.Primary" Label="@L["website.tax_enabled", "Tax enabled at checkout"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSwitch T="bool" @bind-Value="_pricesIncludeTax" Color="Color.Primary" Label="@L["website.prices_include_tax", "Prices include tax"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSwitch T="bool" @bind-Value="_taxOnShipping" Color="Color.Primary" Label="@L["website.tax_on_shipping", "Tax may apply to shipping"]" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSwitch T="bool" @bind-Value="_reportOffline" Color="Color.Primary" Label="@L["website.report_offline_to_tax", "Report offline / social orders to tax by default"]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_sellerLegalName" Label="@L["website.seller_legal_name", "Seller legal name"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <CountrySelector Value="_taxCountryId" ValueChanged="id => _taxCountryId = id" Countries="_countries"
+                                         Label="@L["website.tax_country", "Default tax country"]" Clearable="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_sellerTaxId" Label="@L["website.seller_tax_id", "Seller tax ID / national ID"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_sellerEconomicCode" Label="@L["website.seller_economic_code", "Economic code"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_sellerVat" Label="@L["website.seller_vat", "VAT / GST number"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_sellerRegistration" Label="@L["website.seller_registration", "Registration number"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Elevation="0" Class="border rounded-lg pa-6">
+                <MudText Typo="Typo.subtitle1" Class="fw-bold mb-1">
+                    <MudIcon Icon="@Icons.Material.Filled.Notes" Size="Size.Small" Class="me-1" />
+                    @L["website.profile.extra", "Extra site information"]
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    @L["website.profile.extra_hint", "These sentences are stored for this website in Persian and replace the theme defaults on the public site. Leave a box empty to keep the theme sentence."]
+                </MudText>
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_footerBlurb" Label="@L["website.profile.footer_blurb", "Footer description"]" Variant="Variant.Outlined" Lines="3" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_footerLegal" Label="@L["website.profile.footer_legal", "Footer legal line"]" Variant="Variant.Outlined"
+                                      HelperText="@L["website.profile.footer_legal_hint", "Copyright line under the footer. Empty uses © and the brand name."]" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_contactKicker" Label="@L["website.profile.contact_kicker", "Contact page kicker"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_contactTitle" Label="@L["website.profile.contact_title", "Contact page title"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_contactLead" Label="@L["website.profile.contact_lead", "Contact page introduction"]" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="_homeKicker" Label="@L["website.profile.home_kicker", "Home kicker"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <MudTextField @bind-Value="_homeTitle" Label="@L["website.profile.home_title", "Home title"]" Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_homeLead" Label="@L["website.profile.home_lead", "Home introduction"]" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Class="mt-4" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="@_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+            }
+            @L["save", "Save Changes"]
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private bool _missing;
+    private bool _isMaster;
+    private int _websiteId;
+    private List<Website> _websites = new();
+    private List<Country> _countries = new();
+
+    private string _tradeName = "";
+    private string _brandName = "";
+    private string _manager = "";
+    private string _mobile = "";
+    private string _email = "";
+    private int? _logoFileId;
+    private int? _faveFileId;
+    private int? _backgroundFileId;
+    private int? _darkBackgroundFileId;
+    private FileRecord? _logoFile;
+    private FileRecord? _faveFile;
+    private FileRecord? _backgroundFile;
+    private FileRecord? _darkBackgroundFile;
+    private string? _primaryColor;
+    private string? _secondaryColor;
+    private string? _backgroundColor;
+    private string? _darkBackgroundColor;
+    private bool _taxEnabled;
+    private bool _pricesIncludeTax;
+    private bool _taxOnShipping;
+    private bool _reportOffline;
+    private int? _taxCountryId;
+    private string? _sellerLegalName;
+    private string? _sellerTaxId;
+    private string? _sellerEconomicCode;
+    private string? _sellerVat;
+    private string? _sellerRegistration;
+    private string _footerBlurb = "";
+    private string _footerLegal = "";
+    private string _contactKicker = "";
+    private string _contactTitle = "";
+    private string _contactLead = "";
+    private string _homeKicker = "";
+    private string _homeTitle = "";
+    private string _homeLead = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var state = await AuthState.GetAuthenticationStateAsync();
+        var user = state.User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        _countries = (await LocationService.GetAllCountriesAsync()).ToList();
+        if (_isMaster)
+            _websites = (await WebsiteService.GetAllAsync()).ToList();
+
+        if (_websiteId <= 0)
+        {
+            _missing = true;
+            _loading = false;
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var site = await WebsiteService.GetByIdAsync(_websiteId);
+        if (site is null)
+        {
+            _missing = true;
+            _loading = false;
+            return;
+        }
+
+        _missing = false;
+        _tradeName = site.TradeName;
+        _brandName = site.BrandName;
+        _manager = site.Manager;
+        _mobile = site.Mobile;
+        _email = site.Email;
+        _logoFileId = site.LogoFileID;
+        _faveFileId = site.FaveIconFileID;
+        _backgroundFileId = site.BackgroundImageFileID;
+        _darkBackgroundFileId = site.DarkBackgroundImageFileID;
+        _primaryColor = site.PrimaryColor;
+        _secondaryColor = site.SecondaryColor;
+        _backgroundColor = site.BackgroundColor;
+        _darkBackgroundColor = site.DarkBackgroundColor;
+        _taxEnabled = site.TaxEnabled;
+        _pricesIncludeTax = site.PricesIncludeTax;
+        _taxOnShipping = site.TaxOnShipping;
+        _reportOffline = site.ReportOfflineOrdersToTax;
+        _taxCountryId = site.TaxCountryID;
+        _sellerLegalName = site.SellerLegalName;
+        _sellerTaxId = site.SellerTaxId;
+        _sellerEconomicCode = site.SellerEconomicCode;
+        _sellerVat = site.SellerVatNumber;
+        _sellerRegistration = site.SellerRegistrationNumber;
+        _logoFile = await LoadFileAsync(_logoFileId);
+        _faveFile = await LoadFileAsync(_faveFileId);
+        _backgroundFile = await LoadFileAsync(_backgroundFileId);
+        _darkBackgroundFile = await LoadFileAsync(_darkBackgroundFileId);
+
+        var stored = await Localization.GetAllAsync(_websiteId, PublicCopyKeys.Language);
+        _footerBlurb = Copy(stored, PublicCopyKeys.FooterBlurb);
+        _footerLegal = Copy(stored, PublicCopyKeys.FooterLegal);
+        _contactKicker = Copy(stored, PublicCopyKeys.ContactKicker);
+        _contactTitle = Copy(stored, PublicCopyKeys.ContactTitle);
+        _contactLead = Copy(stored, PublicCopyKeys.ContactLead);
+        _homeKicker = Copy(stored, PublicCopyKeys.HomeKicker);
+        _homeTitle = Copy(stored, PublicCopyKeys.HomeTitle);
+        _homeLead = Copy(stored, PublicCopyKeys.HomeLead);
+
+        _loading = false;
+    }
+
+    private static string Copy(IReadOnlyDictionary<string, string> stored, string key) =>
+        stored.TryGetValue(key, out var value) ? value ?? "" : "";
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var error = await WebsiteService.UpdatePublicProfileAsync(new WebsitePublicProfile
+            {
+                WebsiteId = _websiteId,
+                TradeName = _tradeName,
+                BrandName = _brandName,
+                Manager = _manager,
+                Mobile = _mobile,
+                Email = _email,
+                LogoFileId = _logoFileId,
+                FavIconFileId = _faveFileId,
+                BackgroundImageFileId = _backgroundFileId,
+                DarkBackgroundImageFileId = _darkBackgroundFileId,
+                PrimaryColor = _primaryColor,
+                SecondaryColor = _secondaryColor,
+                BackgroundColor = _backgroundColor,
+                DarkBackgroundColor = _darkBackgroundColor,
+                TaxEnabled = _taxEnabled,
+                PricesIncludeTax = _pricesIncludeTax,
+                TaxOnShipping = _taxOnShipping,
+                ReportOfflineOrdersToTax = _reportOffline,
+                TaxCountryId = _taxCountryId,
+                SellerLegalName = _sellerLegalName,
+                SellerTaxId = _sellerTaxId,
+                SellerEconomicCode = _sellerEconomicCode,
+                SellerVatNumber = _sellerVat,
+                SellerRegistrationNumber = _sellerRegistration,
+            });
+            if (error is not null)
+            {
+                Snackbar.Add(error, Severity.Warning);
+                return;
+            }
+
+            await SaveCopyAsync(PublicCopyKeys.FooterBlurb, _footerBlurb);
+            await SaveCopyAsync(PublicCopyKeys.FooterLegal, _footerLegal);
+            await SaveCopyAsync(PublicCopyKeys.ContactKicker, _contactKicker);
+            await SaveCopyAsync(PublicCopyKeys.ContactTitle, _contactTitle);
+            await SaveCopyAsync(PublicCopyKeys.ContactLead, _contactLead);
+            await SaveCopyAsync(PublicCopyKeys.HomeKicker, _homeKicker);
+            await SaveCopyAsync(PublicCopyKeys.HomeTitle, _homeTitle);
+            await SaveCopyAsync(PublicCopyKeys.HomeLead, _homeLead);
+
+            Snackbar.Add(L["website.profile.saved", "Site profile saved. The public site picks it up within a few minutes, or at once after /clearCache."], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{L["save_failed", "Save failed"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private Task SaveCopyAsync(string key, string value) =>
+        Localization.SetAsync(_websiteId, PublicCopyKeys.Language, key, value.Trim());
+
+    private async Task<FileRecord?> LoadFileAsync(int? id) =>
+        id is int fileId ? await FileService.GetByIdAsync(fileId) : null;
+
+    private async Task PickLogoAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is null) return;
+        _logoFileId = picked.FileRecordID;
+        _logoFile = picked;
+    }
+
+    private async Task PickFaveAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is null) return;
+        _faveFileId = picked.FileRecordID;
+        _faveFile = picked;
+    }
+
+    private async Task PickBackgroundAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is null) return;
+        _backgroundFileId = picked.FileRecordID;
+        _backgroundFile = picked;
+    }
+
+    private async Task PickDarkBackgroundAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is null) return;
+        _darkBackgroundFileId = picked.FileRecordID;
+        _darkBackgroundFile = picked;
+    }
+
+    private void ClearLogo() { _logoFileId = null; _logoFile = null; }
+    private void ClearFave() { _faveFileId = null; _faveFile = null; }
+    private void ClearBackground() { _backgroundFileId = null; _backgroundFile = null; }
+    private void ClearDarkBackground() { _darkBackgroundFileId = null; _darkBackgroundFile = null; }
+
+    private async Task<FileRecord?> PickImageAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(FilePickerDialog.WebsiteId)] = _websiteId,
+            [nameof(FilePickerDialog.Category)] = FileCategory.Image,
+        };
+        var dialog = await DialogService.ShowAsync<FilePickerDialog>(L["select_file", "Select a file"], parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: FileRecord file } ? file : null;
+    }
+}
+

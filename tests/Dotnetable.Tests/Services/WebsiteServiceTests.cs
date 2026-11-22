@@ -355,6 +355,80 @@ public class WebsiteServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetSiteInfoAsync_PublishesSellerIdentity()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        w.SellerLegalName = "  آژانس نمونه  ";
+        w.SellerEconomicCode = "411234567890";
+        w.SellerTaxId = "10101234567";
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+
+        var info = await _service.GetSiteInfoAsync(w.WebsiteID);
+
+        info!.SellerLegalName.Should().Be("آژانس نمونه");
+        info.SellerEconomicCode.Should().Be("411234567890");
+        info.SellerTaxId.Should().Be("10101234567");
+        info.SellerVatNumber.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdatePublicProfileAsync_ChangesNameLogoColorsAndTax_LeavesAddress()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        w.WebsiteAddress = "keep.example";
+        w.Active = true;
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+
+        var error = await _service.UpdatePublicProfileAsync(new WebsitePublicProfile
+        {
+            WebsiteId = w.WebsiteID,
+            TradeName = "سفر نمونه",
+            BrandName = "سفر نمونه",
+            Manager = "مدیر",
+            Mobile = "09120000000",
+            Email = "hi@keep.example",
+            PrimaryColor = "#0F6E78",
+            SellerLegalName = "شرکت سفر",
+            SellerEconomicCode = "123",
+            TaxEnabled = true,
+        });
+
+        error.Should().BeNull();
+        var stored = await _context.Websites.AsNoTracking().SingleAsync(x => x.WebsiteID == w.WebsiteID);
+        stored.BrandName.Should().Be("سفر نمونه");
+        stored.WebsiteAddress.Should().Be("keep.example");
+        stored.Active.Should().BeTrue();
+        stored.PrimaryColor.Should().Be("#0f6e78");
+        stored.SellerLegalName.Should().Be("شرکت سفر");
+        stored.SellerEconomicCode.Should().Be("123");
+        stored.TaxEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdatePublicProfileAsync_RejectsBadColor_WithoutWriting()
+    {
+        var w = NewWebsite("Acme", "acme.com");
+        _context.Websites.Add(w);
+        await _context.SaveChangesAsync();
+
+        var error = await _service.UpdatePublicProfileAsync(new WebsitePublicProfile
+        {
+            WebsiteId = w.WebsiteID,
+            TradeName = "Acme",
+            BrandName = "Changed",
+            Manager = w.Manager,
+            Mobile = w.Mobile,
+            Email = w.Email,
+            PrimaryColor = "blue",
+        });
+
+        error.Should().Contain("Primary color");
+        (await _context.Websites.AsNoTracking().SingleAsync(x => x.WebsiteID == w.WebsiteID)).BrandName.Should().Be("Acme");
+    }
+
+    [Fact]
     public async Task GetSiteInfoAsync_BlankTitleSeparator_FallsBackToDefault()
     {
         var w = NewWebsite("Acme", "acme.com");

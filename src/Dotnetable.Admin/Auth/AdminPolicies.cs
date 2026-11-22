@@ -20,6 +20,13 @@ public static class AdminPolicies
     /// <see cref="RoleKeys.WebsiteContactEdit"/> a site owner can be granted on its own.</summary>
     public const string WebsiteContactAccess = "WebsiteContactAccess";
 
+    /// <summary>
+    /// Public site profile (name, logo, favicon, colors, tax identity, extra storefront text).
+    /// Website editors already had the broad key; <see cref="RoleKeys.WebsiteProfile"/> is the
+    /// narrow grant every non-customer policy receives so a site admin can edit their own site.
+    /// </summary>
+    public const string WebsiteProfileAccess = "WebsiteProfileAccess";
+
     /// <summary>Instagram, Telegram, and X account page. Post editors, product editors, and
     /// website editors can open it. The tokens are not the public profile links.</summary>
     public const string SocialPublishAccess = "SocialPublishAccess";
@@ -50,6 +57,9 @@ public static class AdminPolicies
 
         options.AddPolicy(WebsiteContactAccess, p =>
             p.RequireAssertion(ctx => Allows(ctx.User, RoleKeys.WebsiteEdit) || Allows(ctx.User, RoleKeys.WebsiteContactEdit)));
+
+        options.AddPolicy(WebsiteProfileAccess, p =>
+            p.RequireAssertion(ctx => Allows(ctx.User, RoleKeys.WebsiteEdit) || Allows(ctx.User, RoleKeys.WebsiteProfile)));
 
         options.AddPolicy(SocialPublishAccess, p =>
             p.RequireAssertion(ctx =>

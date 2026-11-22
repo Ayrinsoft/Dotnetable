@@ -39,6 +39,12 @@ public static class RoleKeys
     // ── Contact info: phones, emails, addresses, hours (admin) — its own key for the same reason ─
     public const string WebsiteContactEdit = "contactinfo.edit";
 
+    /// <summary>
+    /// Public face of the signed-in website: name, logo, favicon, colors, tax identity and the
+    /// extra storefront sentences. Does not unlock IP lists, scripts, the API key, or other sites.
+    /// </summary>
+    public const string WebsiteProfile = "website.profile";
+
     // ── Contact messages (admin) ────────────────────────────────────
     public const string MessagesView = "messages.view";
     public const string MessagesDelete = "messages.delete";

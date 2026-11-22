@@ -54,6 +54,7 @@ public static class AdminSearchCatalog
 
         new AdminSearchPage("websites", "Websites", "/websites", Icons.Material.Filled.Public, "website", "Website", null, SuperAdminOnly: true, VendorMemberAllowed: false),
         new AdminSearchPage("websites.copy.title", "Copy website content", "/websites/copy-content", Icons.Material.Filled.ContentCopy, "website", "Website", null, SuperAdminOnly: true, VendorMemberAllowed: false),
+        new AdminSearchPage("website.profile", "Site profile", "/website/profile", Icons.Material.Filled.Storefront, "website", "Website", RoleKeys.WebsiteProfile, NavArea: AdminNavArea.Website, VendorMemberAllowed: false, AltRoleKey: RoleKeys.WebsiteEdit),
         new AdminSearchPage("ip_whitelist", "IP Whitelist", "/website/ips", Icons.Material.Filled.Security, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("scripts", "Scripts", "/website/scripts", Icons.Material.Filled.Code, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),
         new AdminSearchPage("seo_settings", "SEO Settings", "/website/seo", Icons.Material.Filled.Search, "website", "Website", RoleKeys.WebsiteEdit, NavArea: AdminNavArea.Website, VendorMemberAllowed: false),

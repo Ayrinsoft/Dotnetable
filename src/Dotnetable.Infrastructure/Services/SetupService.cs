@@ -204,6 +204,30 @@ public class SetupService : ISetupService
             context.PolicyRoles.AddRange(staffAdd);
             await context.SaveChangesAsync(ct);
         }
+
+        // Site staff (anything except the customer "Users" policy) may edit their own public
+        // profile. Customers stay out. The page itself is locked to the member's website.
+        if (roleIdByKey.TryGetValue(RoleKeys.WebsiteProfile, out var profileRoleId))
+        {
+            var policyIds = await context.Policies
+                .Where(p => p.Title != DefaultPolicies.Users)
+                .Select(p => p.PolicyID)
+                .ToListAsync(ct);
+            var already = await context.PolicyRoles
+                .Where(pr => pr.RoleID == profileRoleId && policyIds.Contains(pr.PolicyID))
+                .Select(pr => pr.PolicyID)
+                .ToListAsync(ct);
+            var have = already.ToHashSet();
+            var profileAdd = policyIds
+                .Where(id => !have.Contains(id))
+                .Select(id => new PolicyRole { PolicyID = id, RoleID = profileRoleId, Active = true })
+                .ToList();
+            if (profileAdd.Count > 0)
+            {
+                context.PolicyRoles.AddRange(profileAdd);
+                await context.SaveChangesAsync(ct);
+            }
+        }
     }
 
     public async Task ReslugifyContentAsync(CancellationToken ct = default)

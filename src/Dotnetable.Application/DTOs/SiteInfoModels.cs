@@ -31,6 +31,18 @@ public sealed class SiteInfoDto
     public string? DefaultMetaTitle { get; init; }
     public string? DefaultMetaDescription { get; init; }
     public string TitleSeparator { get; init; } = "·";
+
+    /// <summary>Seller legal name for the public footer and contact page. Empty when unset.</summary>
+    public string? SellerLegalName { get; init; }
+
+    public string? SellerTaxId { get; init; }
+
+    public string? SellerEconomicCode { get; init; }
+
+    public string? SellerVatNumber { get; init; }
+
+    public string? SellerRegistrationNumber { get; init; }
+
     public List<SocialLinkDto> SocialLinks { get; init; } = new();
     public List<ContactInfoDto> ContactInfos { get; init; } = new();
 }

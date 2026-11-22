@@ -49,6 +49,7 @@ public static class RoleCatalog
         new(RoleKeys.WebsiteEdit, "Edit website settings (IP whitelist, scripts, SEO, API key)", RoleCategory.Admin),
         new(RoleKeys.WebsiteSocialEdit, "Manage social media links", RoleCategory.Admin),
         new(RoleKeys.WebsiteContactEdit, "Manage contact info (phones, emails, addresses, hours)", RoleCategory.Admin),
+        new(RoleKeys.WebsiteProfile, "Edit this website's public name, logo, favicon, colors, tax identity and extra storefront text", RoleCategory.Admin),
 
         // Messages
         new(RoleKeys.MessagesView, "View contact messages", RoleCategory.Admin),
