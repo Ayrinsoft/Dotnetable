@@ -21,6 +21,7 @@ public interface IWebsiteSettingService
     Task UpdateScriptAsync(WebsiteScript script, CancellationToken ct = default);
     Task DeleteScriptAsync(int id, CancellationToken ct = default);
     Task SetScriptActiveAsync(int id, bool active, CancellationToken ct = default);
+    Task<IReadOnlyList<PublicScriptDto>> GetPublicScriptsAsync(int websiteId, CancellationToken ct = default);
 
     // SEO Settings (one row per website)
     Task<WebsiteSeoSetting?> GetSeoSettingAsync(int websiteId, CancellationToken ct = default);

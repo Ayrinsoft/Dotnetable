@@ -31,6 +31,9 @@
     MenuDto? headerMenu = await Api.GetMenuAsync("Header", menuLang);
     MenuDto? footerMenu = await Api.GetMenuAsync("Footer", menuLang);
     var headerAds = await Api.GetAdvertisementsAsync("Header", menuLang);
+    var siteScripts = await Api.GetScriptsAsync();
+    bool ShowScript(PublicScriptDto script) =>
+        script.LoadCondition == 0 || (isLoggedIn ? script.LoadCondition == 1 : script.LoadCondition == 2);
     var footerAds = await Api.GetAdvertisementsAsync("Footer", menuLang);
 
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
@@ -167,8 +170,16 @@
     }
     <link rel="stylesheet" href="~/css/slideshow.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    @foreach (var script in siteScripts.Where(script => script.Position == 0 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
 </head>
 <body>
+    @foreach (var script in siteScripts.Where(script => script.Position == 1 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
     <!-- ── Navbar ─────────────────────────────────────────────── -->
     <nav class="navbar navbar-expand-lg sticky-top site-navbar">
         <div class="container">
@@ -363,5 +374,9 @@
     <script src="~/js/media.js" asp-append-version="true"></script>
     <script src="~/js/reactions.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    @foreach (var script in siteScripts.Where(script => script.Position == 2 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
 </body>
 </html>
