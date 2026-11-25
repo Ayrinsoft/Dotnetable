@@ -12,11 +12,13 @@ public class OrdersController : BaseController
 {
     private readonly IOrderService _orderService;
     private readonly IWebsiteService _website;
+    private readonly IVatInvoiceService _vatInvoices;
 
-    public OrdersController(IOrderService orderService, IWebsiteService websiteService)
+    public OrdersController(IOrderService orderService, IWebsiteService websiteService, IVatInvoiceService vatInvoices)
     {
         _orderService = orderService;
         _website = websiteService;
+        _vatInvoices = vatInvoices;
     }
 
     [HttpGet]
@@ -31,6 +33,14 @@ public class OrdersController : BaseController
     {
         var order = await _orderService.GetByIdAsync(id, CurrentClientId, ct);
         return order is null ? NotFound() : Ok(order);
+    }
+
+    /// <summary>The VAT invoice issued for this customer's order.</summary>
+    [HttpGet("{id:int}/invoice")]
+    public async Task<IActionResult> Invoice(int id, CancellationToken ct = default)
+    {
+        var invoice = await _vatInvoices.GetIssuedForClientAsync(id, CurrentClientId, ct);
+        return invoice is null ? NotFound(new { message = "VAT invoice has not been issued." }) : Ok(invoice);
     }
 
     /// <summary>Records the signed-in customer's flight or hotel hold, with the price and tax frozen on the line.</summary>

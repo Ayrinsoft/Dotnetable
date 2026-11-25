@@ -197,6 +197,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PayrollRateBracket> PayrollRateBrackets { get; set; }
     public virtual DbSet<TaxPeriod> TaxPeriods { get; set; }
 
+    public virtual DbSet<VatInvoice> VatInvoices { get; set; }
+
+    public virtual DbSet<VatInvoiceLine> VatInvoiceLines { get; set; }
+
     public virtual DbSet<OrderDigitalAsset> OrderDigitalAssets { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
@@ -795,9 +799,58 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.OutputTaxSnapshot).HasColumnType("decimal(18,4)");
             entity.Property(e => e.SettlementTaxSnapshot).HasColumnType("decimal(18,4)");
             entity.Property(e => e.NetTaxSnapshot).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.InputTaxSnapshot).HasColumnType("decimal(18,4)");
             entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
             entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
             entity.HasOne(d => d.ClosedByMember).WithMany().HasForeignKey(d => d.ClosedByMemberID);
+        });
+
+        modelBuilder.Entity<VatInvoice>(entity =>
+        {
+            entity.HasIndex(e => new { e.WebsiteID, e.Direction, e.InvoiceNumber }, "IX_VatInvoices_Number").IsUnique();
+            entity.HasIndex(e => e.OrderID, "IX_VatInvoices_OrderID");
+            entity.HasIndex(e => new { e.WebsiteID, e.InvoiceDate }, "IX_VatInvoices_Website_Date");
+            entity.Property(e => e.InvoiceNumber).HasMaxLength(40);
+            entity.Property(e => e.CurrencyCode).HasMaxLength(3).IsUnicode(false).IsFixedLength();
+            entity.Property(e => e.OurName).HasMaxLength(200);
+            entity.Property(e => e.OurNationalId).HasMaxLength(32);
+            entity.Property(e => e.OurEconomicCode).HasMaxLength(50);
+            entity.Property(e => e.OurVatNumber).HasMaxLength(50);
+            entity.Property(e => e.OurRegistrationNumber).HasMaxLength(50);
+            entity.Property(e => e.OurPhone).HasMaxLength(32);
+            entity.Property(e => e.OurEmail).HasMaxLength(120);
+            entity.Property(e => e.OurAddress).HasMaxLength(500);
+            entity.Property(e => e.OtherName).HasMaxLength(200);
+            entity.Property(e => e.OtherNationalId).HasMaxLength(32);
+            entity.Property(e => e.OtherEconomicCode).HasMaxLength(50);
+            entity.Property(e => e.OtherPhone).HasMaxLength(32);
+            entity.Property(e => e.OtherEmail).HasMaxLength(120);
+            entity.Property(e => e.OtherAddress).HasMaxLength(500);
+            entity.Property(e => e.OtherPostalCode).HasMaxLength(20);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.NetTotal).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.DiscountTotal).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TaxTotal).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.PayableTotal).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.InvoiceDate).HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.HasOne(d => d.Website).WithMany().HasForeignKey(d => d.WebsiteID).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Order).WithMany().HasForeignKey(d => d.OrderID);
+            entity.HasOne(d => d.CreatedByMember).WithMany().HasForeignKey(d => d.CreatedByMemberID);
+        });
+
+        modelBuilder.Entity<VatInvoiceLine>(entity =>
+        {
+            entity.HasIndex(e => e.VatInvoiceID, "IX_VatInvoiceLines_Invoice");
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Unit).HasMaxLength(40);
+            entity.Property(e => e.Quantity).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.NetAmount).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,4)");
+            entity.Property(e => e.PayableAmount).HasColumnType("decimal(18,4)");
+            entity.HasOne(d => d.VatInvoice).WithMany(p => p.Lines).HasForeignKey(d => d.VatInvoiceID).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<StockDocumentHistory>(entity =>
         {

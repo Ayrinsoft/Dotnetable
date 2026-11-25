@@ -89,11 +89,47 @@ public sealed class GhasedakSmsSettings
     public string LineNumber { get; set; } = "";
 }
 
-/// <summary>IPPanel / FarazSMS — Iranian. Bearer-key REST API.</summary>
+/// <summary>IPPanel / FarazSMS — Iranian. Plain webservice plus an optional OTP pattern.</summary>
 public sealed class IpPanelSmsSettings
 {
     public string ApiKey { get; set; } = "";
     public string From { get; set; } = "";
+
+    /// <summary><c>pattern</c> or <c>simple</c>. Empty means simple.</summary>
+    public string OtpMode { get; set; } = "";
+
+    public string PatternCode { get; set; } = "";
+
+    /// <summary>Simple OTP body. <c>{code}</c> is replaced. Blank uses the default sentence.</summary>
+    public string OtpText { get; set; } = "";
+}
+
+/// <summary>IranPayamak — Iranian. Pattern endpoint for OTP, simple endpoint for plain text.</summary>
+public sealed class IranPayamakSettings
+{
+    public string ApiKey { get; set; } = "";
+    public string From { get; set; } = "";
+    public string OtpMode { get; set; } = "";
+    public string PatternCode { get; set; } = "";
+    public string OtpText { get; set; } = "";
+}
+
+/// <summary>OTP options stored beside any gateway's credentials in <c>SettingsJSON</c>.</summary>
+public sealed class SmsOtpSettings
+{
+    public const string DefaultText = "کد ورود شما: {code}";
+
+    public string OtpMode { get; set; } = "";
+    public string PatternCode { get; set; } = "";
+    public string OtpText { get; set; } = "";
+
+    public bool UsePattern => string.Equals(OtpMode, "pattern", StringComparison.OrdinalIgnoreCase);
+
+    public string SimpleText(string code)
+    {
+        var template = string.IsNullOrWhiteSpace(OtpText) ? DefaultText : OtpText.Trim();
+        return template.Replace("{code}", code, StringComparison.Ordinal);
+    }
 }
 
 /// <summary>Twilio — international. Account SID + auth token, HTTP basic.</summary>

@@ -22,6 +22,23 @@ public interface ISmsSender
     /// </summary>
     Task<bool> SendAsync(int websiteId, string countryCode, string cellphone, string message,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends a one-time code. Pattern mode uses the gateway's pattern code and the variables
+    /// <c>otp</c> and <c>code</c>. Simple mode sends the configured text with <c>{code}</c> replaced.
+    /// </summary>
+    Task<bool> SendOtpAsync(int websiteId, string countryCode, string cellphone, string code,
+        CancellationToken ct = default);
+}
+
+/// <summary>
+/// A gateway that can deliver an OTP through a provider template, the same split PersianQR and
+/// Ashpazeto use: pattern for the code, plain text for everything else.
+/// </summary>
+public interface ISmsPatternSender
+{
+    Task<SmsSendResult> SendPatternAsync(SmsSettingContext ctx, string countryCode, string cellphone,
+        string patternCode, string code, CancellationToken ct = default);
 }
 
 /// <summary>

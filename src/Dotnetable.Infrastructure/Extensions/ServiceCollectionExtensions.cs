@@ -188,6 +188,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IShippingService, ShippingService>();
         services.AddScoped<ITaxService, TaxService>();
         services.AddScoped<ITaxReportService, TaxReportService>();
+        services.AddScoped<IVatInvoiceService, VatInvoiceService>();
         services.AddScoped<ISettlementService, SettlementService>();
         services.AddScoped<IFinancialLedgerService, FinancialLedgerService>();
         services.AddScoped<IChartOfAccountService, ChartOfAccountService>();
@@ -330,6 +331,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISmsProvider, Sms.MelliPayamakSmsProvider>();
         services.AddScoped<ISmsProvider, Sms.GhasedakSmsProvider>();
         services.AddScoped<ISmsProvider, Sms.IpPanelSmsProvider>();
+        services.AddScoped<ISmsProvider, Sms.IranPayamakSmsProvider>();
         services.AddScoped<ISmsProvider, Sms.TwilioSmsProvider>();
         services.AddScoped<ISmsProvider, Sms.VonageSmsProvider>();
         services.AddScoped<ISmsProvider, Sms.GenericHttpSmsProvider>();

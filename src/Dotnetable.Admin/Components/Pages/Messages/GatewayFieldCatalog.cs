@@ -10,11 +10,14 @@ public enum GatewayFieldKind
     Method,
     /// <summary>A JSON object of string → string, edited as "Name: value" lines.</summary>
     Headers,
+    /// <summary>A short fixed list. <see cref="GatewayField.Choices"/> holds the stored values.</summary>
+    Choice,
 }
 
 /// <summary>One property of a provider's settings JSON (the name matches the settings class property).</summary>
 public sealed record GatewayField(string Name, string LabelKey, string LabelDefault, GatewayFieldKind Kind = GatewayFieldKind.Text,
-    bool Required = false, string? HintKey = null, string? HintDefault = null, string? DefaultValue = null);
+    bool Required = false, string? HintKey = null, string? HintDefault = null, string? DefaultValue = null,
+    string[]? Choices = null);
 
 /// <summary>
 /// Which settings each SMS / WhatsApp provider takes, keyed by provider key. The providers themselves
@@ -39,32 +42,42 @@ public static class GatewayFieldCatalog
             HintKey: "gateway.f.success_contains_hint", HintDefault: "Optional text a 200 response must contain to count as sent."),
     ];
 
+    private static readonly GatewayField[] OtpFields =
+    [
+        new("OtpMode", "gateway.f.otp_mode", "OTP delivery", GatewayFieldKind.Choice, DefaultValue: "simple",
+            Choices: ["simple", "pattern"],
+            HintKey: "gateway.f.otp_mode_hint",
+            HintDefault: "Pattern sends the code as template variables otp and code. Simple sends the text below. IPPanel and IranPayamak support pattern; other gateways only send the simple text."),
+        new("PatternCode", "gateway.f.pattern_code", "OTP pattern code",
+            HintKey: "gateway.f.pattern_code_hint", HintDefault: "Required when OTP delivery is pattern."),
+        new("OtpText", "gateway.f.otp_text", "Simple OTP text", GatewayFieldKind.Multiline,
+            DefaultValue: "کد ورود شما: {code}",
+            HintKey: "gateway.f.otp_text_hint", HintDefault: "{code} is replaced with the one-time code."),
+    ];
+
+    private static GatewayField[] WithOtp(params GatewayField[] fields) => [..fields, ..OtpFields];
+
     public static readonly IReadOnlyDictionary<string, GatewayField[]> Sms = new Dictionary<string, GatewayField[]>(StringComparer.OrdinalIgnoreCase)
     {
-        ["Kavenegar"] = [new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("Sender", "gateway.f.sender_line", "Sender line")],
-        ["SmsIr"] = [new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("LineNumber", "gateway.f.line_number", "Line number", Required: true)],
-        ["MelliPayamak"] =
-        [
+        ["Kavenegar"] = WithOtp(new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("Sender", "gateway.f.sender_line", "Sender line")),
+        ["SmsIr"] = WithOtp(new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("LineNumber", "gateway.f.line_number", "Line number", Required: true)),
+        ["MelliPayamak"] = WithOtp(
             new("Username", "gateway.f.username", "Username", Required: true),
             new("Password", "gateway.f.password", "Password", GatewayFieldKind.Secret, true),
-            new("From", "gateway.f.sender_line", "Sender line", Required: true),
-        ],
-        ["Ghasedak"] = [new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("LineNumber", "gateway.f.line_number", "Line number")],
-        ["IpPanel"] = [new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("From", "gateway.f.sender_line", "Sender line", Required: true)],
-        ["Twilio"] =
-        [
+            new("From", "gateway.f.sender_line", "Sender line", Required: true)),
+        ["Ghasedak"] = WithOtp(new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("LineNumber", "gateway.f.line_number", "Line number")),
+        ["IpPanel"] = WithOtp(new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("From", "gateway.f.sender_line", "Sender line", Required: true)),
+        ["IranPayamak"] = WithOtp(new("ApiKey", "gateway.f.api_key", "API key", GatewayFieldKind.Secret, true), new("From", "gateway.f.sender_line", "Line number", Required: true)),
+        ["Twilio"] = WithOtp(
             new("AccountSid", "gateway.f.account_sid", "Account SID", Required: true),
             new("AuthToken", "gateway.f.auth_token", "Auth token", GatewayFieldKind.Secret, true),
             new("From", "gateway.f.from_number", "From number or Messaging Service SID",
-                HintKey: "gateway.f.e164_hint", HintDefault: "E.164, e.g. +15551234567"),
-        ],
-        ["Vonage"] =
-        [
+                HintKey: "gateway.f.e164_hint", HintDefault: "E.164, e.g. +15551234567")),
+        ["Vonage"] = WithOtp(
             new("ApiKey", "gateway.f.api_key", "API key", Required: true),
             new("ApiSecret", "gateway.f.api_secret", "API secret", GatewayFieldKind.Secret, true),
-            new("From", "gateway.f.from", "Sender"),
-        ],
-        ["GenericHttp"] = GenericHttp,
+            new("From", "gateway.f.from", "Sender")),
+        ["GenericHttp"] = [..GenericHttp, ..OtpFields],
     };
 
     public static readonly IReadOnlyDictionary<string, GatewayField[]> WhatsApp = new Dictionary<string, GatewayField[]>(StringComparer.OrdinalIgnoreCase)

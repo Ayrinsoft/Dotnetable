@@ -29,6 +29,39 @@ public enum CheckoutCustomerStatus
 
 public sealed record CheckoutCustomerResult(CheckoutCustomerStatus Status, WebsiteClient? Client);
 
+public enum MobileOtpStatus
+{
+    Sent = 0,
+    InvalidMobile = 1,
+    DeliveryNotConfigured = 2,
+    TooSoon = 3,
+    Conflict = 4,
+}
+
+public sealed record MobileOtpResponse(MobileOtpStatus Status, string Identifier);
+
+public enum ClientProfileStatus
+{
+    Saved = 0,
+    NotFound = 1,
+    InvalidEmail = 2,
+    EmailTaken = 3,
+    InvalidNationalId = 4,
+}
+
+public sealed class ClientProfile
+{
+    public string? GivenName { get; init; }
+    public string? Surname { get; init; }
+    public string? Email { get; init; }
+    public string? Cellphone { get; init; }
+    public string? CountryCode { get; init; }
+    public string? NationalId { get; init; }
+
+    /// <summary><c>male</c>, <c>female</c>, or empty.</summary>
+    public string? Gender { get; init; }
+}
+
 public sealed record ClientRegistration(
     int WebsiteId,
     string? GivenName,

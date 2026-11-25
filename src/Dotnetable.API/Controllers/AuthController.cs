@@ -371,6 +371,85 @@ public class AuthController : BaseController
         [StringLength(40)] public string? NationalId { get; set; }
     }
 
+    /// <summary>
+    /// Starts customer registration or sign-in with a mobile number. Sends an OTP through the
+    /// website SMS gateway (pattern or simple text, whichever that gateway is set to).
+    /// </summary>
+    [HttpPost("request-mobile-otp")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimiting.OtpPolicy)]
+    public async Task<IActionResult> RequestMobileOtp([FromBody] MobileOtpBody request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        if (!await VerifyCaptchaAsync(website.WebsiteID, request, ct))
+            return BadRequest(new { message = "Captcha verification failed. Please try again." });
+
+        var response = await _auth.RequestMobileOtpAsync(website.WebsiteID, request.CountryCode, request.Cellphone, ct);
+        return response.Status switch
+        {
+            MobileOtpStatus.Sent => Ok(new
+            {
+                success = true,
+                channel = OtpChannel.Sms.ToString(),
+                identifier = response.Identifier,
+                message = "We sent a verification code to your mobile.",
+            }),
+            MobileOtpStatus.TooSoon => StatusCode(StatusCodes.Status429TooManyRequests, new
+            {
+                message = "A code was just sent. Please wait a minute before requesting another.",
+            }),
+            MobileOtpStatus.DeliveryNotConfigured => StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                message = "Verification SMS cannot be sent. Set a pattern or a simple OTP text on the website SMS gateway.",
+            }),
+            MobileOtpStatus.Conflict => Conflict(new { message = "This mobile belongs to more than one account." }),
+            _ => BadRequest(new { message = "Enter a valid mobile number." }),
+        };
+    }
+
+    public sealed class MobileOtpBody : ICaptchaProtectedRequest
+    {
+        [StringLength(8)] public string? CountryCode { get; set; }
+        [Required, StringLength(20)] public string Cellphone { get; set; } = "";
+        public string? CaptchaToken { get; set; }
+        public string? CaptchaAnswer { get; set; }
+    }
+
+    [HttpGet("profile")]
+    [Authorize(Policy = RoleKeys.ClientProfile)]
+    public async Task<IActionResult> Profile(CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+        if (!OwnsWebsite(website))
+            return Forbid();
+
+        var profile = await _auth.GetProfileAsync(website.WebsiteID, CurrentClientId, ct);
+        return profile is null ? NotFound() : Ok(profile);
+    }
+
+    [HttpPut("profile")]
+    [Authorize(Policy = RoleKeys.ClientProfile)]
+    public async Task<IActionResult> UpdateProfile([FromBody] ClientProfile request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+        if (!OwnsWebsite(website))
+            return Forbid();
+
+        var status = await _auth.UpdateProfileAsync(website.WebsiteID, CurrentClientId, request, ct);
+        return status switch
+        {
+            ClientProfileStatus.Saved => Ok(await _auth.GetProfileAsync(website.WebsiteID, CurrentClientId, ct)),
+            ClientProfileStatus.EmailTaken => Conflict(new { message = "This email belongs to another account." }),
+            ClientProfileStatus.InvalidNationalId => BadRequest(new { message = "National id must be 4 to 32 letters or digits." }),
+            ClientProfileStatus.InvalidEmail => BadRequest(new { message = "Enter a valid email address." }),
+            _ => NotFound(),
+        };
+    }
+
     /// <summary>Returns the identity and level of the bearer-token caller.</summary>
     [HttpGet("me")]
     [Authorize]
@@ -404,6 +483,14 @@ public class AuthController : BaseController
     private Task<bool> VerifyCaptchaAsync(int websiteId, ICaptchaProtectedRequest request, CancellationToken ct) =>
         _captcha.VerifyAsync(websiteId, request.CaptchaToken, request.CaptchaAnswer,
             HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+
+    private int CurrentClientId =>
+        int.TryParse(User.FindFirst(ClientClaims.ClientId)?.Value, out var id)
+            ? id
+            : throw new InvalidOperationException("Token does not carry a client id.");
+
+    private bool OwnsWebsite(Website website) =>
+        User.FindFirst(MemberClaims.WebsiteId)?.Value == website.WebsiteID.ToString();
 
     private async Task<Website?> ResolveWebsiteAsync(CancellationToken ct)
     {

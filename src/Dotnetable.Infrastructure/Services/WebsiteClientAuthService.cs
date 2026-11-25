@@ -256,6 +256,141 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         return new CheckoutCustomerResult(CheckoutCustomerStatus.Created, created);
     }
 
+    public async Task<MobileOtpResponse> RequestMobileOtpAsync(
+        int websiteId, string? countryCode, string? cellphone, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var canonical = CanonicalMobile(cellphone);
+        if (canonical is null)
+            return new MobileOtpResponse(MobileOtpStatus.InvalidMobile, "");
+
+        if (!await _sms.IsConfiguredAsync(websiteId, ct))
+            return new MobileOtpResponse(MobileOtpStatus.DeliveryNotConfigured, canonical);
+
+        var keys = MobileKeySet(canonical);
+        var matches = await _context.WebsiteClients
+            .Where(c => c.WebsiteID == websiteId && c.Cellphone != null && keys.Contains(c.Cellphone))
+            .ToListAsync(ct);
+        var distinct = matches.GroupBy(c => c.WebsiteClientID).Select(group => group.First()).ToList();
+        if (distinct.Count > 1)
+            return new MobileOtpResponse(MobileOtpStatus.Conflict, canonical);
+
+        WebsiteClient client;
+        var created = false;
+        if (distinct.Count == 1)
+        {
+            client = distinct[0];
+        }
+        else
+        {
+            client = new WebsiteClient
+            {
+                WebsiteID = websiteId,
+                Cellphone = canonical,
+                CountryCode = Digits(countryCode) ?? "98",
+                Active = false,
+                RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                HashKey = Guid.NewGuid(),
+                ClientLevel = (byte)ClientLevel.Normal,
+            };
+            _context.WebsiteClients.Add(client);
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                created = true;
+            }
+            catch (DbUpdateException)
+            {
+                _context.Entry(client).State = EntityState.Detached;
+                var again = await _context.WebsiteClients
+                    .Where(c => c.WebsiteID == websiteId && c.Cellphone != null && keys.Contains(c.Cellphone))
+                    .ToListAsync(ct);
+                var found = again.GroupBy(c => c.WebsiteClientID).Select(group => group.First()).ToList();
+                if (found.Count != 1)
+                    return new MobileOtpResponse(found.Count > 1 ? MobileOtpStatus.Conflict : MobileOtpStatus.InvalidMobile, canonical);
+                client = found[0];
+            }
+        }
+
+        if (await IsWithinResendCooldownAsync(_context, client.WebsiteClientID, ct))
+            return new MobileOtpResponse(MobileOtpStatus.TooSoon, client.Cellphone ?? canonical);
+
+        var code = await IssueCodeAsync(client.WebsiteClientID, ct);
+        bool sent;
+        using (MessageLogScope.Begin(MessageLogSources.Otp, redactBody: true,
+                   recipientType: MessageRecipientType.Client, recipientId: client.WebsiteClientID))
+        {
+            sent = await _sms.SendOtpAsync(websiteId, client.CountryCode ?? "98", client.Cellphone ?? canonical, code, ct);
+        }
+        if (!sent)
+        {
+            await ClearCodesAsync(_context, client.WebsiteClientID, ct);
+            return new MobileOtpResponse(MobileOtpStatus.DeliveryNotConfigured, client.Cellphone ?? canonical);
+        }
+
+        if (created)
+        {
+            await _notifications.NotifySiteAdminsAsync(
+                websiteId,
+                AdminNotificationType.ClientRegistered,
+                "New customer registration",
+                $"{client.Cellphone} registered by mobile code.",
+                $"/clients/{client.WebsiteClientID}",
+                client.WebsiteClientID,
+                ct);
+        }
+
+        return new MobileOtpResponse(MobileOtpStatus.Sent, client.Cellphone ?? canonical);
+    }
+
+    public async Task<ClientProfile?> GetProfileAsync(int websiteId, int clientId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var client = await _context.WebsiteClients.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.WebsiteClientID == clientId, ct);
+        return client is null ? null : ToProfile(client);
+    }
+
+    public async Task<ClientProfileStatus> UpdateProfileAsync(
+        int websiteId, int clientId, ClientProfile profile, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+        var client = await _context.WebsiteClients
+            .FirstOrDefaultAsync(c => c.WebsiteID == websiteId && c.WebsiteClientID == clientId, ct);
+        if (client is null)
+            return ClientProfileStatus.NotFound;
+
+        var email = Normalize(profile.Email)?.ToLowerInvariant();
+        if (email is not null && !LooksLikeEmail(email))
+            return ClientProfileStatus.InvalidEmail;
+        if (email is not null)
+        {
+            var taken = await _context.WebsiteClients.AnyAsync(c =>
+                c.WebsiteID == websiteId && c.WebsiteClientID != clientId &&
+                c.Email != null && c.Email.ToLower() == email, ct);
+            if (taken)
+                return ClientProfileStatus.EmailTaken;
+        }
+
+        var nationalId = NationalIdOrNull(profile.NationalId);
+        if (!string.IsNullOrWhiteSpace(profile.NationalId) && nationalId is null)
+            return ClientProfileStatus.InvalidNationalId;
+
+        client.Givenname = Clip(profile.GivenName, 80);
+        client.Surname = Clip(profile.Surname, 80);
+        client.Email = email;
+        client.NationalId = nationalId;
+        client.Gender = profile.Gender switch
+        {
+            "male" => true,
+            "female" => false,
+            _ => null,
+        };
+        await _context.SaveChangesAsync(ct);
+        return ClientProfileStatus.Saved;
+    }
+
     public async Task<(ClientVerifyResult Result, WebsiteClient? Client)> VerifyOtpAsync(
         int websiteId, string identifier, string code, CancellationToken ct = default)
     {
@@ -263,7 +398,6 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
         var client = await FindAsync(_context, websiteId, Normalize(identifier) ?? string.Empty, ct);
         if (client is null) return (ClientVerifyResult.NotFound, null);
-        if (client.Active) return (ClientVerifyResult.AlreadyActive, client);
 
         var check = await CheckCodeAsync(_context, client.WebsiteClientID, code, ct);
         if (check == CodeCheck.TooManyAttempts) return (ClientVerifyResult.TooManyAttempts, null);
@@ -400,9 +534,81 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
     // Takes the caller's context: the entity it returns is tracked, and every caller mutates it and
     // saves through that same context.
-    private static Task<WebsiteClient?> FindAsync(AppDbContext _context, int websiteId, string needle, CancellationToken ct) =>
-        _context.WebsiteClients.FirstOrDefaultAsync(
-            c => c.WebsiteID == websiteId && (c.Email == needle || c.Cellphone == needle), ct);
+    private static async Task<WebsiteClient?> FindAsync(AppDbContext _context, int websiteId, string needle, CancellationToken ct)
+    {
+        if (needle.Contains('@'))
+            return await _context.WebsiteClients.FirstOrDefaultAsync(
+                c => c.WebsiteID == websiteId && c.Email == needle, ct);
+
+        var keys = MobileKeySet(needle);
+        if (keys.Count == 0)
+            return await _context.WebsiteClients.FirstOrDefaultAsync(
+                c => c.WebsiteID == websiteId && (c.Email == needle || c.Cellphone == needle), ct);
+
+        return await _context.WebsiteClients.FirstOrDefaultAsync(
+            c => c.WebsiteID == websiteId &&
+                 (c.Email == needle || (c.Cellphone != null && keys.Contains(c.Cellphone))), ct);
+    }
+
+    private static string? CanonicalMobile(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        var digits = new string(FoldDigits(raw).Where(char.IsDigit).ToArray());
+        if (digits.StartsWith("0098", StringComparison.Ordinal))
+            digits = digits[4..];
+        else if (digits.StartsWith("98", StringComparison.Ordinal) && digits.Length >= 12)
+            digits = digits[2..];
+        if (digits.StartsWith('0'))
+            digits = digits[1..];
+        return digits.Length == 10 && digits.StartsWith('9') ? "0" + digits : null;
+    }
+
+    private static List<string> MobileKeySet(string? raw)
+    {
+        var canonical = CanonicalMobile(raw);
+        if (canonical is null)
+            return [];
+        var national = canonical[1..];
+        return [canonical, national, "98" + national, "+98" + national, "0098" + national];
+    }
+
+    private static string FoldDigits(string value)
+    {
+        var chars = value.ToCharArray();
+        for (var i = 0; i < chars.Length; i++)
+        {
+            chars[i] = chars[i] switch
+            {
+                >= '۰' and <= '۹' => (char)('0' + (chars[i] - '۰')),
+                >= '٠' and <= '٩' => (char)('0' + (chars[i] - '٠')),
+                _ => chars[i],
+            };
+        }
+        return new string(chars);
+    }
+
+    private static string? Clip(string? value, int max)
+    {
+        var text = Normalize(value);
+        return text is null ? null : text.Length <= max ? text : text[..max];
+    }
+
+    private static ClientProfile ToProfile(WebsiteClient client) => new()
+    {
+        GivenName = client.Givenname,
+        Surname = client.Surname,
+        Email = client.Email,
+        Cellphone = client.Cellphone,
+        CountryCode = client.CountryCode,
+        NationalId = client.NationalId,
+        Gender = client.Gender switch
+        {
+            true => "male",
+            false => "female",
+            _ => "",
+        },
+    };
 
     private static (OtpChannel Channel, string Target) ChannelFor(WebsiteClient client) =>
         !string.IsNullOrWhiteSpace(client.Email)
@@ -505,8 +711,7 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         }
         else
         {
-            var verb = isActivation ? "activation" : "password reset";
-            await _sms.SendAsync(websiteId, countryCode ?? string.Empty, target, $"Your {verb} code is {code}", ct);
+            await _sms.SendOtpAsync(websiteId, countryCode ?? string.Empty, target, code, ct);
         }
     }
 

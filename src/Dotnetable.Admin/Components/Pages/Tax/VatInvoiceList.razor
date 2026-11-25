@@ -1,0 +1,126 @@
+@page "/sales/tax/invoices"
+@attribute [Authorize(Policy = RoleKeys.TaxView)]
+@inject IVatInvoiceService Invoices
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+
+<DNPageTitle Title=@L["vat_invoices", "VAT invoices"] />
+
+<MudStack Spacing="2" Class="mb-4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="flex-wrap gap-2">
+        <MudText Typo="Typo.h5" Class="fw-bold">@L["vat_invoices", "VAT invoices"]</MudText>
+        <AuthorizeView Policy="@RoleKeys.TaxEdit">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/sales/tax/invoices/receive"
+                       StartIcon="@Icons.Material.Filled.Add">
+                @L["vat_invoices.receive", "Receive purchase invoice"]
+            </MudButton>
+        </AuthorizeView>
+    </MudStack>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @L["vat_invoices.subtitle", "Issued sales invoices and purchase invoices received from suppliers."]
+    </MudText>
+    <MudGrid Spacing="2">
+        @if (_isMaster)
+        {
+            <MudItem xs="12" sm="4">
+                <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsiteChanged" Websites="_websites"
+                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" Dense="true" />
+            </MudItem>
+        }
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" @bind-Value="_direction" Label="@L["vat_invoices.direction", "Direction"]"
+                       Variant="Variant.Outlined" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@("")">@L["all", "All"]</MudSelectItem>
+                <MudSelectItem Value="@("issued")">@L["vat_invoices.issued", "Issued"]</MudSelectItem>
+                <MudSelectItem Value="@("received")">@L["vat_invoices.received", "Received"]</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Outlined" OnClick="LoadAsync">@L["run", "Run"]</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th>@L["vat_invoices.number", "Invoice"]</th>
+                    <th>@L["vat_invoices.direction", "Direction"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th>@L["vat_invoices.party", "Other party"]</th>
+                    <th class="text-end">@L["tax", "Tax"]</th>
+                    <th class="text-end">@L["invoice.with_tax", "With tax"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_rows.Count == 0)
+                {
+                    <tr><td colspan="6" style="text-align:center;padding:16px">—</td></tr>
+                }
+                else
+                {
+                    @foreach (var row in _rows)
+                    {
+                        <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/sales/tax/invoices/{row.VatInvoiceId}"))">
+                            <td>@row.InvoiceNumber</td>
+                            <td>@(row.Direction == "received" ? L["vat_invoices.received", "Received"] : L["vat_invoices.issued", "Issued"])</td>
+                            <td>@row.InvoiceDate.ToLocalTime().ToString("g")</td>
+                            <td>@(string.IsNullOrWhiteSpace(row.OtherPartyName) ? "—" : row.OtherPartyName)</td>
+                            <td class="text-end">@MoneyFormat.Group(row.TaxTotal)</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(row.PayableTotal, row.CurrencyCode)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading;
+    private bool _isMaster;
+    private int _websiteId;
+    private string _direction = "";
+    private List<Website> _websites = new();
+    private IReadOnlyList<VatInvoiceSummaryDto> _rows = Array.Empty<VatInvoiceSummaryDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+        await LoadAsync();
+    }
+
+    private async Task OnWebsiteChanged(int id)
+    {
+        _websiteId = id;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_websiteId <= 0) return;
+        _loading = true;
+        try
+        {
+            _rows = await Invoices.ListAsync(new VatInvoiceListQuery
+            {
+                WebsiteId = _websiteId,
+                Direction = string.IsNullOrWhiteSpace(_direction) ? null : _direction,
+            });
+        }
+        finally { _loading = false; }
+    }
+}

@@ -8770,6 +8770,9 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<DateOnly>("FromDate")
                         .HasColumnType("date");
 
+                    b.Property<decimal>("InputTaxSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<decimal>("NetTaxSnapshot")
                         .HasColumnType("decimal(18,4)");
 
@@ -8890,6 +8893,182 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.HasIndex(new[] { "AttributeOptionID" }, "IX_VariantAttributeValues_AttributeOptionID");
 
                     b.ToTable("VariantAttributeValues");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VatInvoice", b =>
+                {
+                    b.Property<int>("VatInvoiceID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VatInvoiceID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int?>("CreatedByMemberID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("character(3)")
+                        .IsFixedLength();
+
+                    b.Property<byte>("Direction")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("DiscountTotal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("NetTotal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int?>("OrderID")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OtherAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OtherEconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("OtherEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OtherName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OtherNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OtherPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OtherPostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("OurAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OurEconomicCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("OurEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OurName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OurNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OurPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OurRegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("OurVatNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("PayableTotal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<bool>("PricesIncludeTax")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("TaxTotal")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("WebsiteID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("VatInvoiceID");
+
+                    b.HasIndex("CreatedByMemberID");
+
+                    b.HasIndex(new[] { "WebsiteID", "Direction", "InvoiceNumber" }, "IX_VatInvoices_Number")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "OrderID" }, "IX_VatInvoices_OrderID");
+
+                    b.HasIndex(new[] { "WebsiteID", "InvoiceDate" }, "IX_VatInvoices_Website_Date");
+
+                    b.ToTable("VatInvoices");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VatInvoiceLine", b =>
+                {
+                    b.Property<int>("VatInvoiceLineID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VatInvoiceLineID"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("PayableAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("VatInvoiceID")
+                        .HasColumnType("integer");
+
+                    b.HasKey("VatInvoiceLineID");
+
+                    b.HasIndex(new[] { "VatInvoiceID" }, "IX_VatInvoiceLines_Invoice");
+
+                    b.ToTable("VatInvoiceLines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
@@ -14224,6 +14403,39 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Navigation("ProductVariant");
                 });
 
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VatInvoice", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.Member", "CreatedByMember")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderID");
+
+                    b.HasOne("Dotnetable.Domain.Entities.Website", "Website")
+                        .WithMany()
+                        .HasForeignKey("WebsiteID")
+                        .IsRequired();
+
+                    b.Navigation("CreatedByMember");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Website");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VatInvoiceLine", b =>
+                {
+                    b.HasOne("Dotnetable.Domain.Entities.VatInvoice", "VatInvoice")
+                        .WithMany("Lines")
+                        .HasForeignKey("VatInvoiceID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VatInvoice");
+                });
+
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>
                 {
                     b.HasOne("Dotnetable.Domain.Entities.Website", "LinkedWebsite")
@@ -15519,6 +15731,11 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
             modelBuilder.Entity("Dotnetable.Domain.Entities.Tag", b =>
                 {
                     b.Navigation("TagTranslations");
+                });
+
+            modelBuilder.Entity("Dotnetable.Domain.Entities.VatInvoice", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Dotnetable.Domain.Entities.Vendor", b =>

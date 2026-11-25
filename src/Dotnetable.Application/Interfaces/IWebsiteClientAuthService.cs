@@ -23,6 +23,17 @@ public interface IWebsiteClientAuthService
     /// </summary>
     Task<CheckoutCustomerResult> EnsureCheckoutCustomerAsync(CheckoutCustomerRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Finds or creates a customer from a mobile number and sends a sign-in code.
+    /// No password. An existing active account receives the same code and stays active.
+    /// </summary>
+    Task<MobileOtpResponse> RequestMobileOtpAsync(int websiteId, string? countryCode, string? cellphone, CancellationToken ct = default);
+
+    Task<ClientProfile?> GetProfileAsync(int websiteId, int clientId, CancellationToken ct = default);
+
+    /// <summary>Fills the details collected after mobile registration. The mobile number is not changed.</summary>
+    Task<ClientProfileStatus> UpdateProfileAsync(int websiteId, int clientId, ClientProfile profile, CancellationToken ct = default);
+
     /// <summary>Validates an activation code and, on success, activates the account and returns it (for token issuance).</summary>
     Task<(ClientVerifyResult Result, WebsiteClient? Client)> VerifyOtpAsync(
         int websiteId, string identifier, string code, CancellationToken ct = default);

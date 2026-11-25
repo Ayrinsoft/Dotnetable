@@ -65,7 +65,7 @@ else if (_report is not null)
     </MudPaper>
 
     <MudGrid Spacing="3" Class="mb-3">
-        <MudItem xs="12" md="6">
+        <MudItem xs="12" md="4">
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.output_sales", "Output tax (customer sales)"]</MudText>
                 <MudStack Spacing="1">
@@ -76,7 +76,18 @@ else if (_report is not null)
                 </MudStack>
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" md="6">
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.input_tax", "Input tax (received invoices)"]</MudText>
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.net", "Net"]</MudText><MudText>@MoneyFormat.Group(_report.InputPurchases.Net)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@L["settlements.tax", "Tax"]</MudText><MudText>@MoneyFormat.Group(_report.InputPurchases.Tax)</MudText></MudStack>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween"><MudText Typo="Typo.subtitle2">@L["settlements.gross", "Gross"]</MudText><MudText Typo="Typo.subtitle2">@MoneyFormat.Group(_report.InputPurchases.Gross)</MudText></MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.InputPurchases.DocumentCount @L["vat_invoices.received", "received"]</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
             <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
                 <MudText Typo="Typo.subtitle2" Class="mb-2">@L["vat_report.settlement_tax", "Settlement tax (B2B / inter-site)"]</MudText>
                 <MudStack Spacing="1">
@@ -160,6 +171,78 @@ else if (_report is not null)
                             <td class="no-print">
                                 <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.OpenInNew" Href="@($"/finance/settlements/{line.DocumentId}")" />
                             </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4 mb-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["vat_invoices.issued", "Issued VAT invoices"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["vat_invoices.number", "Invoice"]</th>
+                    <th>@L["vat_invoices.party", "Other party"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th class="text-end">@L["tax", "Tax"]</th>
+                    <th class="text-end">@L["invoice.with_tax", "With tax"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_report.IssuedLines.Count == 0)
+                {
+                    <tr><td colspan="6" style="text-align:center;padding:16px">—</td></tr>
+                }
+                else
+                {
+                    @foreach (var line in _report.IssuedLines)
+                    {
+                        <tr>
+                            <td>@line.DocumentNumber</td>
+                            <td>@(line.Counterparty ?? "—")</td>
+                            <td>@line.Date.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Tax)</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(line.Gross, line.CurrencyCode)</td>
+                            <td class="no-print"><MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Receipt" Href="@($"/sales/tax/invoices/{line.DocumentId}")" /></td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">@L["vat_invoices.received", "Received VAT invoices"]</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>@L["vat_invoices.number", "Invoice"]</th>
+                    <th>@L["vat_invoices.supplier", "Supplier"]</th>
+                    <th>@L["date", "Date"]</th>
+                    <th class="text-end">@L["tax", "Tax"]</th>
+                    <th class="text-end">@L["invoice.with_tax", "With tax"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_report.ReceivedLines.Count == 0)
+                {
+                    <tr><td colspan="6" style="text-align:center;padding:16px">—</td></tr>
+                }
+                else
+                {
+                    @foreach (var line in _report.ReceivedLines)
+                    {
+                        <tr>
+                            <td>@line.DocumentNumber</td>
+                            <td>@(line.Counterparty ?? "—")</td>
+                            <td>@line.Date.ToLocalTime().ToString("g")</td>
+                            <td class="text-end">@MoneyFormat.Group(line.Tax)</td>
+                            <td class="text-end">@MoneyFormat.GroupWithCode(line.Gross, line.CurrencyCode)</td>
+                            <td class="no-print"><MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Receipt" Href="@($"/sales/tax/invoices/{line.DocumentId}")" /></td>
                         </tr>
                     }
                 }

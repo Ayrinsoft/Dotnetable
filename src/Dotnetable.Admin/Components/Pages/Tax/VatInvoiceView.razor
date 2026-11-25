@@ -1,0 +1,151 @@
+@page "/sales/tax/invoices/{InvoiceId:int}"
+@attribute [Authorize(Policy = RoleKeys.TaxView)]
+@inject IVatInvoiceService Invoices
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+@inject IJSRuntime Js
+
+<DNPageTitle Title="@(_doc is null ? L["vat_invoices", "VAT invoice"] : _doc.InvoiceNumber)" />
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_doc is null)
+{
+    <MudText Color="Color.Error">@L["vat_invoices.not_found", "Invoice not found."]</MudText>
+}
+else
+{
+    <div class="print-doc-toolbar no-print">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Nav.NavigateTo("/sales/tax/invoices"))">@L["back", "Back"]</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync">
+                @L["print_pdf", "Print PDF"]
+            </MudButton>
+        </MudStack>
+    </div>
+
+    <MudPaper Elevation="0" Class="app-card rounded-lg pa-4" id="vat-invoice-print">
+        <header class="print-doc-header">
+            <div>
+                <h1 class="print-doc-title">@(_doc.Direction == "received" ? L["vat_invoices.received_title", "Received VAT invoice"] : L["vat_invoices.issued_title", "Issued VAT invoice"])</h1>
+                <p class="print-doc-subtitle">#@_doc.InvoiceNumber</p>
+                <p class="print-doc-meta">@L["date", "Date"]: @_doc.InvoiceDate.ToLocalTime().ToString("g")</p>
+            </div>
+        </header>
+        <div class="print-doc-parties">
+            <section class="print-doc-party">
+                <h2 class="print-doc-party-label">@L["invoice.seller", "Seller"]</h2>
+                <p class="print-doc-party-name">@(_doc.Seller.LegalName ?? _doc.Seller.Name)</p>
+                <div class="print-doc-party-fields">
+                    @if (!string.IsNullOrWhiteSpace(_doc.Seller.NationalId))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["invoice.national_id", "National id"]</span><span class="v">@_doc.Seller.NationalId</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Seller.EconomicCode))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["website.seller_economic_code", "Economic code"]</span><span class="v">@_doc.Seller.EconomicCode</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Seller.VatNumber))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["website.seller_vat", "VAT"]</span><span class="v">@_doc.Seller.VatNumber</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Seller.Phone))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["phone", "Phone"]</span><span class="v">@_doc.Seller.Phone</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Seller.Address))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["address", "Address"]</span><span class="v">@_doc.Seller.Address</span></div>
+                    }
+                </div>
+            </section>
+            <section class="print-doc-party">
+                <h2 class="print-doc-party-label">@L["invoice.buyer", "Buyer"]</h2>
+                <p class="print-doc-party-name">@(string.IsNullOrWhiteSpace(_doc.Buyer.Name) ? "—" : _doc.Buyer.Name)</p>
+                <div class="print-doc-party-fields">
+                    @if (!string.IsNullOrWhiteSpace(_doc.Buyer.NationalId))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["invoice.national_id", "National id"]</span><span class="v">@_doc.Buyer.NationalId</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Buyer.EconomicCode))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["website.seller_economic_code", "Economic code"]</span><span class="v">@_doc.Buyer.EconomicCode</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Buyer.Phone))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["phone", "Phone"]</span><span class="v">@_doc.Buyer.Phone</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_doc.Buyer.Address))
+                    {
+                        <div class="print-doc-party-row"><span class="k">@L["address", "Address"]</span><span class="v">@_doc.Buyer.Address</span></div>
+                    }
+                </div>
+            </section>
+        </div>
+        <table class="print-doc-lines">
+            <thead>
+                <tr>
+                    <th>@L["title", "Title"]</th>
+                    <th class="text-end">@L["quantity", "Qty"]</th>
+                    <th>@L["vat_invoices.unit", "Unit"]</th>
+                    <th class="text-end">@L["variants.price", "Unit"]</th>
+                    <th class="text-end">@L["orders.discount", "Discount"]</th>
+                    <th class="text-end">@L["invoice.after_discount", "After discount"]</th>
+                    <th class="text-end">@L["tax", "Tax"]</th>
+                    <th class="text-end">@L["invoice.with_tax", "With tax"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in _doc.Lines)
+                {
+                    <tr>
+                        <td>@line.Description</td>
+                        <td class="text-end">@line.Quantity.ToString("0.####")</td>
+                        <td>@(line.Unit ?? "—")</td>
+                        <td class="text-end">@MoneyFormat.Group(line.UnitPrice, _doc.CurrencyCode)</td>
+                        <td class="text-end">@MoneyFormat.Group(line.DiscountAmount, _doc.CurrencyCode)</td>
+                        <td class="text-end">@MoneyFormat.Group(line.NetAmount, _doc.CurrencyCode)</td>
+                        <td class="text-end">@MoneyFormat.Group(line.TaxAmount, _doc.CurrencyCode)</td>
+                        <td class="text-end">@MoneyFormat.Group(line.PayableAmount, _doc.CurrencyCode)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="print-doc-footer-grid">
+            <div class="print-doc-notes">
+                @if (!string.IsNullOrWhiteSpace(_doc.Note))
+                {
+                    <p class="print-doc-notes-title">@L["invoice.notes", "Notes"]</p>
+                    <div>@_doc.Note</div>
+                }
+            </div>
+            <div class="print-doc-totals">
+                <table>
+                    <tr><td>@L["settlements.net", "Net"]</td><td class="text-end">@MoneyFormat.GroupWithCode(_doc.NetTotal, _doc.CurrencyCode)</td></tr>
+                    <tr><td>@L["orders.discount", "Discount"]</td><td class="text-end">@MoneyFormat.Group(_doc.DiscountTotal, _doc.CurrencyCode)</td></tr>
+                    <tr><td>@L["tax", "Tax"]</td><td class="text-end">@MoneyFormat.GroupWithCode(_doc.TaxTotal, _doc.CurrencyCode)</td></tr>
+                    <tr><td>@L["orders.grand_total", "Grand total"]</td><td class="text-end">@MoneyFormat.GroupWithCode(_doc.PayableTotal, _doc.CurrencyCode)</td></tr>
+                </table>
+            </div>
+        </div>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public int InvoiceId { get; set; }
+    private bool _loading = true;
+    private VatInvoiceDto? _doc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        _doc = await Invoices.GetAsync(InvoiceId);
+        _loading = false;
+    }
+
+    private async Task PrintAsync() =>
+        await Js.InvokeVoidAsync("dotnetablePrint.printElement", "vat-invoice-print", _doc?.InvoiceNumber ?? "invoice");
+}

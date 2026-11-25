@@ -7,6 +7,7 @@ CREATE TABLE [dbo].[TaxPeriods] (
     [Status]                TINYINT         NOT NULL,
     [OutputTaxSnapshot]     DECIMAL (18, 4) NOT NULL,
     [SettlementTaxSnapshot] DECIMAL (18, 4) NOT NULL,
+    [InputTaxSnapshot]      DECIMAL (18, 4) DEFAULT ((0)) NOT NULL,
     [NetTaxSnapshot]        DECIMAL (18, 4) NOT NULL,
     [OutputOrderCount]      INT             NOT NULL,
     [SettlementCount]       INT             NOT NULL,

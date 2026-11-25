@@ -1,6 +1,7 @@
 @page "/orders/{OrderId:int}/invoice"
 @attribute [Authorize(Policy = RoleKeys.OrdersView)]
 @inject ITaxReportService TaxReportService
+@inject IVatInvoiceService VatInvoices
 @inject IOrderService OrderService
 @inject IEmailService EmailService
 @inject AuthenticationStateProvider AuthState
@@ -26,6 +27,21 @@ else
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack"
                        OnClick="@(() => Nav.NavigateTo($"/orders/{OrderId}"))">@L["back", "Back"]</MudButton>
             <MudStack Row="true" Spacing="1" Class="flex-wrap">
+                @if (_issued is not null)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ReceiptLong"
+                               Href="@($"/sales/tax/invoices/{_issued.VatInvoiceId}")">
+                        @L["vat_invoices.open_issued", "Open VAT invoice"]
+                    </MudButton>
+                }
+                else if (_canIssue)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.ReceiptLong" OnClick="IssueAsync" Disabled="_issuing">
+                        @L["vat_invoices.issue", "Issue VAT invoice"]
+                    </MudButton>
+                }
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="PrintAsync">
                     @L["print_pdf", "Print PDF"]
@@ -318,6 +334,9 @@ else
     private bool _sendingEmail;
     private bool _emailConfigured;
     private bool _canEdit;
+    private bool _canIssue;
+    private bool _issuing;
+    private VatInvoiceSummaryDto? _issued;
     private bool _savingFulfillment;
     private OrderInvoiceDto? _inv;
     private string _shareEmail = "";
@@ -332,6 +351,7 @@ else
         await L.EnsureLoadedAsync();
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _canEdit = AdminPolicies.Allows(user, RoleKeys.OrdersEdit);
+        _canIssue = AdminPolicies.Allows(user, RoleKeys.TaxEdit);
         if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var mid))
             _memberId = mid;
         await ReloadInvoiceAsync();
@@ -348,6 +368,7 @@ else
             _prepStatus = (OrderPreparationStatus)_inv.PreparationStatus;
             _shipStatus = (OrderShippingStatus)_inv.ShippingStatus;
             _trackingCode = _inv.ShippingTrackingCode;
+            _issued = await VatInvoices.FindIssuedForOrderAsync(OrderId);
             try
             {
                 _emailConfigured = await EmailService.IsConfiguredAsync(_inv.WebsiteId);
@@ -417,6 +438,24 @@ else
         OrderStatus.Cancelled or OrderStatus.Refunded => "print-doc-badge print-doc-badge-muted",
         _ => "print-doc-badge print-doc-badge-info",
     };
+
+    private async Task IssueAsync()
+    {
+        _issuing = true;
+        try
+        {
+            var result = await VatInvoices.IssueFromOrderAsync(OrderId, _memberId);
+            if (!result.Success || result.Invoice is null)
+            {
+                Snackbar.Add(result.Error ?? L["vat_invoices.issue_failed", "The VAT invoice was not issued."], Severity.Error);
+                return;
+            }
+
+            _issued = await VatInvoices.FindIssuedForOrderAsync(OrderId);
+            Snackbar.Add(L["vat_invoices.issued_ok", "VAT invoice issued."], Severity.Success);
+        }
+        finally { _issuing = false; }
+    }
 
     private async Task PrintAsync() =>
         await Js.InvokeVoidAsync("dotnetablePrint.printElement", "order-invoice-print",

@@ -24,8 +24,13 @@ public sealed class VatReportDto
     /// <summary>B2B settlement tax on host payables / receivables (for dual-site books).</summary>
     public VatBucketDto SettlementTax { get; init; } = new();
 
+    /// <summary>Input VAT from purchase invoices received in the period.</summary>
+    public VatBucketDto InputPurchases { get; init; } = new();
+
     public IReadOnlyList<VatReportLineDto> OrderLines { get; init; } = Array.Empty<VatReportLineDto>();
     public IReadOnlyList<VatReportLineDto> SettlementLines { get; init; } = Array.Empty<VatReportLineDto>();
+    public IReadOnlyList<VatReportLineDto> IssuedLines { get; init; } = Array.Empty<VatReportLineDto>();
+    public IReadOnlyList<VatReportLineDto> ReceivedLines { get; init; } = Array.Empty<VatReportLineDto>();
 }
 
 public sealed class VatBucketDto

@@ -18,6 +18,10 @@ public partial class TaxPeriod
     public byte Status { get; set; }
     public decimal OutputTaxSnapshot { get; set; }
     public decimal SettlementTaxSnapshot { get; set; }
+
+    /// <summary>Input VAT from received purchase invoices.</summary>
+    public decimal InputTaxSnapshot { get; set; }
+
     public decimal NetTaxSnapshot { get; set; }
     public int OutputOrderCount { get; set; }
     public int SettlementCount { get; set; }

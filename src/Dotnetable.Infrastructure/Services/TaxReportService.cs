@@ -1,5 +1,6 @@
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -106,6 +107,13 @@ public class TaxReportService : ITaxReportService
             };
         }).ToList();
 
+        var issued = await VatInvoiceService.InPeriodAsync(
+            _context, request.WebsiteId, (byte)VatInvoiceDirection.Issued, fromDt, toDt, ct);
+        var received = await VatInvoiceService.InPeriodAsync(
+            _context, request.WebsiteId, (byte)VatInvoiceDirection.Received, fromDt, toDt, ct);
+        var issuedLines = issued.Select(v => InvoiceLine(v, "Issued")).ToList();
+        var receivedLines = received.Select(v => InvoiceLine(v, "Received")).ToList();
+
         return new VatReportDto
         {
             WebsiteId = request.WebsiteId,
@@ -130,10 +138,33 @@ public class TaxReportService : ITaxReportService
                 Gross = settlementLines.Sum(x => x.Gross),
                 DocumentCount = settlementLines.Count,
             },
+            InputPurchases = new VatBucketDto
+            {
+                Net = receivedLines.Sum(x => x.Net),
+                Tax = receivedLines.Sum(x => x.Tax),
+                Gross = receivedLines.Sum(x => x.Gross),
+                DocumentCount = receivedLines.Count,
+            },
             OrderLines = orderLines,
             SettlementLines = settlementLines,
+            IssuedLines = issuedLines,
+            ReceivedLines = receivedLines,
         };
     }
+
+    private static VatReportLineDto InvoiceLine(Domain.Entities.VatInvoice invoice, string source) => new()
+    {
+        Source = source,
+        DocumentId = invoice.VatInvoiceID,
+        DocumentNumber = invoice.InvoiceNumber,
+        Date = invoice.InvoiceDate,
+        CurrencyCode = invoice.CurrencyCode,
+        Net = invoice.NetTotal,
+        Tax = invoice.TaxTotal,
+        Gross = invoice.PayableTotal,
+        PricesIncludeTax = invoice.PricesIncludeTax,
+        Counterparty = invoice.OtherName,
+    };
 
     public async Task<OrderInvoiceDto?> GetOrderInvoiceAsync(int orderId, CancellationToken ct = default)
     {

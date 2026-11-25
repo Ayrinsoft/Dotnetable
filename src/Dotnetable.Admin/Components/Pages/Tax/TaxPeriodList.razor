@@ -25,6 +25,7 @@
             <MudText>@_period.FromDate.ToString("yyyy-MM-dd") → @_period.ToDate.ToString("yyyy-MM-dd")</MudText>
             <MudText Class="mt-2">@L["vat_report.output_sales", "Output tax"]: @_period.OutputTaxSnapshot.ToString("0.##")</MudText>
             <MudText>@L["vat_report.settlement_tax", "Settlement tax"]: @_period.SettlementTaxSnapshot.ToString("0.##")</MudText>
+            <MudText>@L["vat_report.input_tax", "Input tax"]: @_period.InputTaxSnapshot.ToString("0.##")</MudText>
             <MudText Typo="Typo.subtitle1">@L["tax.net_snapshot", "Net tax snapshot"]: @_period.NetTaxSnapshot.ToString("0.##")</MudText>
             <MudText Typo="Typo.caption" Color="Color.Secondary">
                 @L["orders", "Orders"]: @_period.OutputOrderCount · @L["settlements", "Settlements"]: @_period.SettlementCount

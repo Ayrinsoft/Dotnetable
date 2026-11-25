@@ -1,0 +1,153 @@
+@page "/sales/tax/invoices/receive"
+@attribute [Authorize(Policy = RoleKeys.TaxEdit)]
+@inject IVatInvoiceService Invoices
+@inject IWebsiteService WebsiteService
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+@inject IPageLocalizer L
+@inject ISnackbar Snackbar
+
+<DNPageTitle Title=@L["vat_invoices.receive", "Receive purchase invoice"] />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-3">
+    <MudText Typo="Typo.h5">@L["vat_invoices.receive", "Receive purchase invoice"]</MudText>
+    <MudButton OnClick="@(() => Nav.NavigateTo("/sales/tax/invoices"))">@L["back", "Back"]</MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Class="app-card rounded-lg pa-4">
+    <MudGrid Spacing="2">
+        @if (_isMaster)
+        {
+            <MudItem xs="12" sm="6">
+                <WebsiteSelector Value="_websiteId" ValueChanged="OnWebsite" Websites="_websites"
+                                 Label="@L["website", "Website"]" Variant="Variant.Outlined" />
+            </MudItem>
+        }
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_number" Label="@L["vat_invoices.number", "Invoice number"]" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudDatePicker @bind-Date="_date" Label="@L["date", "Date"]" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_supplier" Label="@L["vat_invoices.supplier", "Supplier"]" Variant="Variant.Outlined" Required="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_nationalId" Label="@L["invoice.national_id", "National id"]" Variant="Variant.Outlined"
+                          HelperText="@L["vat_invoices.national_help", "4 to 32 letters or digits. No check digit."]" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_economic" Label="@L["website.seller_economic_code", "Economic code"]" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_phone" Label="@L["phone", "Phone"]" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_address" Label="@L["address", "Address"]" Variant="Variant.Outlined" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">@L["vat_invoices.lines", "Lines"]</MudText>
+    @foreach (var line in _lines)
+    {
+        <MudGrid Spacing="2" Class="mb-2">
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="line.Description" Label="@L["title", "Description"]" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="1">
+                <MudNumericField T="decimal" @bind-Value="line.Quantity" Label="@L["quantity", "Qty"]" Variant="Variant.Outlined" Min="0.0001m" />
+            </MudItem>
+            <MudItem xs="6" md="1">
+                <MudTextField @bind-Value="line.Unit" Label="@L["vat_invoices.unit", "Unit"]" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudNumericField T="decimal" @bind-Value="line.UnitPrice" Label="@L["variants.price", "Unit price"]" Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudNumericField T="decimal" @bind-Value="line.DiscountAmount" Label="@L["orders.discount", "Discount"]" Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+            <MudItem xs="6" md="2">
+                <MudNumericField T="decimal" @bind-Value="line.TaxAmount" Label="@L["tax", "Tax"]" Variant="Variant.Outlined" Min="0" />
+            </MudItem>
+        </MudGrid>
+    }
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine">@L["vat_invoices.add_line", "Add line"]</MudButton>
+
+    <MudTextField @bind-Value="_note" Label="@L["invoice.notes", "Notes"]" Variant="Variant.Outlined" Lines="2" Class="mt-3" />
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_error</MudAlert>
+    }
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3" Disabled="_saving" OnClick="SaveAsync">
+        @L["vat_invoices.save_received", "Save received invoice"]
+    </MudButton>
+</MudPaper>
+
+@code {
+    private bool _isMaster;
+    private bool _saving;
+    private int _websiteId;
+    private int? _memberId;
+    private List<Website> _websites = new();
+    private string? _number;
+    private DateTime? _date = DateTime.Today;
+    private string? _supplier;
+    private string? _nationalId;
+    private string? _economic;
+    private string? _phone;
+    private string? _address;
+    private string? _note;
+    private string? _error;
+    private List<VatInvoiceLineWrite> _lines = [new() { Quantity = 1, Unit = "عدد" }];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await L.EnsureLoadedAsync();
+        var user = (await AuthState.GetAuthenticationStateAsync()).User;
+        _isMaster = user.HasClaim(AdminClaimTypes.Master, "true");
+        int.TryParse(user.FindFirst(AdminClaimTypes.WebsiteId)?.Value, out _websiteId);
+        if (int.TryParse(user.FindFirst(AdminClaimTypes.MemberId)?.Value, out var memberId))
+            _memberId = memberId;
+        if (_isMaster) _websites = (await WebsiteService.GetAllAsync()).ToList();
+    }
+
+    private void OnWebsite(int id) => _websiteId = id;
+    private void AddLine() => _lines.Add(new VatInvoiceLineWrite { Quantity = 1, Unit = "عدد" });
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        if (_websiteId <= 0 || _date is null)
+        {
+            _error = L["vat_invoices.missing", "Website and date are required."];
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var result = await Invoices.ReceiveAsync(new VatInvoiceReceiveWrite
+            {
+                WebsiteId = _websiteId,
+                InvoiceNumber = _number,
+                InvoiceDate = DateTime.SpecifyKind(_date.Value.Date, DateTimeKind.Utc),
+                SupplierName = _supplier,
+                SupplierNationalId = _nationalId,
+                SupplierEconomicCode = _economic,
+                SupplierPhone = _phone,
+                SupplierAddress = _address,
+                Note = _note,
+                Lines = _lines,
+            }, _memberId);
+            if (!result.Success || result.Invoice is null)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Snackbar.Add(L["vat_invoices.saved", "Invoice recorded."], Severity.Success);
+            Nav.NavigateTo($"/sales/tax/invoices/{result.Invoice.VatInvoiceId}");
+        }
+        finally { _saving = false; }
+    }
+}

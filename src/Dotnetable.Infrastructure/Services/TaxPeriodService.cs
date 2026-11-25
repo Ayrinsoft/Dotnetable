@@ -109,7 +109,8 @@ public class TaxPeriodService : ITaxPeriodService
 
         p.OutputTaxSnapshot = report.OutputSales.Tax;
         p.SettlementTaxSnapshot = report.SettlementTax.Tax;
-        p.NetTaxSnapshot = report.OutputSales.Tax + report.SettlementTax.Tax;
+        p.InputTaxSnapshot = report.InputPurchases.Tax;
+        p.NetTaxSnapshot = report.OutputSales.Tax + report.SettlementTax.Tax - report.InputPurchases.Tax;
         p.OutputOrderCount = report.OutputSales.DocumentCount;
         p.SettlementCount = report.SettlementTax.DocumentCount;
         p.SnapshotAt = DateTime.UtcNow;

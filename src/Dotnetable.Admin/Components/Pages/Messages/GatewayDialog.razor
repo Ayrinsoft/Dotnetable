@@ -55,6 +55,16 @@
                                             <MudSelectItem T="string" Value="@("POST")">POST</MudSelectItem>
                                         </MudSelect>
                                         break;
+                                    case GatewayFieldKind.Choice:
+                                        <MudSelect T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
+                                                   Label="@L[f.LabelKey, f.LabelDefault]" Variant="Variant.Outlined"
+                                                   HelperText="@Hint(f)">
+                                            @foreach (var choice in f.Choices ?? [])
+                                            {
+                                                <MudSelectItem T="string" Value="@choice">@ChoiceLabel(choice)</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                        break;
                                     case GatewayFieldKind.Multiline:
                                     case GatewayFieldKind.Headers:
                                         <MudTextField T="string" Value="GetValue(f)" ValueChanged="@(v => _values[f.Name] = v)"
@@ -176,6 +186,13 @@
     private string GetValue(GatewayField f) => _values.TryGetValue(f.Name, out var v) ? v ?? "" : f.DefaultValue ?? "";
 
     private string? Hint(GatewayField f) => f.HintKey is null ? null : L[f.HintKey, f.HintDefault ?? ""];
+
+    private string ChoiceLabel(string choice) => choice switch
+    {
+        "simple" => L["gateway.f.otp_simple", "Simple SMS"],
+        "pattern" => L["gateway.f.otp_pattern", "Pattern"],
+        _ => choice,
+    };
 
     private void ToggleReveal(string name)
     {

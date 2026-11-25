@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
 using Dotnetable.Application.Messaging;
@@ -94,6 +95,75 @@ public sealed class SmsSender : ISmsSender
 
         _logger.LogInformation("SMS sent via {Provider} for website {WebsiteId}.", provider.Key, websiteId);
         return true;
+    }
+
+    public async Task<bool> SendOtpAsync(int websiteId, string countryCode, string cellphone, string code,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(cellphone) || string.IsNullOrWhiteSpace(code))
+            return false;
+
+        var resolved = await ResolveAsync(websiteId, ct);
+        if (resolved is null)
+        {
+            _logger.LogWarning("No SMS gateway is configured for website {WebsiteId}; OTP not sent.", websiteId);
+            return false;
+        }
+
+        var (provider, ctx) = resolved.Value;
+        var otp = ReadOtp(ctx);
+        SmsSendResult result;
+        string body;
+        if (otp.UsePattern)
+        {
+            if (provider is not ISmsPatternSender pattern || string.IsNullOrWhiteSpace(otp.PatternCode))
+            {
+                _logger.LogWarning(
+                    "Website {WebsiteId} OTP is set to pattern, but {Provider} has no pattern code.",
+                    websiteId, provider.Key);
+                return false;
+            }
+
+            body = "pattern";
+            result = await pattern.SendPatternAsync(ctx, countryCode, cellphone, otp.PatternCode.Trim(), code.Trim(), ct);
+        }
+        else
+        {
+            body = otp.SimpleText(code.Trim());
+            result = await provider.SendAsync(ctx, countryCode, cellphone, body, ct);
+        }
+
+        await _log.WriteAsync(new MessageLogEntry
+        {
+            WebsiteID = websiteId, Channel = MessageChannel.Sms, Success = result.Success,
+            Recipient = FormatNumber(countryCode, cellphone), Body = body,
+            Provider = provider.DisplayName, Error = result.Error,
+        }, ct);
+
+        if (!result.Success)
+        {
+            _logger.LogError("OTP SMS via {Provider} for website {WebsiteId} failed: {Error}",
+                provider.Key, websiteId, result.Error);
+            return false;
+        }
+
+        _logger.LogInformation("OTP SMS sent via {Provider} for website {WebsiteId}.", provider.Key, websiteId);
+        return true;
+    }
+
+    internal static SmsOtpSettings ReadOtp(SmsSettingContext ctx)
+    {
+        if (string.IsNullOrWhiteSpace(ctx.SettingsJson))
+            return new SmsOtpSettings();
+        try
+        {
+            return JsonSerializer.Deserialize<SmsOtpSettings>(ctx.SettingsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new SmsOtpSettings();
+        }
+        catch (JsonException)
+        {
+            return new SmsOtpSettings();
+        }
     }
 
     /// <summary>The first active, registered and fully-configured gateway for the website.</summary>

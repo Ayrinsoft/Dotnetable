@@ -24,17 +24,22 @@ public abstract class HttpSmsProviderBase : ISmsProvider
 
     public abstract bool IsConfigured(SmsSettingContext ctx);
 
-    public async Task<SmsSendResult> SendAsync(SmsSettingContext ctx, string countryCode, string cellphone,
+    public Task<SmsSendResult> SendAsync(SmsSettingContext ctx, string countryCode, string cellphone,
         string message, CancellationToken ct = default)
     {
         if (!IsConfigured(ctx))
-            return SmsSendResult.Fail($"{DisplayName} is missing required settings.");
+            return Task.FromResult(SmsSendResult.Fail($"{DisplayName} is missing required settings."));
 
+        return ExecuteAsync(client => SendCoreAsync(client, ctx, countryCode, cellphone, message, ct), ct);
+    }
+
+    protected async Task<SmsSendResult> ExecuteAsync(Func<HttpClient, Task<SmsSendResult>> send, CancellationToken ct)
+    {
         try
         {
             using var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(20);
-            return await SendCoreAsync(client, ctx, countryCode, cellphone, message, ct);
+            return await send(client);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -251,8 +256,8 @@ public sealed class GhasedakSmsProvider : HttpSmsProviderBase
     }
 }
 
-/// <summary>IPPanel / FarazSMS — Iranian, bearer-key REST.</summary>
-public sealed class IpPanelSmsProvider : HttpSmsProviderBase
+/// <summary>IPPanel / FarazSMS — Iranian. Plain text uses the webservice; OTP can use a pattern.</summary>
+public sealed class IpPanelSmsProvider : HttpSmsProviderBase, ISmsPatternSender
 {
     public IpPanelSmsProvider(IHttpClientFactory f) : base(f) { }
 
@@ -286,6 +291,115 @@ public sealed class IpPanelSmsProvider : HttpSmsProviderBase
         using var response = await client.SendAsync(request, ct);
         return await ReadResultAsync(response, DisplayName, null, ct);
     }
+
+    public Task<SmsSendResult> SendPatternAsync(SmsSettingContext ctx, string countryCode, string cellphone,
+        string patternCode, string code, CancellationToken ct = default) =>
+        ExecuteAsync(async client =>
+        {
+            var s = Parse<IpPanelSmsSettings>(ctx);
+            var from = !string.IsNullOrWhiteSpace(s.From) ? s.From : ctx.SenderNumber ?? "";
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://edge.ippanel.com/v1/api/send")
+            {
+                Content = JsonContent.Create(new
+                {
+                    sending_type = "pattern",
+                    from_number = from,
+                    code = patternCode,
+                    recipients = new[] { LocalNumber(countryCode, cellphone) },
+                    @params = new Dictionary<string, string> { ["otp"] = code, ["code"] = code },
+                }),
+            };
+            request.Headers.TryAddWithoutValidation("Authorization", s.ApiKey);
+            using var response = await client.SendAsync(request, ct);
+            return await ReadResultAsync(response, DisplayName, null, ct);
+        }, ct);
+}
+
+/// <summary>
+/// IranPayamak. OTP uses the pattern endpoint with attributes <c>otp</c> and <c>code</c>.
+/// Plain messages use the simple endpoint.
+/// </summary>
+public sealed class IranPayamakSmsProvider : HttpSmsProviderBase, ISmsPatternSender
+{
+    private const string PatternUrl = "https://api.iranpayamak.com/ws/v1/sms/pattern";
+    private const string SimpleUrl = "https://api.iranpayamak.com/ws/v1/sms/simple";
+
+    public IranPayamakSmsProvider(IHttpClientFactory f) : base(f) { }
+
+    public override string Key => "IranPayamak";
+    public override string DisplayName => "IranPayamak";
+
+    public override bool IsConfigured(SmsSettingContext ctx)
+    {
+        var s = Parse<IranPayamakSettings>(ctx);
+        return !string.IsNullOrWhiteSpace(s.ApiKey) &&
+               (!string.IsNullOrWhiteSpace(s.From) || !string.IsNullOrWhiteSpace(ctx.SenderNumber));
+    }
+
+    protected override Task<SmsSendResult> SendCoreAsync(HttpClient client, SmsSettingContext ctx,
+        string countryCode, string cellphone, string message, CancellationToken ct)
+    {
+        var s = Parse<IranPayamakSettings>(ctx);
+        var line = DigitsOnly(!string.IsNullOrWhiteSpace(s.From) ? s.From : ctx.SenderNumber);
+        var body = new
+        {
+            text = message,
+            line_number = line,
+            recipients = new[] { LocalNumber(countryCode, cellphone) },
+            number_format = "english",
+        };
+        return PostIranAsync(client, SimpleUrl, s.ApiKey, body, ct);
+    }
+
+    public Task<SmsSendResult> SendPatternAsync(SmsSettingContext ctx, string countryCode, string cellphone,
+        string patternCode, string code, CancellationToken ct = default) =>
+        ExecuteAsync(client =>
+        {
+            var s = Parse<IranPayamakSettings>(ctx);
+            var line = DigitsOnly(!string.IsNullOrWhiteSpace(s.From) ? s.From : ctx.SenderNumber);
+            var body = new
+            {
+                code = patternCode,
+                attributes = new Dictionary<string, string> { ["otp"] = code, ["code"] = code },
+                recipient = LocalNumber(countryCode, cellphone),
+                line_number = line,
+                number_format = "english",
+            };
+            return PostIranAsync(client, PatternUrl, s.ApiKey, body, ct);
+        }, ct);
+
+    private static async Task<SmsSendResult> PostIranAsync(HttpClient client, string url, string apiKey, object body,
+        CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(body),
+        };
+        request.Headers.TryAddWithoutValidation("Api-Key", apiKey);
+        request.Headers.TryAddWithoutValidation("Accept", "application/json");
+        using var response = await client.SendAsync(request, ct);
+        var text = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+            return SmsSendResult.Fail($"IranPayamak returned {(int)response.StatusCode}: {Trim(text)}");
+        if (string.IsNullOrWhiteSpace(text))
+            return SmsSendResult.Ok();
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            if (!document.RootElement.TryGetProperty("status", out var status))
+                return SmsSendResult.Ok();
+            var ok = status.ValueKind == JsonValueKind.String &&
+                     string.Equals(status.GetString(), "success", StringComparison.OrdinalIgnoreCase);
+            return ok ? SmsSendResult.Ok() : SmsSendResult.Fail($"IranPayamak rejected the message: {Trim(text)}");
+        }
+        catch (JsonException)
+        {
+            return SmsSendResult.Ok();
+        }
+    }
+
+    private static string DigitsOnly(string? value) =>
+        string.Concat((value ?? "").Where(char.IsDigit));
 }
 
 /// <summary>Twilio — international.</summary>
