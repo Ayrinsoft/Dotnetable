@@ -4242,6 +4242,10 @@ public partial class AppDbContext : DbContext
         {
             entity.HasIndex(e => e.DefaultCurrencyCode, "IX_Websites_DefaultCurrencyCode");
 
+            entity.HasIndex(e => e.BackgroundImageFileID, "IX_Websites_BackgroundImageFileID");
+
+            entity.HasIndex(e => e.DarkBackgroundImageFileID, "IX_Websites_DarkBackgroundImageFileID");
+
             entity.HasIndex(e => e.FaveIconFileID, "IX_Websites_FaveIconFileID");
 
             entity.HasIndex(e => e.LogoFileID, "IX_Websites_LogoFileID");
@@ -4265,6 +4269,18 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Manager).HasMaxLength(30);
             entity.Property(e => e.Mobile)
                 .HasMaxLength(15)
+                .IsUnicode(false);
+            entity.Property(e => e.PrimaryColor)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.SecondaryColor)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.BackgroundColor)
+                .HasMaxLength(7)
+                .IsUnicode(false);
+            entity.Property(e => e.DarkBackgroundColor)
+                .HasMaxLength(7)
                 .IsUnicode(false);
             entity.Property(e => e.SellerEconomicCode).HasMaxLength(50);
             entity.Property(e => e.SellerLegalName).HasMaxLength(200);
@@ -4331,6 +4347,14 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.LogoFile).WithMany(p => p.WebsiteLogoFiles)
                 .HasForeignKey(d => d.LogoFileID)
                 .HasConstraintName("FK_Websites_FileRecords");
+
+            entity.HasOne(d => d.BackgroundImageFile).WithMany(p => p.WebsiteBackgroundImageFiles)
+                .HasForeignKey(d => d.BackgroundImageFileID)
+                .HasConstraintName("FK_Websites_FileRecords_Background");
+
+            entity.HasOne(d => d.DarkBackgroundImageFile).WithMany(p => p.WebsiteDarkBackgroundImageFiles)
+                .HasForeignKey(d => d.DarkBackgroundImageFileID)
+                .HasConstraintName("FK_Websites_FileRecords_DarkBackground");
 
             entity.HasOne(d => d.TaxCountry).WithMany(p => p.TaxJurisdictionWebsites)
                 .HasForeignKey(d => d.TaxCountryID)

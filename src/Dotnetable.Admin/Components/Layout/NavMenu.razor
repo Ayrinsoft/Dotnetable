@@ -108,7 +108,7 @@
             </MudNavGroup>
         }
 
-        @if (NavSurface.Shows(AdminNavArea.Website) && (_canWebsite || _canWebsiteSocial || _canWebsiteContact || _canLocalization || _canSocialPublish || _isMaster))
+        @if (NavSurface.Shows(AdminNavArea.Website) && (_canWebsite || _canWebsiteProfile || _canWebsiteSocial || _canWebsiteContact || _canLocalization || _canSocialPublish || _isMaster))
         {
             <MudNavGroup Title="@L["website", "Website"]" Icon="@Icons.Material.Filled.WebAsset"
                          Expanded="@IsGroupActive("/websites", "/website/", "/content-languages")">
@@ -118,6 +118,11 @@
                     </MudNavLink>
                     <MudNavLink Href="/websites/copy-content" Icon="@Icons.Material.Filled.ContentCopy">
                         @L["websites.copy.title", "Copy website content"]
+                    </MudNavLink>
+                </AuthorizeView>
+                <AuthorizeView Policy="@AdminPolicies.WebsiteProfileAccess" Context="wsp">
+                    <MudNavLink Href="/website/profile" Icon="@Icons.Material.Filled.Storefront">
+                        @L["website.profile", "Site profile"]
                     </MudNavLink>
                 </AuthorizeView>
                 <AuthorizeView Policy="@RoleKeys.WebsiteEdit" Context="ws">
@@ -549,6 +554,7 @@
     private bool _canMessagesLog;
     private bool _canMessagesGateways;
     private bool _canWebsite;
+    private bool _canWebsiteProfile;
     private bool _canWebsiteSocial;
     private bool _canWebsiteContact;
     private bool _canSocialPublish;
@@ -593,6 +599,7 @@
             _canMessagesLog = AdminPolicies.Allows(user, RoleKeys.MessagesLog);
             _canMessagesGateways = AdminPolicies.Allows(user, RoleKeys.MessagesGateways);
             _canWebsite = AdminPolicies.Allows(user, RoleKeys.WebsiteEdit);
+            _canWebsiteProfile = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteProfile);
             _canWebsiteSocial = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteSocialEdit);
             _canWebsiteContact = _canWebsite || AdminPolicies.Allows(user, RoleKeys.WebsiteContactEdit);
             _canSocialPublish = _canWebsite

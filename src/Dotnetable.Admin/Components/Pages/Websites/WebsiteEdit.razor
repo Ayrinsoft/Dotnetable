@@ -170,7 +170,8 @@ else if (_website is not null)
                             <MudTextField @bind-Value="_website.Mobile" Label="@L["mobile", "Mobile"]"
                                           Variant="Variant.Outlined"
                                           Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Filled.Phone" />
+                                          AdornmentIcon="@Icons.Material.Filled.Phone"
+                                          HelperText="@L["website.mobile_hint", "Manager number. The public site shows Contact Info first (phone, mobile, support). This number is only a fallback when Contact Info has no phone."]" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudTextField @bind-Value="_website.Email" Label="@L["email", "Email"]"
@@ -235,6 +236,73 @@ else if (_website is not null)
                                     @if (_website!.FaveIconFileID is not null)
                                     {
                                         <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearFave" />
+                                    }
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                    <MudGrid Spacing="3" Class="mt-2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.PrimaryColor" Label="@L["website.primary_color", "Primary color"]"
+                                          Variant="Variant.Outlined" MaxLength="7" Placeholder="#ff5e3a"
+                                          HelperText="@L["website.color_hint", "Optional #rrggbb. Published on api/siteinfo so every theme can use this site's color. Empty keeps the theme default."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.SecondaryColor" Label="@L["website.secondary_color", "Secondary color"]"
+                                          Variant="Variant.Outlined" MaxLength="7" Placeholder="#0ea5e9"
+                                          HelperText="@L["website.secondary_color_hint", "Optional accent, same format."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.BackgroundColor" Label="@L["website.background_color", "Background color (light)"]"
+                                          Variant="Variant.Outlined" MaxLength="7" Placeholder="#f6f1e8"
+                                          HelperText="@L["website.background_color_hint", "Optional page background for light mode. Empty keeps the theme."]" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_website.DarkBackgroundColor" Label="@L["website.dark_background_color", "Background color (dark)"]"
+                                          Variant="Variant.Outlined" MaxLength="7" Placeholder="#12181f"
+                                          HelperText="@L["website.dark_background_color_hint", "Optional page background for dark mode."]" />
+                        </MudItem>
+                    </MudGrid>
+                    @if (!_isNew)
+                    {
+                        <MudGrid Spacing="3" Class="mt-2">
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.body2" Class="mb-1">@L["website.background_image", "Background image (light)"]</MudText>
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <div class="border rounded" style="width:96px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                        @if (_backgroundFile is { CNDUrl: not null })
+                                        {
+                                            <img src="@(_backgroundFile.ThumbnailCDN ?? _backgroundFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                        }
+                                    </div>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickBackgroundAsync">@L["choose", "Choose"]</MudButton>
+                                    @if (_website!.BackgroundImageFileID is not null)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearBackground" />
+                                    }
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.body2" Class="mb-1">@L["website.dark_background_image", "Background image (dark)"]</MudText>
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <div class="border rounded" style="width:96px; height:64px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--mud-palette-background-grey);">
+                                        @if (_darkBackgroundFile is { CNDUrl: not null })
+                                        {
+                                            <img src="@(_darkBackgroundFile.ThumbnailCDN ?? _darkBackgroundFile.CNDUrl)" alt="" style="width:100%; height:100%; object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Secondary" />
+                                        }
+                                    </div>
+                                    <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="PickDarkBackgroundAsync">@L["choose", "Choose"]</MudButton>
+                                    @if (_website!.DarkBackgroundImageFileID is not null)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Clear" Size="Size.Small" OnClick="ClearDarkBackground" />
                                     }
                                 </MudStack>
                             </MudItem>
@@ -449,6 +517,8 @@ else if (_website is not null)
     private Website? _website;
     private FileRecord? _logoFile;
     private FileRecord? _faveFile;
+    private FileRecord? _backgroundFile;
+    private FileRecord? _darkBackgroundFile;
     private List<Currency> _currencies = new();
     private List<Country> _countries = new();
     private List<ShippingMethod> _shippingMethods = new();
@@ -494,6 +564,8 @@ else if (_website is not null)
             {
                 if (_website.LogoFileID is int logoId) _logoFile = await FileService.GetByIdAsync(logoId);
                 if (_website.FaveIconFileID is int faveId) _faveFile = await FileService.GetByIdAsync(faveId);
+                if (_website.BackgroundImageFileID is int backgroundId) _backgroundFile = await FileService.GetByIdAsync(backgroundId);
+                if (_website.DarkBackgroundImageFileID is int darkBackgroundId) _darkBackgroundFile = await FileService.GetByIdAsync(darkBackgroundId);
                 _shippingMethods = await ShippingService.GetAllAsync(Id);
             }
         }
@@ -565,6 +637,21 @@ else if (_website is not null)
     private void ClearLogo() { _website!.LogoFileID = null; _logoFile = null; }
     private void ClearFave() { _website!.FaveIconFileID = null; _faveFile = null; }
 
+    private async Task PickBackgroundAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is not null) { _website!.BackgroundImageFileID = picked.FileRecordID; _backgroundFile = picked; }
+    }
+
+    private async Task PickDarkBackgroundAsync()
+    {
+        var picked = await PickImageAsync();
+        if (picked is not null) { _website!.DarkBackgroundImageFileID = picked.FileRecordID; _darkBackgroundFile = picked; }
+    }
+
+    private void ClearBackground() { _website!.BackgroundImageFileID = null; _backgroundFile = null; }
+    private void ClearDarkBackground() { _website!.DarkBackgroundImageFileID = null; _darkBackgroundFile = null; }
+
     private Currency? GetSelectedCurrency() =>
         string.IsNullOrEmpty(_website?.DefaultCurrencyCode)
             ? null
@@ -602,6 +689,9 @@ else if (_website is not null)
         return result is { Canceled: false, Data: FileRecord file } ? file : null;
     }
 
+    private static bool InvalidColor(string? raw, string? normalized) =>
+        !string.IsNullOrWhiteSpace(raw) && normalized is null;
+
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
@@ -621,6 +711,24 @@ else if (_website is not null)
             }
 
             _website.ProductCodePrefix = Dotnetable.Domain.ProductCode.NormalizePrefix(_website.ProductCodePrefix);
+
+            var primary = BrandColor.Normalize(_website.PrimaryColor);
+            var secondary = BrandColor.Normalize(_website.SecondaryColor);
+            var background = BrandColor.Normalize(_website.BackgroundColor);
+            var darkBackground = BrandColor.Normalize(_website.DarkBackgroundColor);
+            if (InvalidColor(_website.PrimaryColor, primary)
+                || InvalidColor(_website.SecondaryColor, secondary)
+                || InvalidColor(_website.BackgroundColor, background)
+                || InvalidColor(_website.DarkBackgroundColor, darkBackground))
+            {
+                Snackbar.Add(L["website.color_invalid", "Brand colors must be #rgb or #rrggbb, or left empty."], Severity.Warning);
+                return;
+            }
+
+            _website.PrimaryColor = primary;
+            _website.SecondaryColor = secondary;
+            _website.BackgroundColor = background;
+            _website.DarkBackgroundColor = darkBackground;
 
             if (_isNew)
             {

@@ -40,7 +40,7 @@ public static class DefaultPolicies
             RoleKeys.WarehouseView, RoleKeys.WarehouseReceive, RoleKeys.WarehouseIssue,
             RoleKeys.WarehouseApprove, RoleKeys.WarehousePost,
             RoleKeys.InventoryView, RoleKeys.OrdersView, RoleKeys.SuppliersView,
-            RoleKeys.TasksView, RoleKeys.AuthorsProfile,
+            RoleKeys.TasksView, RoleKeys.AuthorsProfile, RoleKeys.WebsiteProfile,
         }),
         (SalesStaff, new[]
         {
@@ -51,7 +51,7 @@ public static class DefaultPolicies
             RoleKeys.InventoryView, RoleKeys.ShippingView,
             RoleKeys.SupportView, RoleKeys.SupportEdit,
             RoleKeys.WalletsView,
-            RoleKeys.TasksView, RoleKeys.AuthorsProfile,
+            RoleKeys.TasksView, RoleKeys.AuthorsProfile, RoleKeys.WebsiteProfile,
         }),
         (FinanceStaff, new[]
         {
@@ -62,14 +62,14 @@ public static class DefaultPolicies
             RoleKeys.AccountingView, RoleKeys.AccountingEdit, RoleKeys.AccountingPost, RoleKeys.AccountingReport,
             RoleKeys.CurrencyView, RoleKeys.TaxView,
             RoleKeys.InventoryView, RoleKeys.WarehouseView,
-            RoleKeys.TasksView, RoleKeys.AuthorsProfile,
+            RoleKeys.TasksView, RoleKeys.AuthorsProfile, RoleKeys.WebsiteProfile,
         }),
         (HrStaff, new[]
         {
             RoleKeys.HrView, RoleKeys.HrEdit,
             RoleKeys.PayrollView, RoleKeys.PayrollRun, RoleKeys.PayrollApprove,
             RoleKeys.AccountingView, RoleKeys.AccountingReport,
-            RoleKeys.TasksView, RoleKeys.AuthorsProfile,
+            RoleKeys.TasksView, RoleKeys.AuthorsProfile, RoleKeys.WebsiteProfile,
         }),
     ];
 }

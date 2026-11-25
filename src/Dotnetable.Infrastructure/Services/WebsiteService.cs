@@ -2,6 +2,7 @@ using Dotnetable.Application;
 using Dotnetable.Application.Authorization;
 using Dotnetable.Application.DTOs;
 using Dotnetable.Application.Interfaces;
+using Dotnetable.Domain;
 using Dotnetable.Domain.Entities;
 using Dotnetable.Domain.Enums;
 using Dotnetable.Infrastructure.Data;
@@ -176,6 +177,105 @@ public class WebsiteService : IWebsiteService
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task<string?> UpdatePublicProfileAsync(WebsitePublicProfile profile, CancellationToken ct = default)
+    {
+        var trade = profile.TradeName?.Trim() ?? "";
+        var brand = profile.BrandName?.Trim() ?? "";
+        var manager = profile.Manager?.Trim() ?? "";
+        var mobile = profile.Mobile?.Trim() ?? "";
+        var email = profile.Email?.Trim() ?? "";
+        if (trade.Length is < 1 or > 32) return "Trade name is required and must be at most 32 characters.";
+        if (brand.Length is < 1 or > 60) return "Brand name is required and must be at most 60 characters.";
+        if (manager.Length is < 1 or > 30) return "Manager is required and must be at most 30 characters.";
+        if (mobile.Length is < 1 or > 15) return "Phone is required and must be at most 15 characters.";
+        if (email.Length is < 1 or > 60) return "Email is required and must be at most 60 characters.";
+
+        var primary = BrandColor.Normalize(profile.PrimaryColor);
+        var secondary = BrandColor.Normalize(profile.SecondaryColor);
+        var background = BrandColor.Normalize(profile.BackgroundColor);
+        var darkBackground = BrandColor.Normalize(profile.DarkBackgroundColor);
+        if (RejectedColor(profile.PrimaryColor, primary)) return "Primary color must be empty or #rgb / #rrggbb.";
+        if (RejectedColor(profile.SecondaryColor, secondary)) return "Secondary color must be empty or #rgb / #rrggbb.";
+        if (RejectedColor(profile.BackgroundColor, background)) return "Light background color must be empty or #rgb / #rrggbb.";
+        if (RejectedColor(profile.DarkBackgroundColor, darkBackground)) return "Dark background color must be empty or #rgb / #rrggbb.";
+
+        if (!TryClip(profile.SellerLegalName, 200, out var legal)) return "Legal name must be at most 200 characters.";
+        if (!TryClip(profile.SellerTaxId, 50, out var taxId)) return "Tax ID must be at most 50 characters.";
+        if (!TryClip(profile.SellerEconomicCode, 50, out var economic)) return "Economic code must be at most 50 characters.";
+        if (!TryClip(profile.SellerVatNumber, 50, out var vat)) return "VAT number must be at most 50 characters.";
+        if (!TryClip(profile.SellerRegistrationNumber, 50, out var registration)) return "Registration number must be at most 50 characters.";
+
+        await using var context = await _contextFactory.CreateDbContextAsync(ct);
+        var website = await context.Websites.FirstOrDefaultAsync(w => w.WebsiteID == profile.WebsiteId, ct);
+        if (website is null) return "Website was not found.";
+
+        if (profile.TaxCountryId is int countryId
+            && !await context.Countries.AnyAsync(c => c.CountryID == countryId, ct))
+            return "Tax country was not found.";
+
+        var fileIds = new[] { profile.LogoFileId, profile.FavIconFileId, profile.BackgroundImageFileId, profile.DarkBackgroundImageFileId };
+        foreach (var fileId in fileIds)
+        {
+            if (fileId is not int id) continue;
+            var owns = await context.FileRecords.AnyAsync(f =>
+                f.FileRecordID == id
+                && !f.IsDeleted
+                && f.WebsiteStorageSettings.WebsiteID == profile.WebsiteId, ct);
+            if (!owns) return "Choose images from this website's media library.";
+        }
+
+        website.TradeName = trade;
+        website.BrandName = brand;
+        website.Manager = manager;
+        website.Mobile = mobile;
+        website.Email = email;
+        website.LogoFileID = profile.LogoFileId;
+        website.FaveIconFileID = profile.FavIconFileId;
+        website.BackgroundImageFileID = profile.BackgroundImageFileId;
+        website.DarkBackgroundImageFileID = profile.DarkBackgroundImageFileId;
+        website.PrimaryColor = primary;
+        website.SecondaryColor = secondary;
+        website.BackgroundColor = background;
+        website.DarkBackgroundColor = darkBackground;
+        website.TaxEnabled = profile.TaxEnabled;
+        website.PricesIncludeTax = profile.PricesIncludeTax;
+        website.TaxOnShipping = profile.TaxOnShipping;
+        website.ReportOfflineOrdersToTax = profile.ReportOfflineOrdersToTax;
+        website.TaxCountryID = profile.TaxCountryId;
+        website.SellerLegalName = legal;
+        website.SellerTaxId = taxId;
+        website.SellerEconomicCode = economic;
+        website.SellerVatNumber = vat;
+        website.SellerRegistrationNumber = registration;
+        await context.SaveChangesAsync(ct);
+        return null;
+    }
+
+    private static bool RejectedColor(string? raw, string? normalized) =>
+        !string.IsNullOrWhiteSpace(raw) && normalized is null;
+
+    private static bool TryClip(string? raw, int max, out string? value)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            value = null;
+            return true;
+        }
+
+        var text = raw.Trim();
+        if (text.Length > max)
+        {
+            value = null;
+            return false;
+        }
+
+        value = text;
+        return true;
+    }
+
+    private static string? BlankToNull(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(ct);
@@ -222,6 +322,8 @@ public class WebsiteService : IWebsiteService
         var website = await context.Websites.AsNoTracking()
             .Include(w => w.LogoFile)
             .Include(w => w.FaveIconFile)
+            .Include(w => w.BackgroundImageFile)
+            .Include(w => w.DarkBackgroundImageFile)
             .Include(w => w.WebsiteSocialLinks)
             .Include(w => w.WebsiteContactInfos).ThenInclude(c => c.WebsiteContactInfoTranslations)
             .Include(w => w.WebsiteSeoSettings)
@@ -237,10 +339,21 @@ public class WebsiteService : IWebsiteService
             FavIconUrl = website.FaveIconFile?.CNDUrl,
             Email = website.Email,
             Phone = website.Mobile,
+            PrimaryColor = BrandColor.Normalize(website.PrimaryColor),
+            SecondaryColor = BrandColor.Normalize(website.SecondaryColor),
+            BackgroundColor = BrandColor.Normalize(website.BackgroundColor),
+            DarkBackgroundColor = BrandColor.Normalize(website.DarkBackgroundColor),
+            BackgroundImageUrl = website.BackgroundImageFile?.CNDUrl,
+            DarkBackgroundImageUrl = website.DarkBackgroundImageFile?.CNDUrl,
             DefaultLanguageCode = website.DefaultLanguageCode,
             DefaultMetaTitle = seo?.DefaultMetaTitle,
             DefaultMetaDescription = seo?.DefaultMetaDescription,
             TitleSeparator = string.IsNullOrWhiteSpace(seo?.TitleSeparator) ? "·" : seo.TitleSeparator,
+            SellerLegalName = BlankToNull(website.SellerLegalName),
+            SellerTaxId = BlankToNull(website.SellerTaxId),
+            SellerEconomicCode = BlankToNull(website.SellerEconomicCode),
+            SellerVatNumber = BlankToNull(website.SellerVatNumber),
+            SellerRegistrationNumber = BlankToNull(website.SellerRegistrationNumber),
             SocialLinks = website.WebsiteSocialLinks
                 .OrderBy(s => s.WebsiteSocialLinkID)
                 .Select(s => new SocialLinkDto

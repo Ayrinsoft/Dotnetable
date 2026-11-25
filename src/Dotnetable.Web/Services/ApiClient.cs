@@ -121,6 +121,15 @@ public class ApiClient
             return await GetOrNullAsync<MenuDto>(path, ct);
         });
 
+    /// <summary>Active custom scripts (analytics, webmaster verification). Empty when none are set.</summary>
+    public async Task<IReadOnlyList<PublicScriptDto>> GetScriptsAsync(CancellationToken ct = default) =>
+        await CachedGetAsync("scripts", async () =>
+        {
+            try { return await _http.GetFromJsonAsync<List<PublicScriptDto>>("api/scripts", ct) ?? new List<PublicScriptDto>(); }
+            catch (HttpRequestException) { return new List<PublicScriptDto>(); }
+            catch (NotSupportedException) { return new List<PublicScriptDto>(); }
+        }) ?? new List<PublicScriptDto>();
+
     /// <summary>Fetches the active slideshow assigned to a placement key (e.g. "home_top"), or null
     /// when none is configured / the API is unreachable — callers simply render nothing.</summary>
     public Task<SlideshowDto?> GetSlideshowByPlacementAsync(string placementKey, CancellationToken ct = default) =>

@@ -147,6 +147,24 @@ public class WebsiteSettingService : IWebsiteSettingService
         await _context.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyList<PublicScriptDto>> GetPublicScriptsAsync(int websiteId, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        return await _context.WebsiteScripts.AsNoTracking()
+            .Where(x => x.WebsiteID == websiteId && x.Active)
+            .OrderBy(x => x.Priority ?? byte.MaxValue)
+            .ThenBy(x => x.WebsiteScriptID)
+            .Select(x => new PublicScriptDto
+            {
+                Position = x.ScriptPosition,
+                LoadCondition = x.ScriptLoadCondition,
+                Priority = x.Priority,
+                Content = x.RawContent,
+            })
+            .ToListAsync(ct);
+    }
+
     public async Task SetScriptActiveAsync(int id, bool active, CancellationToken ct = default)
     {
         await using var _context = await _contextFactory.CreateDbContextAsync(ct);

@@ -1,5 +1,6 @@
 @using Dotnetable.Web.Services
 @using Dotnetable.Application.DTOs
+@using Dotnetable.Domain
 @using Microsoft.AspNetCore.Mvc.ViewFeatures
 @inject ApiClient Api
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
@@ -30,6 +31,9 @@
     MenuDto? headerMenu = await Api.GetMenuAsync("Header", menuLang);
     MenuDto? footerMenu = await Api.GetMenuAsync("Footer", menuLang);
     var headerAds = await Api.GetAdvertisementsAsync("Header", menuLang);
+    var siteScripts = await Api.GetScriptsAsync();
+    bool ShowScript(PublicScriptDto script) =>
+        script.LoadCondition == 0 || (isLoggedIn ? script.LoadCondition == 1 : script.LoadCondition == 2);
     var footerAds = await Api.GetAdvertisementsAsync("Footer", menuLang);
 
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
@@ -121,10 +125,61 @@
     <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @{
+        var brandPrimary = BrandColor.Normalize(site?.PrimaryColor);
+        var brandSecondary = BrandColor.Normalize(site?.SecondaryColor);
+        var pageBackground = BrandColor.Normalize(site?.BackgroundColor);
+        var pageBackgroundDark = BrandColor.Normalize(site?.DarkBackgroundColor);
+        var pageImage = BrandStyle.CssImage(site?.BackgroundImageUrl);
+        var pageImageDark = BrandStyle.CssImage(site?.DarkBackgroundImageUrl);
+        var hasBrandStyle = brandPrimary is not null || brandSecondary is not null
+            || pageBackground is not null || pageBackgroundDark is not null
+            || pageImage is not null || pageImageDark is not null;
+    }
+    @if (hasBrandStyle)
+    {
+        <style>
+            :root {
+            @if (brandPrimary is not null)
+            {
+                @:--site-primary: @brandPrimary;
+                @:--site-primary-dark: color-mix(in srgb, @brandPrimary 78%, #000);
+            }
+            @if (brandSecondary is not null)
+            {
+                @:--site-accent: @brandSecondary;
+            }
+            @if (pageBackground is not null)
+            {
+                @:--site-bg: @pageBackground;
+            }
+            @if (pageBackgroundDark is not null)
+            {
+                @:--site-bg-dark: @pageBackgroundDark;
+            }
+            @if (pageImage is not null)
+            {
+                @:--site-bg-image: @pageImage;
+            }
+            @if (pageImageDark is not null)
+            {
+                @:--site-bg-image-dark: @pageImageDark;
+            }
+            }
+        </style>
+    }
     <link rel="stylesheet" href="~/css/slideshow.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    @foreach (var script in siteScripts.Where(script => script.Position == 0 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
 </head>
 <body>
+    @foreach (var script in siteScripts.Where(script => script.Position == 1 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
     <!-- ── Navbar ─────────────────────────────────────────────── -->
     <nav class="navbar navbar-expand-lg sticky-top site-navbar">
         <div class="container">
@@ -266,13 +321,35 @@
                 </div>
                 <div class="col-lg-4">
                     <h5>Get in touch</h5>
-                    @if (!string.IsNullOrWhiteSpace(site?.Email))
+                    @if (site?.ContactInfos is { Count: > 0 })
                     {
-                        <p class="mb-1"><i class="bi bi-envelope me-2"></i><a href="mailto:@site.Email">@site.Email</a></p>
+                        foreach (var group in site.ContactInfos.GroupBy(c => c.GroupTitle))
+                        {
+                            <div class="mb-2">
+                                @if (!string.IsNullOrWhiteSpace(group.Key))
+                                {
+                                    <div class="fw-semibold">@group.Key</div>
+                                }
+                                @foreach (var info in group)
+                                {
+                                    <p class="mb-1">
+                                        <i class="@ContactInfoHtml.IconClass(info) me-2"></i>
+                                        <span>@info.Title: @ContactInfoHtml.Value(info)</span>
+                                    </p>
+                                }
+                            </div>
+                        }
                     }
-                    @if (!string.IsNullOrWhiteSpace(site?.Phone))
+                    else
                     {
-                        <p class="mb-1"><i class="bi bi-telephone me-2"></i><a href="tel:@site.Phone">@site.Phone</a></p>
+                        @if (!string.IsNullOrWhiteSpace(site?.Email))
+                        {
+                            <p class="mb-1"><i class="bi bi-envelope me-2"></i><a href="mailto:@site.Email">@site.Email</a></p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(site?.Phone))
+                        {
+                            <p class="mb-1"><i class="bi bi-telephone me-2"></i><a href="tel:@site.Phone">@site.Phone</a></p>
+                        }
                     }
                     <p class="mb-0"><a asp-controller="Home" asp-action="Contact">Send us a message →</a></p>
                 </div>
@@ -297,5 +374,9 @@
     <script src="~/js/media.js" asp-append-version="true"></script>
     <script src="~/js/reactions.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+    @foreach (var script in siteScripts.Where(script => script.Position == 2 && ShowScript(script)))
+    {
+        @Html.Raw(script.Content)
+    }
 </body>
 </html>

@@ -10,10 +10,39 @@ public sealed class SiteInfoDto
     public string? FavIconUrl { get; init; }
     public string? Email { get; init; }
     public string? Phone { get; init; }
+
+    /// <summary>Optional #rrggbb. Null when the website has no brand color; themes keep their default.</summary>
+    public string? PrimaryColor { get; init; }
+
+    /// <summary>Optional #rrggbb accent. Null when unset.</summary>
+    public string? SecondaryColor { get; init; }
+
+    /// <summary>Optional light-mode page background, #rrggbb.</summary>
+    public string? BackgroundColor { get; init; }
+
+    /// <summary>Optional dark-mode page background, #rrggbb.</summary>
+    public string? DarkBackgroundColor { get; init; }
+
+    public string? BackgroundImageUrl { get; init; }
+
+    public string? DarkBackgroundImageUrl { get; init; }
+
     public string DefaultLanguageCode { get; init; } = "en";
     public string? DefaultMetaTitle { get; init; }
     public string? DefaultMetaDescription { get; init; }
     public string TitleSeparator { get; init; } = "·";
+
+    /// <summary>Seller legal name for the public footer and contact page. Empty when unset.</summary>
+    public string? SellerLegalName { get; init; }
+
+    public string? SellerTaxId { get; init; }
+
+    public string? SellerEconomicCode { get; init; }
+
+    public string? SellerVatNumber { get; init; }
+
+    public string? SellerRegistrationNumber { get; init; }
+
     public List<SocialLinkDto> SocialLinks { get; init; } = new();
     public List<ContactInfoDto> ContactInfos { get; init; } = new();
 }

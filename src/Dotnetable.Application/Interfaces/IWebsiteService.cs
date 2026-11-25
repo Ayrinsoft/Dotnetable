@@ -22,6 +22,13 @@ public interface IWebsiteService
     /// <see cref="WebsiteTypeExtensions.GetDefaultFeatures"/> for the chosen <see cref="Website.WebsiteType"/>.</summary>
     Task<Website> CreateAsync(Website website, CancellationToken ct = default);
     Task UpdateAsync(Website website, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates only the public profile of one website (name, logo, colors, tax identity).
+    /// Returns null on success, or a short English reason when the input is rejected.
+    /// Does not change the address, API key, active flag, or platform settings.
+    /// </summary>
+    Task<string?> UpdatePublicProfileAsync(WebsitePublicProfile profile, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
 
     /// <summary>All feature toggles recorded for a website (only rows that have ever been set — see <see cref="WebsiteFeature"/>).</summary>

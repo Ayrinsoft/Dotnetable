@@ -1,4 +1,4 @@
-@using Dotnetable.Domain.Enums
+@using Dotnetable.Web.Services
 @model Dotnetable.Web.Models.ContactPageViewModel
 @{
     ViewData["Title"] = Model.PageTitle;
@@ -31,8 +31,8 @@
                                     @foreach (var info in group)
                                     {
                                         <li class="d-flex align-items-start gap-2 mb-2">
-                                            <i class="@(string.IsNullOrWhiteSpace(info.Icon) ? "bi bi-info-circle" : info.Icon)"></i>
-                                            <span><strong>@info.Title:</strong> @ContactValueLink(info)</span>
+                                            <i class="@ContactInfoHtml.IconClass(info)"></i>
+                                            <span><strong>@info.Title:</strong> @ContactInfoHtml.Value(info)</span>
                                         </li>
                                     }
                                 </ul>
@@ -102,36 +102,4 @@
     <script src="~/js/contact.js" asp-append-version="true"></script>
 }
 
-@functions {
-    // Phone/email rows render as clickable tel:/mailto: links; Location renders as a link to an
-    // OpenStreetMap pin built from the stored lat/lng (not a provider-specific URL, so a future
-    // switch to another map provider only touches this helper); everything else (address, working
-    // hours, ...) is plain text since there's no single universal action for it.
-    private Microsoft.AspNetCore.Html.IHtmlContent ContactValueLink(Dotnetable.Application.DTOs.ContactInfoDto info)
-    {
-        var type = (ContactInfoType)info.Type;
 
-        if (type == ContactInfoType.Location && info.Latitude is decimal lat && info.Longitude is decimal lng)
-        {
-            var latStr = lat.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
-            var lngStr = lng.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture);
-            var mapHref = Html.Encode($"https://www.openstreetmap.org/?mlat={latStr}&mlon={lngStr}#map=17/{latStr}/{lngStr}");
-            var label = string.IsNullOrWhiteSpace(info.Value) ? $"{latStr}, {lngStr}" : Html.Encode(info.Value).ToString();
-            return new Microsoft.AspNetCore.Html.HtmlString($"<a href=\"{mapHref}\" target=\"_blank\" rel=\"noopener\">{label}</a>");
-        }
-
-        var scheme = type switch
-        {
-            ContactInfoType.Phone => "tel:",
-            ContactInfoType.Email => "mailto:",
-            _ => null,
-        };
-
-        var encodedValue = Html.Encode(info.Value);
-        if (scheme is null)
-            return new Microsoft.AspNetCore.Html.HtmlString(encodedValue);
-
-        var href = Html.Encode(scheme + info.Value);
-        return new Microsoft.AspNetCore.Html.HtmlString($"<a href=\"{href}\">{encodedValue}</a>");
-    }
-}
