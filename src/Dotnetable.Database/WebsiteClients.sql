@@ -11,6 +11,7 @@ CREATE TABLE [dbo].[WebsiteClients] (
     [Gender]          BIT              NULL,
     [Givenname]       NVARCHAR (42)    NULL,
     [Surname]         NVARCHAR (42)    NULL,
+    [NationalId]      NVARCHAR (32)    NULL,
     [HashKey]         UNIQUEIDENTIFIER NOT NULL,
     [ClientLevel]     TINYINT          NOT NULL,
     [FailedLoginCount] INT             NOT NULL,

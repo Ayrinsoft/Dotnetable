@@ -25,6 +25,9 @@ public partial class OrderItem
 
     public string TitleSnapshot { get; set; } = null!;
 
+    /// <summary>Invoice description frozen at sale time (route, date, passengers). The catalog title is not read again.</summary>
+    public string? LineDescription { get; set; }
+
     public string SkuSnapshot { get; set; } = null!;
 
     public int Quantity { get; set; }
@@ -35,6 +38,12 @@ public partial class OrderItem
     public decimal UnitPriceUsd { get; set; }
 
     public decimal UnitCostUsd { get; set; }
+
+    /// <summary>Supplier or catalog cost per unit in the order currency, frozen at sale time.</summary>
+    public decimal UnitCost { get; set; }
+
+    /// <summary>Tax for this line in the order currency, frozen at sale time.</summary>
+    public decimal TaxAmount { get; set; }
 
     /// <summary>
     /// Catalog / list unit price at order time (order currency), before any admin instant markup.

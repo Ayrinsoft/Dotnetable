@@ -4401,6 +4401,22 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BuyerEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("CouponID")
                         .HasColumnType("INTEGER");
 
@@ -4599,6 +4615,10 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("LineDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("INTEGER");
 
@@ -4616,12 +4636,18 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitCost")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("UnitCostUsd")
@@ -9233,6 +9259,10 @@ namespace Dotnetable.Migrations.Sqlite.Migrations
 
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasPrecision(0)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Password")

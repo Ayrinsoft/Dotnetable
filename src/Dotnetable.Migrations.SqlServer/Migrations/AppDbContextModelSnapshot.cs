@@ -4583,6 +4583,22 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("BuyerEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("BuyerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BuyerNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("BuyerPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
 
@@ -4785,6 +4801,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<string>("LineDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
@@ -4802,12 +4822,18 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
@@ -9584,6 +9610,10 @@ namespace Dotnetable.Migrations.SqlServer.Migrations
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)

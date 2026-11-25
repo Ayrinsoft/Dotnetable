@@ -4578,6 +4578,22 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("BuyerEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("BuyerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("BuyerNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("BuyerPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<int?>("CouponID")
                         .HasColumnType("integer");
 
@@ -4780,6 +4796,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<string>("LineDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("integer");
 
@@ -4797,12 +4817,18 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
@@ -9575,6 +9601,10 @@ namespace Dotnetable.Migrations.PostgreSql.Migrations
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasPrecision(0)
                         .HasColumnType("timestamp(0) with time zone");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)

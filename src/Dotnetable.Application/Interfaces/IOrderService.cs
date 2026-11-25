@@ -69,6 +69,12 @@ public interface IOrderService
     Task<AdminCreateOrderResult> AdminCreateAsync(
         AdminCreateOrderRequest request, int memberId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Records a flight or hotel hold as a pending order. The line keeps the sale price, supplier cost,
+    /// tax, and description from this call. It links a hidden service product and does not reserve stock.
+    /// </summary>
+    Task<CheckoutResult> RecordTravelAsync(int websiteId, int clientId, TravelOrderWrite write, CancellationToken ct = default);
+
     /// <summary>An order by id, scoped to a client when <paramref name="clientId"/> is given (404s otherwise), unrestricted for admin use when null.</summary>
     Task<Order?> GetByIdAsync(int orderId, int? clientId = null, CancellationToken ct = default);
 

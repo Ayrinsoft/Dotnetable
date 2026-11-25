@@ -334,6 +334,43 @@ public class AuthController : BaseController
         };
     }
 
+    /// <summary>
+    /// Creates or reuses a customer from the name, email, and mobile on a travel checkout, then
+    /// returns a session so the purchase can be stored. No captcha, password, or one-time code.
+    /// A national identifier is stored when present, without a check digit.
+    /// </summary>
+    [HttpPost("checkout-customer")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CheckoutCustomer([FromBody] CheckoutCustomerBody request, CancellationToken ct = default)
+    {
+        if (await ResolveWebsiteAsync(ct) is not { } website)
+            return BadRequest(new { message = "Unknown or missing website." });
+
+        var result = await _auth.EnsureCheckoutCustomerAsync(new CheckoutCustomerRequest(
+            website.WebsiteID, request.GivenName, request.Surname,
+            request.Email, request.CountryCode, request.Cellphone, request.NationalId), ct);
+
+        return result.Status switch
+        {
+            CheckoutCustomerStatus.Created or CheckoutCustomerStatus.Existing when result.Client is not null =>
+                Ok(await IssueSessionAsync(result.Client, ct)),
+            CheckoutCustomerStatus.Conflict => Conflict(new { message = "Email and mobile belong to different accounts." }),
+            CheckoutCustomerStatus.Invalid when !string.IsNullOrWhiteSpace(request.NationalId) =>
+                BadRequest(new { message = "National id must be 4 to 32 letters or digits." }),
+            _ => BadRequest(new { message = "An email or mobile number is required." }),
+        };
+    }
+
+    public sealed class CheckoutCustomerBody
+    {
+        [StringLength(80)] public string? GivenName { get; set; }
+        [StringLength(80)] public string? Surname { get; set; }
+        [StringLength(120)] public string? Email { get; set; }
+        [StringLength(8)] public string? CountryCode { get; set; }
+        [StringLength(20)] public string? Cellphone { get; set; }
+        [StringLength(40)] public string? NationalId { get; set; }
+    }
+
     /// <summary>Returns the identity and level of the bearer-token caller.</summary>
     [HttpGet("me")]
     [Authorize]

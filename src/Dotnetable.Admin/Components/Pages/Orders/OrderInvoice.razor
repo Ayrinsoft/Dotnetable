@@ -193,6 +193,10 @@ else
                         {
                             <div class="print-doc-party-row"><span class="k">@L["phone", "Phone"]</span><span class="v">@_inv.Buyer.Phone</span></div>
                         }
+                        @if (!string.IsNullOrEmpty(_inv.Buyer.NationalId))
+                        {
+                            <div class="print-doc-party-row"><span class="k">@L["invoice.national_id", "National id"]</span><span class="v">@_inv.Buyer.NationalId</span></div>
+                        }
                         @if (!string.IsNullOrEmpty(_inv.Buyer.Address))
                         {
                             <div class="print-doc-party-row print-doc-party-row-block">
@@ -212,7 +216,11 @@ else
                         <th>@L["variants.sku", "SKU"]</th>
                         <th class="text-end">@L["quantity", "Qty"]</th>
                         <th class="text-end">@L["variants.price", "Unit"]</th>
-                        <th class="text-end">@L["orders.line_total", "Total"]</th>
+                        <th class="text-end">@L["orders.discount", "Discount"]</th>
+                        <th class="text-end">@L["invoice.after_discount", "After discount"]</th>
+                        <th class="text-end">@L["tax", "Tax"]</th>
+                        <th class="text-end">@L["invoice.with_tax", "With tax"]</th>
+                        <th class="text-end no-print">@L["invoice.cost", "Cost"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -234,12 +242,20 @@ else
                                 {
                                     @line.Title
                                 }
+                                @if (!string.IsNullOrWhiteSpace(line.Description))
+                                {
+                                    <div>@line.Description</div>
+                                }
                             </td>
                             <td><code>@(string.IsNullOrWhiteSpace(line.ProductCode) ? "—" : line.ProductCode)</code></td>
                             <td><code>@(line.Sku ?? "—")</code></td>
                             <td class="text-end">@line.Quantity</td>
                             <td class="text-end">@MoneyFormat.Group(line.UnitPrice, _inv.CurrencyCode)</td>
-                            <td class="text-end">@MoneyFormat.Group(line.LineTotal, _inv.CurrencyCode)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.DiscountAmount, _inv.CurrencyCode)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.NetAmount, _inv.CurrencyCode)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.TaxAmount, _inv.CurrencyCode)</td>
+                            <td class="text-end">@MoneyFormat.Group(line.PayableAmount, _inv.CurrencyCode)</td>
+                            <td class="text-end no-print">@MoneyFormat.Group(line.CostAmount, _inv.CurrencyCode)</td>
                         </tr>
                     }
                 </tbody>
@@ -489,7 +505,8 @@ else
         sb.Append($"<p style=\"margin:0 0 16px;font-size:13px;color:#333;\">{H(L["date", "Date"])}: {inv.CreatedAt.ToLocalTime():g}</p>");
         sb.Append("<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:16px;\"><tr>");
         sb.Append($"<td width=\"50%\" style=\"vertical-align:top;padding:10px;border:1px solid #333;\"><strong>{H(L["invoice.seller", "Seller"])}</strong><br/>{seller}</td>");
-        sb.Append($"<td width=\"50%\" style=\"vertical-align:top;padding:10px;border:1px solid #333;\"><strong>{H(L["invoice.buyer", "Buyer"])}</strong><br/>{buyer}</td>");
+        var buyerId = string.IsNullOrWhiteSpace(inv.Buyer.NationalId) ? "" : "<br/>" + H(inv.Buyer.NationalId);
+        sb.Append($"<td width=\"50%\" style=\"vertical-align:top;padding:10px;border:1px solid #333;\"><strong>{H(L["invoice.buyer", "Buyer"])}</strong><br/>{buyer}{buyerId}</td>");
         sb.Append("</tr></table>");
         sb.Append("<table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse:collapse;font-size:13px;margin-bottom:16px;\">");
         sb.Append("<thead><tr style=\"background:#f0f2f4;\">");
@@ -497,16 +514,19 @@ else
         sb.Append($"<th align=\"left\" style=\"border-bottom:2px solid #111;\">{H(L["products.code", "Code"])}</th>");
         sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["quantity", "Qty"])}</th>");
         sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["variants.price", "Unit"])}</th>");
-        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["orders.line_total", "Total"])}</th>");
+        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["tax", "Tax"])}</th>");
+        sb.Append($"<th align=\"right\" style=\"border-bottom:2px solid #111;\">{H(L["invoice.with_tax", "With tax"])}</th>");
         sb.Append("</tr></thead><tbody>");
         foreach (var line in inv.Lines)
         {
             sb.Append("<tr>");
-            sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{H(line.Title)}</td>");
+            var story = string.IsNullOrWhiteSpace(line.Description) ? H(line.Title) : H(line.Title) + "<br/>" + H(line.Description);
+            sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{story}</td>");
             sb.Append($"<td style=\"border-bottom:1px solid #ccc;\">{H(string.IsNullOrWhiteSpace(line.ProductCode) ? "—" : line.ProductCode)}</td>");
             sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{line.Quantity}</td>");
             sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.UnitPrice, inv.CurrencyCode)}</td>");
-            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.LineTotal, inv.CurrencyCode)}</td>");
+            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.TaxAmount, inv.CurrencyCode)}</td>");
+            sb.Append($"<td align=\"right\" style=\"border-bottom:1px solid #ccc;\">{MoneyFormat.Group(line.PayableAmount, inv.CurrencyCode)}</td>");
             sb.Append("</tr>");
         }
         sb.Append("</tbody></table>");

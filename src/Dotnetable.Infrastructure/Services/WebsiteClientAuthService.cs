@@ -168,6 +168,94 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
         return new ClientRegisterResponse(ClientRegisterResult.OtpSent, channel, identifier);
     }
 
+    public async Task<CheckoutCustomerResult> EnsureCheckoutCustomerAsync(CheckoutCustomerRequest request, CancellationToken ct = default)
+    {
+        await using var _context = await _contextFactory.CreateDbContextAsync(ct);
+
+        var email = Normalize(request.Email)?.ToLowerInvariant();
+        var mobiles = MobileKeys(request.Cellphone);
+        var nationalId = NationalIdOrNull(request.NationalId);
+        if (request.NationalId is { Length: > 0 } && nationalId is null)
+            return new CheckoutCustomerResult(CheckoutCustomerStatus.Invalid, null);
+        if (email is null && mobiles.Count == 0)
+            return new CheckoutCustomerResult(CheckoutCustomerStatus.Invalid, null);
+
+        var matches = await _context.WebsiteClients
+            .Where(c => c.WebsiteID == request.WebsiteId &&
+                        ((email != null && c.Email != null && c.Email.ToLower() == email) ||
+                         (c.Cellphone != null && mobiles.Contains(c.Cellphone))))
+            .ToListAsync(ct);
+
+        var distinct = matches.GroupBy(c => c.WebsiteClientID).Select(group => group.First()).ToList();
+        if (distinct.Count > 1)
+            return new CheckoutCustomerResult(CheckoutCustomerStatus.Conflict, null);
+
+        if (distinct.Count == 1)
+        {
+            var client = distinct[0];
+            if (string.IsNullOrWhiteSpace(client.Givenname)) client.Givenname = Normalize(request.GivenName);
+            if (string.IsNullOrWhiteSpace(client.Surname)) client.Surname = Normalize(request.Surname);
+            if (string.IsNullOrWhiteSpace(client.Email) && email is not null) client.Email = email;
+            if (string.IsNullOrWhiteSpace(client.Cellphone) && mobiles.Count > 0)
+            {
+                var mobile = mobiles[0];
+                var taken = await _context.WebsiteClients.AnyAsync(c =>
+                    c.WebsiteID == request.WebsiteId && c.WebsiteClientID != client.WebsiteClientID && c.Cellphone == mobile, ct);
+                if (!taken)
+                {
+                    client.Cellphone = mobile;
+                    client.CountryCode = Digits(request.CountryCode) ?? client.CountryCode ?? "98";
+                }
+            }
+
+            if (nationalId is not null)
+                client.NationalId = nationalId;
+            if (!client.Active)
+            {
+                client.Active = true;
+                client.FailedLoginCount = 0;
+                client.LockoutEndUtc = null;
+            }
+
+            await _context.SaveChangesAsync(ct);
+            return new CheckoutCustomerResult(CheckoutCustomerStatus.Existing, client);
+        }
+
+        var created = new WebsiteClient
+        {
+            WebsiteID = request.WebsiteId,
+            Email = email,
+            Cellphone = mobiles.Count > 0 ? mobiles[0] : null,
+            CountryCode = mobiles.Count > 0 ? Digits(request.CountryCode) ?? "98" : null,
+            Givenname = Normalize(request.GivenName),
+            Surname = Normalize(request.Surname),
+            NationalId = nationalId,
+            Active = true,
+            RegisterDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            HashKey = Guid.NewGuid(),
+            ClientLevel = (byte)ClientLevel.Normal,
+        };
+        _context.WebsiteClients.Add(created);
+        try
+        {
+            await _context.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            var again = await _context.WebsiteClients
+                .Where(c => c.WebsiteID == request.WebsiteId &&
+                            ((email != null && c.Email != null && c.Email.ToLower() == email) ||
+                             (c.Cellphone != null && mobiles.Contains(c.Cellphone))))
+                .ToListAsync(ct);
+            var found = again.GroupBy(c => c.WebsiteClientID).Select(group => group.First()).ToList();
+            if (found.Count == 1)
+                return new CheckoutCustomerResult(CheckoutCustomerStatus.Existing, found[0]);
+            return new CheckoutCustomerResult(found.Count > 1 ? CheckoutCustomerStatus.Conflict : CheckoutCustomerStatus.Invalid, null);
+        }
+
+        return new CheckoutCustomerResult(CheckoutCustomerStatus.Created, created);
+    }
+
     public async Task<(ClientVerifyResult Result, WebsiteClient? Client)> VerifyOtpAsync(
         int websiteId, string identifier, string code, CancellationToken ct = default)
     {
@@ -430,6 +518,56 @@ public class WebsiteClientAuthService : IWebsiteClientAuthService
 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static List<string> MobileKeys(string? raw)
+    {
+        var text = Normalize(raw);
+        if (text is null)
+            return [];
+        var digits = new string(text.Where(char.IsDigit).ToArray());
+        var keys = new List<string> { text };
+        if (digits.Length > 0 && !keys.Contains(digits))
+            keys.Add(digits);
+        if (digits.StartsWith('0') && digits.Length > 1)
+            keys.Add(digits[1..]);
+        if (digits.StartsWith("98", StringComparison.Ordinal) && digits.Length > 2)
+            keys.Add(digits[2..]);
+        return keys;
+    }
+
+    private static string? Digits(string? value)
+    {
+        var text = Normalize(value);
+        if (text is null)
+            return null;
+        var digits = new string(text.Where(char.IsDigit).ToArray());
+        return digits.Length == 0 ? null : digits;
+    }
+
+    private static string? NationalIdOrNull(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        var buffer = new StringBuilder(raw.Length);
+        foreach (var ch in raw.Trim())
+        {
+            if (ch is ' ' or '-' or '_' or '\u200c')
+                continue;
+            var next = ch;
+            if (next is >= '\u06F0' and <= '\u06F9')
+                next = (char)('0' + (next - '\u06F0'));
+            else if (next is >= '\u0660' and <= '\u0669')
+                next = (char)('0' + (next - '\u0660'));
+            if (next is >= 'a' and <= 'z')
+                next = char.ToUpperInvariant(next);
+            if (next is (< '0' or > '9') and (< 'A' or > 'Z'))
+                return null;
+            buffer.Append(next);
+        }
+
+        var text = buffer.ToString();
+        return text.Length is < 4 or > 32 ? null : text;
+    }
 
     private static bool LooksLikeEmail(string value) => value.Contains('@');
 }

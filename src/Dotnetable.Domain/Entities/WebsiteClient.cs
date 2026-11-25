@@ -29,6 +29,12 @@ public partial class WebsiteClient
 
     public string? Surname { get; set; }
 
+    /// <summary>
+    /// Buyer national identifier for tax invoices. Iranian codes are stored here too.
+    /// No check digit is applied, so another country's identifier can use the same field.
+    /// </summary>
+    public string? NationalId { get; set; }
+
     public Guid HashKey { get; set; }
 
     public byte ClientLevel { get; set; }

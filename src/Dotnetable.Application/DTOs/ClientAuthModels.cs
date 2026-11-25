@@ -1,3 +1,5 @@
+using Dotnetable.Domain.Entities;
+
 namespace Dotnetable.Application.DTOs;
 
 /// <summary>How a one-time code is delivered to a customer.</summary>
@@ -8,6 +10,25 @@ public enum OtpChannel
 }
 
 /// <summary>Self-registration input for a website customer (email <em>or</em> mobile + password).</summary>
+public sealed record CheckoutCustomerRequest(
+    int WebsiteId,
+    string? GivenName,
+    string? Surname,
+    string? Email,
+    string? CountryCode,
+    string? Cellphone,
+    string? NationalId);
+
+public enum CheckoutCustomerStatus
+{
+    Created = 0,
+    Existing = 1,
+    Conflict = 2,
+    Invalid = 3,
+}
+
+public sealed record CheckoutCustomerResult(CheckoutCustomerStatus Status, WebsiteClient? Client);
+
 public sealed record ClientRegistration(
     int WebsiteId,
     string? GivenName,

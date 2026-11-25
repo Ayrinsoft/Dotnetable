@@ -54,11 +54,17 @@ public sealed class InvoicePartyDto
     public string? Email { get; init; }
     public string? Phone { get; init; }
     public string? Address { get; init; }
+
+    /// <summary>National identifier frozen on the order. Empty when the buyer had none.</summary>
+    public string? NationalId { get; init; }
 }
 
 public sealed class InvoiceLineDto
 {
     public string Title { get; init; } = "";
+
+    /// <summary>Sale description frozen on the line. The live catalog text is not used.</summary>
+    public string? Description { get; init; }
     /// <summary>Catalog product id when the line maps to a product (for admin preview links).</summary>
     public int? ProductID { get; init; }
     /// <summary>Catalog variant id when the line maps to a variant (for admin preview highlight).</summary>
@@ -69,5 +75,18 @@ public sealed class InvoiceLineDto
     public int Quantity { get; init; }
     public decimal UnitPrice { get; init; }
     public decimal DiscountAmount { get; init; }
+
+    /// <summary>Line amount after discount and before adding exclusive tax.</summary>
+    public decimal NetAmount { get; init; }
+
+    /// <summary>Tax frozen on the line.</summary>
+    public decimal TaxAmount { get; init; }
+
+    /// <summary>What the buyer pays for the line, including its frozen tax.</summary>
+    public decimal PayableAmount { get; init; }
+
+    /// <summary>Supplier or catalog cost for the line, frozen in the order currency.</summary>
+    public decimal CostAmount { get; init; }
+
     public decimal LineTotal { get; init; }
 }

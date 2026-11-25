@@ -17,6 +17,12 @@ public interface IWebsiteClientAuthService
     /// </summary>
     Task<ClientRegisterResponse> RegisterAsync(ClientRegistration registration, CancellationToken ct = default);
 
+    /// <summary>
+    /// Finds or creates an active customer from the checkout name, email, and mobile.
+    /// No password, captcha, or one-time code. A national identifier is stored when sent, without a check digit.
+    /// </summary>
+    Task<CheckoutCustomerResult> EnsureCheckoutCustomerAsync(CheckoutCustomerRequest request, CancellationToken ct = default);
+
     /// <summary>Validates an activation code and, on success, activates the account and returns it (for token issuance).</summary>
     Task<(ClientVerifyResult Result, WebsiteClient? Client)> VerifyOtpAsync(
         int websiteId, string identifier, string code, CancellationToken ct = default);

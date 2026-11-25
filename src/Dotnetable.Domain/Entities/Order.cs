@@ -65,6 +65,16 @@ public partial class Order
 
     public string? Note { get; set; }
 
+    /// <summary>Buyer name frozen when the order was created. Later profile edits do not change the invoice.</summary>
+    public string? BuyerName { get; set; }
+
+    /// <summary>Buyer national identifier frozen on the invoice. No check digit.</summary>
+    public string? BuyerNationalId { get; set; }
+
+    public string? BuyerPhone { get; set; }
+
+    public string? BuyerEmail { get; set; }
+
     /// <summary>
     /// Sales origin channel (storefront, Instagram, WhatsApp, …). See <c>OrderSalesChannel</c>.
     /// </summary>

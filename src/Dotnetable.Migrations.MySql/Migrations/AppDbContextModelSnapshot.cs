@@ -4403,6 +4403,22 @@ namespace Dotnetable.Migrations.MySql.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
+                    b.Property<string>("BuyerEmail")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("BuyerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("BuyerNationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("BuyerPhone")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<int?>("CouponID")
                         .HasColumnType("int");
 
@@ -4601,6 +4617,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18, 4)");
 
+                    b.Property<string>("LineDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<int>("OrderID")
                         .HasColumnType("int");
 
@@ -4618,12 +4638,18 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<int>("SourceWebsiteID")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18, 4)");
+
                     b.Property<string>("TitleSnapshot")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
 
                     b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<decimal>("UnitCost")
                         .HasColumnType("decimal(18, 4)");
 
                     b.Property<decimal>("UnitCostUsd")
@@ -9236,6 +9262,10 @@ namespace Dotnetable.Migrations.MySql.Migrations
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasPrecision(0)
                         .HasColumnType("datetime(0)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Password")
                         .HasMaxLength(256)

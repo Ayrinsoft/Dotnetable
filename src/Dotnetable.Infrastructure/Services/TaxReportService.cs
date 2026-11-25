@@ -179,24 +179,37 @@ public class TaxReportService : ITaxReportService
             },
             Buyer = new InvoicePartyDto
             {
-                Name = string.Join(' ', new[] { c.Givenname, c.Surname }.Where(x => !string.IsNullOrWhiteSpace(x))),
-                Email = c.Email,
-                Phone = c.Cellphone,
+                Name = FirstText(order.BuyerName, string.Join(' ', new[] { c.Givenname, c.Surname }.Where(x => !string.IsNullOrWhiteSpace(x)))) ?? "",
+                NationalId = FirstText(order.BuyerNationalId, c.NationalId),
+                Email = FirstText(order.BuyerEmail, c.Email),
+                Phone = FirstText(order.BuyerPhone, c.Cellphone),
                 Address = order.AddressSnapshot,
             },
-            Lines = order.OrderItems.Select(i => new InvoiceLineDto
+            Lines = order.OrderItems.Select(i =>
             {
-                Title = i.TitleSnapshot,
-                ProductID = i.ProductVariant is { ProductID: > 0 } p ? p.ProductID : null,
-                ProductVariantID = i.ProductVariantID,
-                ProductCode = i.ProductVariant is { ProductID: > 0 } pv
-                    ? Domain.ProductCode.Format(codePrefix, pv.ProductID)
-                    : null,
-                Sku = i.SkuSnapshot,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice,
-                DiscountAmount = i.DiscountAmount,
-                LineTotal = i.TotalPrice,
+                var afterDiscount = Math.Max(0, i.TotalPrice - i.DiscountAmount);
+                var tax = i.TaxAmount;
+                var net = order.PricesIncludeTax ? Math.Max(0, afterDiscount - tax) : afterDiscount;
+                var payable = order.PricesIncludeTax ? afterDiscount : afterDiscount + tax;
+                return new InvoiceLineDto
+                {
+                    Title = i.TitleSnapshot,
+                    Description = i.LineDescription,
+                    ProductID = i.ProductVariant is { ProductID: > 0 } p ? p.ProductID : null,
+                    ProductVariantID = i.ProductVariantID,
+                    ProductCode = i.ProductVariant is { ProductID: > 0 } pv
+                        ? Domain.ProductCode.Format(codePrefix, pv.ProductID)
+                        : null,
+                    Sku = i.SkuSnapshot,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    DiscountAmount = i.DiscountAmount,
+                    NetAmount = net,
+                    TaxAmount = tax,
+                    PayableAmount = payable,
+                    CostAmount = i.UnitCost * i.Quantity,
+                    LineTotal = i.TotalPrice,
+                };
             }).ToList(),
             SubTotal = order.SubTotal,
             DiscountTotal = order.DiscountTotal,
@@ -211,5 +224,16 @@ public class TaxReportService : ITaxReportService
             AddressSnapshot = order.AddressSnapshot,
             Note = order.Note,
         };
+    }
+
+    private static string? FirstText(params string?[] values)
+    {
+        foreach (var value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                return value.Trim();
+        }
+
+        return null;
     }
 }

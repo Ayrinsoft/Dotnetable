@@ -198,6 +198,9 @@ public class OrderService : IOrderService
             // Without this, SettleHostOrderAsync blocks on the uncommitted order row until SQL timeout.
             using var ambient = AmbientDbContext.Use(_context);
 
+            var buyer = await _context.WebsiteClients.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.WebsiteClientID == clientId && c.WebsiteID == websiteId, ct);
+
             var order = new Order
             {
                 WebsiteID = websiteId,
@@ -227,6 +230,7 @@ public class OrderService : IOrderService
                 MarkupTotal = 0,
                 CreatedAt = DateTime.UtcNow,
             };
+            SnapshotBuyer(order, buyer);
             _context.Orders.Add(order);
             await _context.SaveChangesAsync(ct);
 
@@ -254,6 +258,7 @@ public class OrderService : IOrderService
                     UnitPrice = unitLocal,
                     UnitPriceUsd = unitPriceUsd,
                     UnitCostUsd = unitCostUsd,
+                    UnitCost = rate > 0 ? Math.Round(unitCostUsd * rate, 4, MidpointRounding.AwayFromZero) : unitCostUsd,
                     CatalogUnitPrice = unitLocal,
                     UnitMarkup = 0,
                     DiscountAmount = 0,
@@ -322,6 +327,7 @@ public class OrderService : IOrderService
             if (coupon is not null)
                 await _coupons.RedeemAsync(coupon.CouponID, order.OrderID, clientId, discountUsd, ct);
 
+            StampLineTax(_context, order);
             await _context.SaveChangesAsync(ct);
 
             // Dual settlement + inter-site credit debit + mirror orders (buyer only sees host order).
@@ -1259,6 +1265,7 @@ public class OrderService : IOrderService
             CreatedByMemberID = memberId,
             CreatedAt = DateTime.UtcNow,
         };
+        SnapshotBuyer(order, client);
         _context.Orders.Add(order);
         await _context.SaveChangesAsync(ct);
 
@@ -1281,6 +1288,7 @@ public class OrderService : IOrderService
                 UnitPrice = p.ChargedLocal,
                 UnitPriceUsd = chargedUsd,
                 UnitCostUsd = p.UnitCostUsd,
+                UnitCost = rate > 0 ? Math.Round(p.UnitCostUsd * rate, 4, MidpointRounding.AwayFromZero) : p.UnitCostUsd,
                 CatalogUnitPrice = p.CatalogLocal,
                 UnitMarkup = unitMarkup,
                 DiscountAmount = 0,
@@ -1335,6 +1343,7 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow,
         });
 
+        StampLineTax(_context, order);
         await _context.SaveChangesAsync(ct);
         await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
 
@@ -1442,6 +1451,332 @@ public class OrderService : IOrderService
 
         return new AdminCreateOrderResult(true, null, order.OrderID, order.OrderNumber);
         });
+    }
+
+    public async Task<CheckoutResult> RecordTravelAsync(int websiteId, int clientId, TravelOrderWrite write, CancellationToken ct = default)
+    {
+        await using var _lease = await DbLease.OpenAsync(_contextFactory, ct);
+        var _context = _lease.Context;
+
+        if (websiteId <= 0 || clientId <= 0)
+            return new CheckoutResult(false, "Customer is required.", null, null);
+
+        var kind = (write.Kind ?? "").Trim().ToLowerInvariant();
+        var foreign = string.Equals(write.Scope?.Trim(), "foreign", StringComparison.OrdinalIgnoreCase);
+        var (sku, titleFallback) = kind switch
+        {
+            "flight" => foreign ? ("TRAVEL-FLIGHT-WW", "پرواز خارجی") : ("TRAVEL-FLIGHT-IR", "پرواز داخلی"),
+            "hotel" => foreign ? ("TRAVEL-HOTEL-WW", "هتل خارجی") : ("TRAVEL-HOTEL-IR", "هتل داخلی"),
+            _ => ("", ""),
+        };
+        if (sku.Length == 0)
+            return new CheckoutResult(false, "Kind must be flight or hotel.", null, null);
+
+        var title = (write.Title ?? "").Trim();
+        if (title.Length < 2)
+            title = titleFallback;
+        if (title.Length > 300)
+            title = title[..300];
+        if (write.Amount < 0)
+            return new CheckoutResult(false, "Amount must be zero or more.", null, null);
+        if (write.Cost is < 0 || write.Tax is < 0)
+            return new CheckoutResult(false, "Cost and tax must be zero or more.", null, null);
+
+        var nationalId = NationalIdOrNull(write.NationalId);
+        if (!string.IsNullOrWhiteSpace(write.NationalId) && nationalId is null)
+            return new CheckoutResult(false, "National id must be 4 to 32 letters or digits.", null, null);
+
+        var client = await _context.WebsiteClients
+            .FirstOrDefaultAsync(c => c.WebsiteClientID == clientId && c.WebsiteID == websiteId, ct);
+        if (client is null)
+            return new CheckoutResult(false, "Customer not found on this website.", null, null);
+        if (!client.Active)
+            return new CheckoutResult(false, "Customer is not active.", null, null);
+        if (nationalId is not null)
+            client.NationalId = nationalId;
+
+        var (currency, rate) = await _currency.GetActiveRateAsync(websiteId, write.CurrencyCode, ct);
+        if (string.IsNullOrWhiteSpace(currency))
+            currency = "USD";
+        if (rate <= 0)
+            rate = 1m;
+
+        decimal ToUsd(decimal local) => Math.Round(local / rate, 4, MidpointRounding.AwayFromZero);
+
+        var amount = write.Amount;
+        var cost = write.Cost ?? amount;
+        decimal tax;
+        string? breakdown;
+        if (write.Tax is decimal given)
+        {
+            tax = Math.Min(given, amount);
+            breakdown = tax > 0 ? "{\"source\":\"travel\",\"amount\":" + tax.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}" : null;
+        }
+        else
+        {
+            var computed = await _tax.ComputeTaxDetailedAsync(websiteId, null, null, ToUsd(amount), 0, ct);
+            tax = Math.Round(computed.TaxAmount * rate, 4, MidpointRounding.AwayFromZero);
+            if (tax > amount)
+                tax = amount;
+            breakdown = computed.BreakdownJson;
+        }
+
+        var description = (write.Description ?? "").Trim();
+        if (tax > 0)
+        {
+            var taxLine = "مالیات " + tax.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+            description = description.Length == 0 ? taxLine : description + " — " + taxLine;
+        }
+        if (description.Length > 1000)
+            description = description[..1000];
+
+        var note = TravelNote(write, currency);
+        var amountUsd = ToUsd(amount);
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = _context.Database.CurrentTransaction is null
+                ? await _context.Database.BeginTransactionAsync(ct)
+                : null;
+            using var ambient = AmbientDbContext.Use(_context);
+
+            var variant = await EnsureTravelVariantAsync(_context, websiteId, sku, titleFallback, ct);
+            var order = new Order
+            {
+                WebsiteID = websiteId,
+                OrderNumber = GenerateOrderNumber(websiteId),
+                WebsiteClientID = client.WebsiteClientID,
+                Status = (byte)OrderStatus.PendingPayment,
+                CurrencyCode = currency,
+                ExchangeRateToUsd = rate,
+                SubTotal = amount,
+                DiscountTotal = 0,
+                ShippingTotal = 0,
+                TaxTotal = tax,
+                PricesIncludeTax = true,
+                TaxBreakdownJson = breakdown,
+                GrandTotal = amount,
+                GrandTotalUsd = amountUsd,
+                Note = note,
+                SalesChannel = (byte)OrderSalesChannel.Online,
+                ReportToTax = true,
+                MarkupTotal = 0,
+                CreatedByMemberID = null,
+                CreatedAt = DateTime.UtcNow,
+            };
+            SnapshotBuyer(order, client);
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync(ct);
+
+            _context.OrderItems.Add(new OrderItem
+            {
+                OrderID = order.OrderID,
+                WebsiteID = websiteId,
+                SourceWebsiteID = websiteId,
+                ProductVariantID = variant?.ProductVariantID,
+                TitleSnapshot = title,
+                LineDescription = description.Length == 0 ? null : description,
+                SkuSnapshot = sku,
+                Quantity = 1,
+                UnitPrice = amount,
+                UnitPriceUsd = amountUsd,
+                UnitCostUsd = ToUsd(cost),
+                UnitCost = cost,
+                CatalogUnitPrice = amount,
+                UnitMarkup = 0,
+                DiscountAmount = 0,
+                TaxAmount = tax,
+                TotalPrice = amount,
+            });
+            _context.OrderStatusHistories.Add(new OrderStatusHistory
+            {
+                OrderID = order.OrderID,
+                FromStatus = null,
+                ToStatus = (byte)OrderStatus.PendingPayment,
+                Note = "ثبت از سایت عمومی. بلیت یا واچر صادر نشده است.",
+                CreatedByMemberID = null,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await _context.SaveChangesAsync(ct);
+            await _vendorCredit.SettleHostOrderAsync(order.OrderID, ct);
+            if (tx is not null)
+                await tx.CommitAsync(ct);
+
+            try
+            {
+                await _notifications.NotifySiteAdminsAsync(
+                    websiteId,
+                    AdminNotificationType.NewOrder,
+                    "Travel order",
+                    $"Order #{order.OrderNumber} recorded from the public site — {order.GrandTotal:0.##} {order.CurrencyCode}.",
+                    $"/orders/{order.OrderID}",
+                    order.OrderID,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Travel order {OrderNumber} was saved but the admin notice failed.", order.OrderNumber);
+            }
+
+            return new CheckoutResult(true, null, order.OrderID, order.OrderNumber);
+        });
+    }
+
+    private static async Task<ProductVariant?> EnsureTravelVariantAsync(
+        AppDbContext context, int websiteId, string sku, string title, CancellationToken ct)
+    {
+        var existing = await context.ProductVariants
+            .FirstOrDefaultAsync(v => v.WebsiteID == websiteId && v.Sku == sku, ct);
+        if (existing is not null)
+            return existing;
+
+        var now = DateTime.UtcNow;
+        var slug = sku.ToLowerInvariant();
+        var product = await context.Products
+            .FirstOrDefaultAsync(p => p.WebsiteID == websiteId && p.Slug == slug, ct);
+        if (product is not null && (product.ProductType != (byte)ProductType.DigitalService || !product.IsCatalogOnly))
+            return null;
+        if (product is null)
+        {
+            product = new Product
+            {
+                WebsiteID = websiteId,
+                Slug = slug,
+                Title = title,
+                ShortDescription = "خدمت سفر برای فاکتور. در فروشگاه نمایش داده نمی‌شود.",
+                ProductType = (byte)ProductType.DigitalService,
+                RequiresShipping = false,
+                IsCatalogOnly = true,
+                HasVariants = false,
+                Status = 0,
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            context.Products.Add(product);
+            await context.SaveChangesAsync(ct);
+        }
+
+        var variant = new ProductVariant
+        {
+            WebsiteID = websiteId,
+            ProductID = product.ProductID,
+            Sku = sku,
+            Title = title,
+            IsDefault = true,
+            ReferencePrice = 0,
+            ReferencePriceUsd = 0,
+            IsActive = true,
+            CreatedAt = now,
+        };
+        context.ProductVariants.Add(variant);
+        await context.SaveChangesAsync(ct);
+        return variant;
+    }
+
+    private static string TravelNote(TravelOrderWrite write, string currency)
+    {
+        var parts = new List<string> { "خرید از سایت عمومی. بلیت یا واچر صادر نشده است." };
+        if (!string.IsNullOrWhiteSpace(write.Reference))
+        {
+            var reference = write.Reference.Trim();
+            if (reference.Length > 80)
+                reference = reference[..80];
+            parts.Add("مرجع: " + reference);
+        }
+
+        var asked = (write.CurrencyCode ?? "").Trim();
+        if (asked.Length > 0 && !asked.Equals(currency, StringComparison.OrdinalIgnoreCase))
+            parts.Add("واحد فروش: " + asked);
+        if (!string.IsNullOrWhiteSpace(write.Note))
+        {
+            var extra = write.Note.Trim();
+            if (extra.Length > 300)
+                extra = extra[..300];
+            parts.Add(extra);
+        }
+
+        var note = string.Join(" ", parts);
+        return note.Length <= 500 ? note : note[..500];
+    }
+
+    private static void SnapshotBuyer(Order order, WebsiteClient? client)
+    {
+        if (client is null)
+            return;
+        var name = string.Join(' ', new[] { client.Givenname, client.Surname }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        order.BuyerName = Clip(name, 200);
+        order.BuyerNationalId = Clip(client.NationalId, 32);
+        order.BuyerPhone = Clip(client.Cellphone, 32);
+        order.BuyerEmail = Clip(client.Email, 120);
+    }
+
+    private static void StampLineTax(AppDbContext context, Order order)
+    {
+        var items = context.ChangeTracker.Entries<OrderItem>()
+            .Select(entry => entry.Entity)
+            .Where(item => item.OrderID == order.OrderID)
+            .ToList();
+        if (items.Count == 0 || items.Any(item => item.TaxAmount > 0) || order.TaxTotal <= 0)
+            return;
+
+        var basis = items.Sum(item => Math.Max(0, item.TotalPrice - item.DiscountAmount));
+        if (basis <= 0)
+        {
+            items[^1].TaxAmount = order.TaxTotal;
+            return;
+        }
+
+        decimal assigned = 0;
+        for (var index = 0; index < items.Count; index++)
+        {
+            if (index == items.Count - 1)
+            {
+                items[index].TaxAmount = Math.Round(order.TaxTotal - assigned, 4, MidpointRounding.AwayFromZero);
+                break;
+            }
+
+            var share = Math.Round(
+                order.TaxTotal * Math.Max(0, items[index].TotalPrice - items[index].DiscountAmount) / basis,
+                4,
+                MidpointRounding.AwayFromZero);
+            items[index].TaxAmount = share;
+            assigned += share;
+        }
+    }
+
+    private static string? Clip(string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        var text = value.Trim();
+        return text.Length <= max ? text : text[..max];
+    }
+
+    private static string? NationalIdOrNull(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+        var buffer = new System.Text.StringBuilder(raw.Length);
+        foreach (var ch in raw.Trim())
+        {
+            if (ch is ' ' or '-' or '_' or '\u200c')
+                continue;
+            var next = ch;
+            if (next is >= '\u06F0' and <= '\u06F9')
+                next = (char)('0' + (next - '\u06F0'));
+            else if (next is >= '\u0660' and <= '\u0669')
+                next = (char)('0' + (next - '\u0660'));
+            if (next is >= 'a' and <= 'z')
+                next = char.ToUpperInvariant(next);
+            if (next is (< '0' or > '9') and (< 'A' or > 'Z'))
+                return null;
+            buffer.Append(next);
+        }
+
+        var text = buffer.ToString();
+        return text.Length is < 4 or > 32 ? null : text;
     }
 
     private static string GenerateOrderNumber(int websiteId) =>

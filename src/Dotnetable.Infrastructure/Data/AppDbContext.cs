@@ -2463,6 +2463,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.GrandTotalUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.MarkupTotal).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.BuyerName).HasMaxLength(200);
+            entity.Property(e => e.BuyerNationalId).HasMaxLength(32);
+            entity.Property(e => e.BuyerPhone).HasMaxLength(32);
+            entity.Property(e => e.BuyerEmail).HasMaxLength(120);
             entity.Property(e => e.OrderNumber).HasMaxLength(30);
             entity.Property(e => e.ReservationExpiresAt).HasColumnType("datetime");
             entity.Property(e => e.PaidAt).HasColumnType("datetime");
@@ -2525,9 +2529,12 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CatalogUnitPrice).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.LineDescription).HasMaxLength(1000);
             entity.Property(e => e.SkuSnapshot).HasMaxLength(100);
+            entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.TitleSnapshot).HasMaxLength(300);
             entity.Property(e => e.TotalPrice).HasColumnType("decimal(18, 4)");
+            entity.Property(e => e.UnitCost).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitCostUsd).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitMarkup).HasColumnType("decimal(18, 4)");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 4)");
@@ -4359,6 +4366,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(60)
                 .IsUnicode(false);
             entity.Property(e => e.Givenname).HasMaxLength(42);
+            entity.Property(e => e.NationalId).HasMaxLength(32);
             entity.Property(e => e.Password)
                 .HasMaxLength(256)
                 .IsUnicode(false);
